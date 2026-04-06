@@ -43,52 +43,33 @@ export default function Result() {
   }, [employee_id, performance, personality, relations, nav]);
 
   const handleSubmit = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  try {
+    setLoading(true);
+    setError("");
 
-      // تحويل الكائنات إلى مصفوفات قبل الإرسال
-      const payload = {
-        employee_id,
-        performance: Object.values(performance || {}).reduce(
-          (a, b) => a + Number(b),
-          0,
-        ),
-        personality: Object.values(personality || {}).reduce(
-          (a, b) => a + Number(b),
-          0,
-        ),
-        relations: Object.values(relations || {}).reduce(
-          (a, b) => a + Number(b),
-          0,
-        ),
-        performance_details: performance,
-        personality_details: personality,
-        relations_details: relations,
-        total: performanceTotal + personalityTotal + relationsTotal,
-        percentage:
-          ((performanceTotal + personalityTotal + relationsTotal) / 100) * 100,
-        grade: "", // يمكن ترك backend يحسبه
-        notes: "",
-        from_date,
-        to_date,
-      };
+    const payload = {
+      employee_id,
+      performance,    
+      personality,
+      relations,
+      notes: "",
+      from_date,
+      to_date,
+    };
 
-      const res = await API.post("/evaluations", payload);
+    const res = await API.post("/evaluations", payload);
 
-      // حفظ ID ودرجة التقييم
-      setEvaluationId(res.data.evaluation_id);
-      setGrade(res.data.grade);
+    setEvaluationId(res.data.evaluation_id);
+    setGrade(res.data.grade);
 
-      alert(`تم الحفظ بنجاح! التقدير: ${res.data.grade}`);
-    } catch (err) {
-      console.log(err);
-      setError("حدث خطأ أثناء الحفظ");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+    alert(`تم الحفظ بنجاح! التقدير: ${res.data.grade}`);
+  } catch (err) {
+    console.log(err);
+    setError("حدث خطأ أثناء الحفظ");
+  } finally {
+    setLoading(false);
+  }
+};
   const goToNotes = () => {
     if (!evaluationId) {
       alert("يجب حفظ التقييم أولاً!");
