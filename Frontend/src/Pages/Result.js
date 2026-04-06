@@ -5,9 +5,8 @@ import API from "../api/api";
 export default function Result() {
   const nav = useNavigate();
   const { state } = useLocation();
-  
-const [evaluationId, setEvaluationId] = useState(null);
 
+  const [evaluationId, setEvaluationId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [grade, setGrade] = useState("");
   const [error, setError] = useState("");
@@ -26,18 +25,16 @@ const [evaluationId, setEvaluationId] = useState(null);
     (a, b) => a + Number(b),
     0
   );
-
   const personalityTotal = Object.values(personality || {}).reduce(
     (a, b) => a + Number(b),
     0
   );
-
   const relationsTotal = Object.values(relations || {}).reduce(
     (a, b) => a + Number(b),
     0
   );
 
-  // ✅ تحقق من وجود البيانات
+  // التحقق من وجود البيانات الأساسية
   useEffect(() => {
     if (!employee_id || !performance || !personality || !relations) {
       alert("البيانات غير مكتملة، سيتم الرجوع");
@@ -50,23 +47,24 @@ const [evaluationId, setEvaluationId] = useState(null);
       setLoading(true);
       setError("");
 
-      const res = await API.post("/evaluations", {
-  employee_id,
-  performance,
-  personality,
-  relations,
-  from_date,
-  to_date,
-  notes: "",
-});
+      // تحويل الكائنات إلى مصفوفات قبل الإرسال
+      const payload = {
+        employee_id,
+        from_date,
+        to_date,
+        notes: "",
+        performance: Object.values(performance || {}),
+        personality: Object.values(personality || {}),
+        relations: Object.values(relations || {}),
+      };
 
-// ✅ خزن ID
-setEvaluationId(res.data.evaluation_id);
+      const res = await API.post("/evaluations", payload);
 
-setGrade(res.data.grade);
+      // حفظ ID ودرجة التقييم
+      setEvaluationId(res.data.evaluation_id);
+      setGrade(res.data.grade);
 
       alert(`تم الحفظ بنجاح! التقدير: ${res.data.grade}`);
-
     } catch (err) {
       console.log(err);
       setError("حدث خطأ أثناء الحفظ");
@@ -75,20 +73,20 @@ setGrade(res.data.grade);
     }
   };
 
- const goToNotes = () => {
-  if (!evaluationId) {
-    alert("يجب حفظ التقييم أولاً!");
-    return;
-  }
+  const goToNotes = () => {
+    if (!evaluationId) {
+      alert("يجب حفظ التقييم أولاً!");
+      return;
+    }
 
-  nav("/notes", {
-    state: {
-      evaluationId, 
-      employee_id,
-      grade,
-    },
-  });
-};
+    nav("/notes", {
+      state: {
+        evaluationId,
+        employee_id,
+        grade,
+      },
+    });
+  };
 
   return (
     <div style={styles.page}>
@@ -141,7 +139,6 @@ const styles = {
     fontFamily: "'Poppins', sans-serif",
     position: "relative",
   },
-
   container: {
     width: "100%",
     maxWidth: "650px",
@@ -153,18 +150,7 @@ const styles = {
     boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
     textAlign: "center",
   },
-
-  heading: {
-    fontSize: "26px",
-    color: "#fff",
-    fontWeight: "700",
-  },
-
-  subheading: {
-    color: "#cbd5e1",
-    marginBottom: "25px",
-  },
-
+  heading: { fontSize: "26px", color: "#fff", fontWeight: "700" },
   card: {
     background: "rgba(255,255,255,0.06)",
     padding: "20px",
@@ -174,7 +160,6 @@ const styles = {
     marginBottom: "20px",
     lineHeight: "1.8",
   },
-
   gradeCard: {
     marginTop: "15px",
     padding: "15px",
@@ -183,12 +168,7 @@ const styles = {
     background: "linear-gradient(90deg, #38bdf8, #6366f1)",
     fontSize: "18px",
   },
-
-  error: {
-    color: "#f87171",
-    marginBottom: "10px",
-  },
-
+  error: { color: "#f87171", marginBottom: "10px" },
   button: {
     width: "100%",
     padding: "14px",
@@ -201,7 +181,6 @@ const styles = {
     background: "linear-gradient(90deg, #38bdf8, #6366f1)",
     marginTop: "10px",
   },
-
   nextButton: {
     width: "100%",
     padding: "14px",
@@ -213,7 +192,6 @@ const styles = {
     color: "#fff",
     fontWeight: "600",
   },
-
   backButton: {
     position: "fixed",
     bottom: "20px",

@@ -13,7 +13,6 @@ import Dashboard from "./Pages/Dashboard";
 import History from "./Pages/History";
 import Login from "./Pages/login";
 import CreateEmployee from "./Pages/CreateEmployee";
-import ProtectedRoute from "./components/ProtectedRoute";
 import EmployeeDashboard from "./Pages/employeeDashboard";
 import Employees from "./Pages/Employees";
 
