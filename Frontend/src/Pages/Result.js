@@ -49,6 +49,9 @@ export default function Result() {
 
       const payload = {
         employee_id,
+        from_date,
+        to_date,
+        notes: "",
         performance: performanceTotal,
         personality: personalityTotal,
         relations: relationsTotal,
@@ -56,12 +59,6 @@ export default function Result() {
         personality_details: JSON.stringify(personality),
         relations_details: JSON.stringify(relations),
         total: performanceTotal + personalityTotal + relationsTotal,
-        percentage:
-          ((performanceTotal + personalityTotal + relationsTotal) / 100) * 100,
-        grade: "", // الباك إند يحسبه
-        notes: "",
-        from_date,
-        to_date,
       };
 
       console.log("Sending payload:", payload);
