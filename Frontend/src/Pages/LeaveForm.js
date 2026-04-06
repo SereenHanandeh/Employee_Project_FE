@@ -6,7 +6,6 @@ export default function LeaveForm() {
   const nav = useNavigate();
 
   const [employees, setEmployees] = useState([]);
-
   const [me, setMe] = useState(null);
 
   const [employeeId, setEmployeeId] = useState("");
@@ -30,8 +29,8 @@ export default function LeaveForm() {
           setEmployeeId(res.data.employee_id);
         }
       } catch (err) {
-        console.log(err);
-        alert("فشل جلب بيانات المستخدم");
+        console.error(err);
+        alert("فشل جلب بيانات المستخدم، تحقق من تسجيل الدخول أو صلاحياتك");
       }
     };
 
@@ -40,8 +39,8 @@ export default function LeaveForm() {
         const res = await API.get("/employees");
         setEmployees(res.data);
       } catch (err) {
-        console.log(err);
-        alert("فشل تحميل الموظفين");
+        console.error(err);
+        alert("فشل تحميل الموظفين، تحقق من صلاحياتك");
       }
     };
 
@@ -50,8 +49,6 @@ export default function LeaveForm() {
   }, []);
 
   const saveLeave = async () => {
-    console.log("from:", from);
-    console.log("to:", to);
     if (!employeeId || !from || !to) {
       alert("يرجى تعبئة جميع الحقول");
       return;
@@ -60,13 +57,10 @@ export default function LeaveForm() {
     const payload = {
       employee_id: employeeId,
       type,
-      from_date: from || null,
-      to_date: to || null,
+      from_date: from,
+      to_date: to,
       notes: notes || "",
     };
-
-    console.log("SEND TO BACKEND:", payload);
-    
 
     try {
       await API.post("/leaves", payload);
@@ -167,42 +161,22 @@ const styles = {
     justifyContent: "center",
     direction: "rtl",
     fontFamily: "Tahoma",
-
-    /* 🔥 خلفية حديثة بدل الأبيض */
     background: "linear-gradient(135deg, #0f172a, #1e293b, #0ea5e9)",
   },
-
   card: {
     width: "430px",
     padding: "35px",
     borderRadius: "18px",
-
-    /* glass effect */
     background: "rgba(255,255,255,0.08)",
     backdropFilter: "blur(12px)",
-
     boxShadow: "0 20px 50px rgba(0,0,0,0.4)",
     border: "1px solid rgba(255,255,255,0.15)",
-
     display: "flex",
     flexDirection: "column",
     gap: "12px",
   },
-
-  title: {
-    textAlign: "center",
-    marginBottom: 10,
-    color: "#ffffff",
-    fontSize: 22,
-    fontWeight: "bold",
-  },
-
-  label: {
-    fontSize: 13,
-    color: "#e2e8f0",
-    fontWeight: "bold",
-  },
-
+  title: { textAlign: "center", marginBottom: 10, color: "#ffffff", fontSize: 22, fontWeight: "bold" },
+  label: { fontSize: 13, color: "#e2e8f0", fontWeight: "bold" },
   input: {
     padding: "10px 12px",
     borderRadius: "10px",
@@ -212,7 +186,6 @@ const styles = {
     background: "rgba(255,255,255,0.1)",
     color: "#fff",
   },
-
   button: {
     marginTop: 15,
     padding: "12px",

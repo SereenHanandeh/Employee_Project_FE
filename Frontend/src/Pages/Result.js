@@ -23,15 +23,15 @@ export default function Result() {
 
   const performanceTotal = Object.values(performance || {}).reduce(
     (a, b) => a + Number(b),
-    0
+    0,
   );
   const personalityTotal = Object.values(personality || {}).reduce(
     (a, b) => a + Number(b),
-    0
+    0,
   );
   const relationsTotal = Object.values(relations || {}).reduce(
     (a, b) => a + Number(b),
-    0
+    0,
   );
 
   // التحقق من وجود البيانات الأساسية
@@ -50,12 +50,28 @@ export default function Result() {
       // تحويل الكائنات إلى مصفوفات قبل الإرسال
       const payload = {
         employee_id,
+        performance: Object.values(performance || {}).reduce(
+          (a, b) => a + Number(b),
+          0,
+        ),
+        personality: Object.values(personality || {}).reduce(
+          (a, b) => a + Number(b),
+          0,
+        ),
+        relations: Object.values(relations || {}).reduce(
+          (a, b) => a + Number(b),
+          0,
+        ),
+        performance_details: performance,
+        personality_details: personality,
+        relations_details: relations,
+        total: performanceTotal + personalityTotal + relationsTotal,
+        percentage:
+          ((performanceTotal + personalityTotal + relationsTotal) / 100) * 100,
+        grade: "", // يمكن ترك backend يحسبه
+        notes: "",
         from_date,
         to_date,
-        notes: "",
-        performance: Object.values(performance || {}),
-        personality: Object.values(personality || {}),
-        relations: Object.values(relations || {}),
       };
 
       const res = await API.post("/evaluations", payload);
@@ -94,12 +110,24 @@ export default function Result() {
         <h2 style={styles.heading}>تأكيد وحفظ التقييم</h2>
 
         <div style={styles.card}>
-          <p><strong>الموظف:</strong> {name}</p>
-          <p><strong>من:</strong> {from_date}</p>
-          <p><strong>إلى:</strong> {to_date}</p>
-          <p><strong>الأداء:</strong> {performanceTotal}</p>
-          <p><strong>الشخصية:</strong> {personalityTotal}</p>
-          <p><strong>العلاقات:</strong> {relationsTotal}</p>
+          <p>
+            <strong>الموظف:</strong> {name}
+          </p>
+          <p>
+            <strong>من:</strong> {from_date}
+          </p>
+          <p>
+            <strong>إلى:</strong> {to_date}
+          </p>
+          <p>
+            <strong>الأداء:</strong> {performanceTotal}
+          </p>
+          <p>
+            <strong>الشخصية:</strong> {personalityTotal}
+          </p>
+          <p>
+            <strong>العلاقات:</strong> {relationsTotal}
+          </p>
         </div>
 
         {error && <p style={styles.error}>{error}</p>}
