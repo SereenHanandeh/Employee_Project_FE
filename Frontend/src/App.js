@@ -44,18 +44,11 @@ function App() {
         {/* لوحة التحكم */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/add-employee" element={<CreateEmployee />} />
-        <Route path="/employee" element={<EmployeeDashboard/>}/>
-                <Route path="/employees" element={<Employees/>}/>
+        <Route path="/employee" element={<EmployeeDashboard />} />
+        <Route path="/employees" element={<Employees />} />
 
         {/* سجل التقييمات */}
-        <Route
-          path="/history"
-          element={
-            <ProtectedRoute>
-              <History />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/history" element={<History />} />
       </Routes>
     </BrowserRouter>
   );
