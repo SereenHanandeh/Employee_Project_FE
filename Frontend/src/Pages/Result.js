@@ -43,33 +43,79 @@ export default function Result() {
   }, [employee_id, performance, personality, relations, nav]);
 
   const handleSubmit = async () => {
-  try {
-    setLoading(true);
-    setError("");
+    try {
+      setLoading(true);
+      setError("");
 
-    const payload = {
-      employee_id,
-      performance,    
-      personality,
-      relations,
-      notes: "",
-      from_date,
-      to_date,
-    };
+      const handleSubmit = async () => {
+        try {
+          setLoading(true);
+          setError("");
 
-    const res = await API.post("/evaluations", payload);
+          // جهز payload بجميع الأعمدة الـ13 المطلوبة
+          const payload = {
+            employee_id, // معرف الموظف
+            performance: Object.values(performance || {}).reduce(
+              (a, b) => a + Number(b),
+              0,
+            ), // مجموع الأداء
+            personality: Object.values(personality || {}).reduce(
+              (a, b) => a + Number(b),
+              0,
+            ), // مجموع الشخصية
+            relations: Object.values(relations || {}).reduce(
+              (a, b) => a + Number(b),
+              0,
+            ), // مجموع العلاقات
+            performance_details: performance || {}, // كائن التفاصيل
+            personality_details: personality || {}, // كائن التفاصيل
+            relations_details: relations || {}, // كائن التفاصيل
+            total:
+              Object.values(performance || {}).reduce(
+                (a, b) => a + Number(b),
+                0,
+              ) +
+              Object.values(personality || {}).reduce(
+                (a, b) => a + Number(b),
+                0,
+              ) +
+              Object.values(relations || {}).reduce((a, b) => a + Number(b), 0), // المجموع النهائي
+            percentage: null, // الباك إند يحسب النسبة
+            grade: null, // الباك إند يحسب التقدير
+            notes: "", // ملاحظات فارغة
+            from_date: from_date || null, // تاريخ البداية
+            to_date: to_date || null, // تاريخ النهاية
+          };
 
-    setEvaluationId(res.data.evaluation_id);
-    setGrade(res.data.grade);
+          console.log("Sending payload:", payload);
 
-    alert(`تم الحفظ بنجاح! التقدير: ${res.data.grade}`);
-  } catch (err) {
-    console.log(err);
-    setError("حدث خطأ أثناء الحفظ");
-  } finally {
-    setLoading(false);
-  }
-};
+          const res = await API.post("/evaluations", payload);
+
+          setEvaluationId(res.data.evaluation_id);
+          setGrade(res.data.grade);
+
+          alert(`تم الحفظ بنجاح! التقدير: ${res.data.grade}`);
+        } catch (err) {
+          console.error(err.response?.data || err);
+          setError("حدث خطأ أثناء الحفظ");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const res = await API.post("/evaluations", payload);
+
+      setEvaluationId(res.data.evaluation_id);
+      setGrade(res.data.grade);
+
+      alert(`تم الحفظ بنجاح! التقدير: ${res.data.grade}`);
+    } catch (err) {
+      console.log(err);
+      setError("حدث خطأ أثناء الحفظ");
+    } finally {
+      setLoading(false);
+    }
+  };
   const goToNotes = () => {
     if (!evaluationId) {
       alert("يجب حفظ التقييم أولاً!");
