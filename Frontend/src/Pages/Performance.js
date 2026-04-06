@@ -28,6 +28,8 @@ export default function Performance() {
   const { employee_id, from_date, to_date } = location.state || {};
 
   const [scores, setScores] = useState({});
+  
+  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(false);
 
   const change = (i, val, max) => {
