@@ -16,40 +16,44 @@ export default function LeaveForm() {
 
   const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    const fetchMe = async () => {
-      try {
-        const res = await API.get("/employees/me");
-        setMe(res.data);
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const res = await API.get("/employees/me");
 
-        if (res.data.role === "admin") {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-          setEmployeeId(res.data.employee_id);
+      setMe(res.data);
+
+      if (res.data.role === "admin") {
+        setIsAdmin(true);
+
+        // 🔥 admin → نجيب كل الموظفين فقط
+        const empRes = await API.get("/employees");
+        setEmployees(empRes.data);
+      } else {
+        setIsAdmin(false);
+        setEmployeeId(res.data.employee_id);
+      }
+    } catch (err) {
+      console.error("ERROR:", err.response?.status);
+
+      // 🔥 إذا 404 → غالبًا admin
+      if (err.response?.status === 404) {
+        setIsAdmin(true);
+
+        try {
+          const empRes = await API.get("/employees");
+          setEmployees(empRes.data);
+        } catch (e) {
+          alert("فشل تحميل الموظفين");
         }
-      } catch (err) {
-        console.log("STATUS:", err.response?.status);
-        console.log("DATA:", err.response?.data);
-        console.log("FULL ERROR:", err);
-
-        alert("فشل جلب بيانات المستخدم، تحقق من تسجيل الدخول أو صلاحياتك");
+      } else {
+        alert("فشل جلب بيانات المستخدم");
       }
-    };
+    }
+  };
 
-    const fetchEmployees = async () => {
-      try {
-        const res = await API.get("/employees");
-        setEmployees(res.data);
-      } catch (err) {
-        console.error(err);
-        alert("فشل تحميل الموظفين، تحقق من صلاحياتك");
-      }
-    };
-
-    fetchMe();
-    fetchEmployees();
-  }, []);
+  fetchData();
+}, []);
 
   const saveLeave = async () => {
     if (!employeeId || !from || !to) {
