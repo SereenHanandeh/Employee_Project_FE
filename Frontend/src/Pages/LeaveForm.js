@@ -72,7 +72,7 @@ useEffect(() => {
     try {
       await API.post("/leaves", payload);
       alert("تم حفظ الإجازة بنجاح");
-      nav("/employee");
+      nav("/leaves-list");
     } catch (err) {
       console.error(err.response?.data || err);
       alert("حدث خطأ في حفظ الإجازة");
