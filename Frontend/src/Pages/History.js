@@ -19,6 +19,10 @@ export default function History() {
     }
   };
 
+  const viewReport = (id) => {
+    nav("/print", { state: { evaluationId: id } });
+  };
+
   const deleteOne = async (id) => {
     try {
       await API.delete(`/evaluations/${id}`);
@@ -89,12 +93,21 @@ export default function History() {
                 </p>
               </div>
 
-              <button
-                style={styles.deleteBtn}
-                onClick={() => deleteOne(e.evaluation_id)}
-              >
-                حذف
-              </button>
+              <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}>
+                <button
+                  style={styles.viewBtn}
+                  onClick={() => viewReport(e.evaluation_id)}
+                >
+                  📄 عرض
+                </button>
+
+                <button
+                  style={styles.deleteBtn}
+                  onClick={() => deleteOne(e.evaluation_id)}
+                >
+                  حذف
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -150,6 +163,17 @@ const styles = {
     fontWeight: "600",
     boxShadow: "0 10px 20px rgba(59,130,246,0.3)",
     transition: "0.3s",
+  },
+
+  viewBtn: {
+    marginTop: "10px",
+    background: "rgba(59,130,246,0.2)",
+    border: "1px solid rgba(59,130,246,0.4)",
+    color: "#60a5fa",
+    padding: "8px",
+    borderRadius: "10px",
+    cursor: "pointer",
+    width: "100%",
   },
 
   grid: {
