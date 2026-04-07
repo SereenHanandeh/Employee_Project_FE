@@ -4,84 +4,84 @@ import API from "../api/api";
 
 export default function Result() {
   const nav = useNavigate();
-  const { state } = useLocation();
+  const location = useLocation();
+  const state = location.state || {};
+
+    // eslint-disable-next-line no-unused-vars
+  const [employeeId, setEmployeeId] = useState(state.employee_id || null);
+  const [name, setName] = useState(state.name || "");
+    // eslint-disable-next-line no-unused-vars
+  const [fromDate, setFromDate] = useState(state.from_date || "");
+   // eslint-disable-next-line no-unused-vars
+  const [toDate, setToDate] = useState(state.to_date || "");
+    // eslint-disable-next-line no-unused-vars
+  const [performance, setPerformance] = useState(state.performance || {});
+    // eslint-disable-next-line no-unused-vars
+  const [personality, setPersonality] = useState(state.personality || {});
+    // eslint-disable-next-line no-unused-vars
+  const [relations, setRelations] = useState(state.relations || {});
 
   const [evaluationId, setEvaluationId] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [grade, setGrade] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const {
-    employee_id,
-    name,
-    performance,
-    personality,
-    relations,
-    from_date,
-    to_date,
-  } = state || {};
-
-  const performanceTotal = Object.values(performance || {}).reduce(
-    (a, b) => a + Number(b),
-    0,
-  );
-  const personalityTotal = Object.values(personality || {}).reduce(
-    (a, b) => a + Number(b),
-    0,
-  );
-  const relationsTotal = Object.values(relations || {}).reduce(
-    (a, b) => a + Number(b),
-    0,
-  );
-
-  // التحقق من وجود البيانات الأساسية
+  // إذا الاسم غير موجود، جلبه من الـ API
   useEffect(() => {
-    if (!employee_id || !performance || !personality || !relations) {
-      alert("البيانات غير مكتملة، سيتم الرجوع");
-      nav("/");
+    if (!name && employeeId) {
+      API.get(`/employees/${employeeId}`)
+        .then(res => setName(res.data.name))
+        .catch(err => console.error("Fetch employee name failed", err));
     }
-  }, [employee_id, performance, personality, relations, nav]);
+  }, [employeeId, name]);
 
- const handleSubmit = async () => {
-  if (!employee_id || !from_date || !to_date) {
-    alert("تأكد من وجود بيانات التقييم والفترة");
-    return;
-  }
+  const performanceTotal = Object.values(performance).reduce(
+    (a, b) => a + Number(b || 0),
+    0
+  );
+  const personalityTotal = Object.values(personality).reduce(
+    (a, b) => a + Number(b || 0),
+    0
+  );
+  const relationsTotal = Object.values(relations).reduce(
+    (a, b) => a + Number(b || 0),
+    0
+  );
 
-  try {
-    setLoading(true);
-    setError("");
+  const handleSubmit = async () => {
+    if (!employeeId || !fromDate || !toDate) {
+      alert("تأكد من وجود بيانات الموظف والفترة");
+      return;
+    }
 
     const payload = {
-      employee_id,
-      from_date, // أضفها هنا
-      to_date,   // أضفها هنا
+      employee_id: employeeId,
+      from_date: fromDate,
+      to_date: toDate,
       notes: "",
       performance: performanceTotal,
       personality: personalityTotal,
       relations: relationsTotal,
-      performance_details: performance, // يمكنك إرسال الـ object مباشرة
+      performance_details: performance,
       personality_details: personality,
       relations_details: relations,
       total: performanceTotal + personalityTotal + relationsTotal,
     };
 
-    console.log("Sending payload:", payload);
-
-    const res = await API.post("/evaluations", payload);
-
-    // الآن نستلم evaluation_id والدرجة من الرد
-    setEvaluationId(res.data.evaluation_id);
-    setGrade(res.data.grade);
-
-    alert(`تم الحفظ بنجاح! التقدير: ${res.data.grade}`);
-  } catch (err) {
-    console.error(err.response?.data || err);
-    setError("حدث خطأ أثناء الحفظ");
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      setLoading(true);
+      setError("");
+      const res = await API.post("/evaluations", payload);
+      setEvaluationId(res.data.evaluation_id);
+      setGrade(res.data.grade);
+      alert(`تم الحفظ بنجاح! التقدير: ${res.data.grade}`);
+    } catch (err) {
+      console.error(err.response?.data || err);
+      setError("حدث خطأ أثناء الحفظ");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const goToNotes = () => {
     if (!evaluationId) {
@@ -92,7 +92,7 @@ export default function Result() {
     nav("/notes", {
       state: {
         evaluationId,
-        employee_id,
+        employee_id: employeeId,
         grade,
       },
     });
@@ -104,24 +104,12 @@ export default function Result() {
         <h2 style={styles.heading}>تأكيد وحفظ التقييم</h2>
 
         <div style={styles.card}>
-          <p>
-            <strong>الموظف:</strong> {name}
-          </p>
-          <p>
-            <strong>من:</strong> {from_date}
-          </p>
-          <p>
-            <strong>إلى:</strong> {to_date}
-          </p>
-          <p>
-            <strong>الأداء:</strong> {performanceTotal}
-          </p>
-          <p>
-            <strong>الشخصية:</strong> {personalityTotal}
-          </p>
-          <p>
-            <strong>العلاقات:</strong> {relationsTotal}
-          </p>
+          <p><strong>الموظف:</strong> {name || "جاري التحميل..."}</p>
+          <p><strong>من:</strong> {fromDate}</p>
+          <p><strong>إلى:</strong> {toDate}</p>
+          <p><strong>الأداء:</strong> {performanceTotal}</p>
+          <p><strong>الشخصية:</strong> {personalityTotal}</p>
+          <p><strong>العلاقات:</strong> {relationsTotal}</p>
         </div>
 
         {error && <p style={styles.error}>{error}</p>}
@@ -132,23 +120,18 @@ export default function Result() {
 
         {grade && (
           <>
-            <div style={styles.gradeCard}>
-              التقدير: <strong>{grade}</strong>
-            </div>
-
-            <button onClick={goToNotes} style={styles.nextButton}>
-              إضافة ملاحظات
-            </button>
+            <div style={styles.gradeCard}>التقدير: <strong>{grade}</strong></div>
+            <button onClick={goToNotes} style={styles.nextButton}>إضافة ملاحظات</button>
           </>
         )}
       </div>
 
-      <button style={styles.backButton} onClick={() => nav(-1)}>
-        ⬅ رجوع
-      </button>
+      <button style={styles.backButton} onClick={() => nav(-1)}>⬅ رجوع</button>
     </div>
   );
 }
+
+// ... styles كما هي
 
 const styles = {
   page: {

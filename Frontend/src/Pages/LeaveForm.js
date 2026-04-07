@@ -16,44 +16,44 @@ export default function LeaveForm() {
 
   const [isAdmin, setIsAdmin] = useState(false);
 
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const res = await API.get("/employees/me");
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await API.get("/employees/me");
 
-      setMe(res.data);
+        setMe(res.data);
 
-      if (res.data.role === "admin") {
-        setIsAdmin(true);
+        if (res.data.role === "admin") {
+          setIsAdmin(true);
 
-        // 🔥 admin → نجيب كل الموظفين فقط
-        const empRes = await API.get("/employees");
-        setEmployees(empRes.data);
-      } else {
-        setIsAdmin(false);
-        setEmployeeId(res.data.employee_id);
-      }
-    } catch (err) {
-      console.error("ERROR:", err.response?.status);
-
-      // 🔥 إذا 404 → غالبًا admin
-      if (err.response?.status === 404) {
-        setIsAdmin(true);
-
-        try {
+          // 🔥 admin → نجيب كل الموظفين فقط
           const empRes = await API.get("/employees");
           setEmployees(empRes.data);
-        } catch (e) {
-          alert("فشل تحميل الموظفين");
+        } else {
+          setIsAdmin(false);
+          setEmployeeId(res.data.employee_id);
         }
-      } else {
-        alert("فشل جلب بيانات المستخدم");
-      }
-    }
-  };
+      } catch (err) {
+        console.error("ERROR:", err.response?.status);
 
-  fetchData();
-}, []);
+        if (err.response?.status === 404) {
+          setIsAdmin(true);
+
+          try {
+            const empRes = await API.get("/employees");
+            setEmployees(empRes.data);
+          } catch (e) {
+            alert("فشل تحميل الموظفين");
+          }
+        } else {
+          alert("فشل جلب بيانات المستخدم");
+        }
+      }
+    };
+
+    fetchData();
+  }, []);
+  const today = new Date().toISOString().split("T")[0];
 
   const saveLeave = async () => {
     if (!employeeId || !from || !to) {
@@ -83,7 +83,6 @@ useEffect(() => {
     <div style={styles.page}>
       <div style={styles.card}>
         <h2 style={styles.title}>طلب إجازة</h2>
-
         {/* ADMIN ONLY */}
         {isAdmin ? (
           <>
@@ -107,7 +106,6 @@ useEffect(() => {
             <input style={styles.input} value={me?.name || ""} disabled />
           </>
         )}
-
         {/* TYPE */}
         <label style={styles.label}>نوع الإجازة</label>
         <select
@@ -115,32 +113,32 @@ useEffect(() => {
           value={type}
           onChange={(e) => setType(e.target.value)}
         >
-          <option value="سنوية">سنوية</option>
           <option value="مرضية">مرضية</option>
           <option value="طارئة">طارئة</option>
           <option value="بدون راتب">بدون راتب</option>
-          <option value="أمومة">أمومة</option>
           <option value="استثنائية">استثنائية</option>
         </select>
-
         {/* DATES */}
+        {/* FROM DATE */}
         <label style={styles.label}>من تاريخ</label>
         <input
           type="date"
           style={styles.input}
           value={from}
+          max={today} // لا يسمح بتاريخ بعد اليوم
           onChange={(e) => setFrom(e.target.value)}
         />
-
+        {/* TO DATE */}
         <label style={styles.label}>إلى تاريخ</label>
         <input
           type="date"
           style={styles.input}
           value={to}
-          min={from}
+          min={from} // لا يقل عن تاريخ البداية
+          max={today} // لا يسمح بتاريخ بعد اليوم
           onChange={(e) => setTo(e.target.value)}
         />
-
+        🔹 النتيجة:
         {/* NOTES */}
         <label style={styles.label}>ملاحظات</label>
         <textarea
@@ -148,7 +146,6 @@ useEffect(() => {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />
-
         <button style={styles.button} onClick={saveLeave}>
           حفظ الإجازة
         </button>
