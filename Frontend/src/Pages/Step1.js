@@ -32,6 +32,8 @@ export default function Step1() {
     fetchData();
   }, [nav]);
 
+  const today = new Date().toISOString().split("T")[0];
+
   const isOnLeave = (employeeId) => {
     const today = new Date();
 
@@ -94,28 +96,23 @@ export default function Step1() {
         </div>
 
         {/* From */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>من</label>
-          <input
-            type="date"
-            style={styles.input}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-          />
-        </div>
+        <input
+          type="date"
+          style={styles.input}
+          value={from}
+          max={today} // لا يسمح بتاريخ بعد اليوم
+          onChange={(e) => setFrom(e.target.value)}
+        />
 
         {/* To */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>إلى</label>
-          <input
-            type="date"
-            style={styles.input}
-            value={to}
-            min={from || undefined}
-            onChange={(e) => setTo(e.target.value)}
-          />
-        </div>
-
+        <input
+          type="date"
+          style={styles.input}
+          value={to}
+          min={from || undefined} // لا يقل عن تاريخ البداية
+          max={today} // لا يسمح بتاريخ بعد اليوم
+          onChange={(e) => setTo(e.target.value)}
+        />
         <button style={styles.button} onClick={next}>
           ➜ التالي
         </button>
