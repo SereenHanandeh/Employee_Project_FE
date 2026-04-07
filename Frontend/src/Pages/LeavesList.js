@@ -19,7 +19,7 @@ export default function LeavesList() {
     }
   };
 
-  const goBack = () => nav(-1);
+  const goBack = () => nav("/dashboard");
 
   const updateStatus = async (id, status) => {
     try {

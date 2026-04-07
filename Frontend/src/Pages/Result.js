@@ -42,40 +42,46 @@ export default function Result() {
     }
   }, [employee_id, performance, personality, relations, nav]);
 
-  const handleSubmit = async () => {
-    try {
-      setLoading(true);
-      setError("");
+ const handleSubmit = async () => {
+  if (!employee_id || !from_date || !to_date) {
+    alert("تأكد من وجود بيانات التقييم والفترة");
+    return;
+  }
 
-      const payload = {
-        employee_id,
-        from_date,
-        to_date,
-        notes: "",
-        performance: performanceTotal,
-        personality: personalityTotal,
-        relations: relationsTotal,
-        performance_details: JSON.stringify(performance),
-        personality_details: JSON.stringify(personality),
-        relations_details: JSON.stringify(relations),
-        total: performanceTotal + personalityTotal + relationsTotal,
-      };
+  try {
+    setLoading(true);
+    setError("");
 
-      console.log("Sending payload:", payload);
+    const payload = {
+      employee_id,
+      from_date, // أضفها هنا
+      to_date,   // أضفها هنا
+      notes: "",
+      performance: performanceTotal,
+      personality: personalityTotal,
+      relations: relationsTotal,
+      performance_details: performance, // يمكنك إرسال الـ object مباشرة
+      personality_details: personality,
+      relations_details: relations,
+      total: performanceTotal + personalityTotal + relationsTotal,
+    };
 
-      const res = await API.post("/evaluations", payload);
+    console.log("Sending payload:", payload);
 
-      setEvaluationId(res.data.evaluation_id);
-      setGrade(res.data.grade);
+    const res = await API.post("/evaluations", payload);
 
-      alert(`تم الحفظ بنجاح! التقدير: ${res.data.grade}`);
-    } catch (err) {
-      console.error(err.response?.data || err);
-      setError("حدث خطأ أثناء الحفظ");
-    } finally {
-      setLoading(false);
-    }
-  };
+    // الآن نستلم evaluation_id والدرجة من الرد
+    setEvaluationId(res.data.evaluation_id);
+    setGrade(res.data.grade);
+
+    alert(`تم الحفظ بنجاح! التقدير: ${res.data.grade}`);
+  } catch (err) {
+    console.error(err.response?.data || err);
+    setError("حدث خطأ أثناء الحفظ");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const goToNotes = () => {
     if (!evaluationId) {
