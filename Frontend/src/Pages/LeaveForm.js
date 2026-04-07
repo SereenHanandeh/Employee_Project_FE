@@ -29,7 +29,10 @@ export default function LeaveForm() {
           setEmployeeId(res.data.employee_id);
         }
       } catch (err) {
-        console.error(err);
+        console.log("STATUS:", err.response?.status);
+        console.log("DATA:", err.response?.data);
+        console.log("FULL ERROR:", err);
+
         alert("فشل جلب بيانات المستخدم، تحقق من تسجيل الدخول أو صلاحياتك");
       }
     };
@@ -175,7 +178,13 @@ const styles = {
     flexDirection: "column",
     gap: "12px",
   },
-  title: { textAlign: "center", marginBottom: 10, color: "#ffffff", fontSize: 22, fontWeight: "bold" },
+  title: {
+    textAlign: "center",
+    marginBottom: 10,
+    color: "#ffffff",
+    fontSize: 22,
+    fontWeight: "bold",
+  },
   label: { fontSize: 13, color: "#e2e8f0", fontWeight: "bold" },
   input: {
     padding: "10px 12px",
