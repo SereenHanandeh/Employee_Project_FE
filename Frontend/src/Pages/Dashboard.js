@@ -2,21 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  CartesianGrid,
-} from "recharts";
-
-export default function Dashboard() {
+export default function AdminDashboard() {
   const nav = useNavigate();
 
   const [stats, setStats] = useState({
@@ -48,17 +34,6 @@ export default function Dashboard() {
     }
   };
 
-  // ================= DATA =================
-  const barData = [
-    { name: "الموظفين", value: stats.employees },
-    { name: "التقييمات", value: stats.evaluations },
-    { name: "الإجازات", value: stats.leaves },
-  ];
-
-  const pieData = [...barData];
-
-  const COLORS = ["#0ea5e9", "#f97316", "#22c55e"];
-
   // ================= LOGOUT =================
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -68,7 +43,8 @@ export default function Dashboard() {
 
   return (
     <div style={styles.container}>
-      {/* ===== HEADER ===== */}
+
+      {/* ================= HEADER ================= */}
       <div style={styles.header}>
         <h1 style={styles.heading}>لوحة تحكم الأدمن</h1>
 
@@ -77,74 +53,25 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* ===== CARDS ===== */}
+      {/* ================= STATS ================= */}
       <div style={styles.cards}>
-        <div style={styles.card}>👨‍💼 {stats.employees} موظف</div>
-        <div style={styles.card}>📊 {stats.evaluations} تقييم</div>
-        <div style={styles.card}>📋 {stats.leaves} إجازة</div>
-      </div>
-
-      {/* ===== CHARTS ===== */}
-      <div style={styles.chartsContainer}>
-        {/* ===== BAR CHART ===== */}
-        <div style={styles.chartBox}>
-          <h3 style={styles.chartTitle}>إحصائيات النظام</h3>
-
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={barData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-
-              <XAxis dataKey="name" stroke="#ccc" />
-              <YAxis stroke="#ccc" />
-
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#1e293b",
-                  border: "none",
-                  borderRadius: "10px",
-                  color: "#fff",
-                }}
-              />
-
-              <Bar
-                dataKey="value"
-                radius={[10, 10, 0, 0]}
-                animationDuration={800}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+        <div style={{ ...styles.card, ...styles.blue }}>
+          <h2 style={styles.number}>{stats.employees}</h2>
+          <p style={styles.text}>الموظفين</p>
         </div>
 
-        {/* ===== PIE CHART ===== */}
-        <div style={styles.chartBox}>
-          <h3 style={styles.chartTitle}>توزيع البيانات</h3>
+        <div style={{ ...styles.card, ...styles.orange }}>
+          <h2 style={styles.number}>{stats.evaluations}</h2>
+          <p style={styles.text}>التقييمات</p>
+        </div>
 
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                dataKey="value"
-                outerRadius={110}
-                innerRadius={50}
-                paddingAngle={5}
-                label
-              >
-                {pieData.map((entry, index) => (
-                  <Cell
-                    key={index}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-
-              <Legend />
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+        <div style={{ ...styles.card, ...styles.green }}>
+          <h2 style={styles.number}>{stats.leaves}</h2>
+          <p style={styles.text}>الإجازات</p>
         </div>
       </div>
 
-      {/* ===== BUTTONS ===== */}
+      {/* ================= BUTTONS ================= */}
       <div style={styles.buttons}>
         <button style={styles.button} onClick={() => nav("/add-employee")}>
           ➕ إضافة موظف
@@ -167,27 +94,29 @@ export default function Dashboard() {
 }
 
 /* ===================== STYLES ===================== */
-
 const styles = {
   container: {
     minHeight: "100vh",
     padding: "50px 20px",
     direction: "rtl",
     fontFamily: "Cairo, sans-serif",
+
     background: "linear-gradient(135deg, #0f172a, #1e293b, #0b1220)",
   },
 
+  /* ===== HEADER ===== */
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "30px",
+    marginBottom: "40px",
   },
 
   heading: {
     fontSize: "34px",
     fontWeight: "bold",
     color: "#fff",
+    margin: 0,
   },
 
   logoutButton: {
@@ -195,53 +124,53 @@ const styles = {
     borderRadius: "10px",
     border: "none",
     cursor: "pointer",
-    color: "#fff",
-    background: "#ef4444",
-  },
-
-  /* ===== CARDS ===== */
-  cards: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "20px",
-    marginBottom: "40px",
-    flexWrap: "wrap",
-  },
-
-  card: {
-    padding: "20px 30px",
-    borderRadius: "15px",
-    background: "rgba(255,255,255,0.1)",
-    color: "#fff",
-    fontSize: "18px",
     fontWeight: "bold",
-    backdropFilter: "blur(10px)",
-  },
-
-  chartsContainer: {
-    display: "flex",
-    gap: "25px",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    marginBottom: "50px",
-  },
-
-  chartBox: {
-    width: "450px",
-    padding: "20px",
-    borderRadius: "18px",
-    background: "rgba(255,255,255,0.08)",
-    backdropFilter: "blur(12px)",
-    border: "1px solid rgba(255,255,255,0.15)",
+    color: "#fff",
+    background: "linear-gradient(135deg, #ef4444, #dc2626)",
+    boxShadow: "0 8px 20px rgba(239,68,68,0.3)",
     transition: "0.3s",
   },
 
-  chartTitle: {
-    color: "#fff",
-    marginBottom: "15px",
-    textAlign: "center",
+  /* ===== STATS ===== */
+  cards: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "25px",
+    flexWrap: "wrap",
+    marginBottom: "50px",
   },
 
+  card: {
+    width: "220px",
+    padding: "25px",
+    borderRadius: "18px",
+    textAlign: "center",
+    color: "#fff",
+
+    backdropFilter: "blur(12px)",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.15)",
+
+    boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
+  },
+
+  blue: { borderLeft: "4px solid #38bdf8" },
+  orange: { borderLeft: "4px solid #fb923c" },
+  green: { borderLeft: "4px solid #4ade80" },
+
+  number: {
+    fontSize: "28px",
+    margin: "0",
+    fontWeight: "bold",
+  },
+
+  text: {
+    marginTop: "8px",
+    fontSize: "14px",
+    opacity: 0.8,
+  },
+
+  /* ===== BUTTONS ===== */
   buttons: {
     display: "flex",
     justifyContent: "center",
@@ -256,6 +185,8 @@ const styles = {
     cursor: "pointer",
     fontWeight: "bold",
     color: "#fff",
-    background: "#3b82f6",
+    background: "linear-gradient(135deg, #3b82f6, #6366f1)",
+    boxShadow: "0 8px 20px rgba(59,130,246,0.3)",
+    transition: "0.3s",
   },
 };
