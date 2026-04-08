@@ -25,6 +25,19 @@ export default function Employees() {
     fetchEmployees();
   }, []);
 
+  // ================= normalize status =================
+  const getStatusKey = (status) => {
+    if (!status) return "";
+
+    const s = status.toLowerCase();
+
+    if (s === "نشط" || s === "active") return "active";
+    if (s === "محذوف" || s === "deleted") return "deleted";
+
+    return s;
+  };
+
+  // ================= fetch =================
   const fetchEmployees = async () => {
     try {
       const res = await API.get("/employees");
@@ -34,7 +47,7 @@ export default function Employees() {
     }
   };
 
-  // ================= حذف =================
+  // ================= delete =================
   const deleteEmployee = async (id) => {
     if (!window.confirm("هل أنت متأكد من حذف الموظف؟")) return;
 
@@ -42,26 +55,31 @@ export default function Employees() {
       await API.delete(`/employees/${id}/delete`);
 
       setEmployees((prev) =>
-        prev.map((e) => (e.employee_id === id ? { ...e, status: "محذوف" ||"deleted"} : e)),
+        prev.map((e) =>
+          e.employee_id === id ? { ...e, status: "محذوف" } : e
+        )
       );
     } catch {
       alert("فشل عملية الحذف");
     }
   };
 
+  // ================= restore =================
   const restoreEmployee = async (id) => {
     try {
       await API.put(`/employees/${id}/restore`);
 
       setEmployees((prev) =>
-        prev.map((e) => (e.employee_id === id ? { ...e, status: "نشط"||"active" } : e)),
+        prev.map((e) =>
+          e.employee_id === id ? { ...e, status: "نشط" } : e
+        )
       );
     } catch {
       alert("فشل الاسترجاع");
     }
   };
 
-  // ================= تعديل =================
+  // ================= edit =================
   const openEdit = (emp) => {
     setEditing(emp);
     setForm({
@@ -79,8 +97,8 @@ export default function Employees() {
 
       setEmployees((prev) =>
         prev.map((e) =>
-          e.employee_id === editing.employee_id ? { ...e, ...form } : e,
-        ),
+          e.employee_id === editing.employee_id ? { ...e, ...form } : e
+        )
       );
 
       setEditing(null);
@@ -89,18 +107,24 @@ export default function Employees() {
     }
   };
 
-  // ================= فلترة =================
+  // ================= filter =================
   const filteredEmployees = employees.filter((emp) => {
+    const statusKey = getStatusKey(emp.status);
+
     return (
       emp.name.toLowerCase().includes(search.toLowerCase()) &&
       (filterDept ? emp.department === filterDept : true) &&
-      (filterStatus ? emp.status === filterStatus : emp.status !== "محذوف"||"deleted")
+      (filterStatus
+        ? statusKey === getStatusKey(filterStatus)
+        : statusKey !== "deleted")
     );
   });
 
-  const deletedEmployees = employees.filter((emp) => emp.status === "محذوف"||"deleted");
+  const deletedEmployees = employees.filter(
+    (emp) => getStatusKey(emp.status) === "deleted"
+  );
 
-  // ================= Excel =================
+  // ================= excel =================
   const exportToExcel = () => {
     const data = filteredEmployees.map((emp) => ({
       الاسم: emp.name,
@@ -121,17 +145,40 @@ export default function Employees() {
 
     saveAs(
       new Blob([file], { type: "application/octet-stream" }),
-      "الموظفين.xlsx",
+      "الموظفين.xlsx"
     );
   };
 
   return (
     <div style={styles.page}>
-      <h1 style={styles.title}>👨‍💼 إدارة الموظفين</h1>
 
-      {/* أدوات التحكم */}
+      {/* HEADER + BACK BUTTON */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h1 style={styles.title}>👨‍💼 إدارة الموظفين</h1>
+
+        <button
+          onClick={() => nav(-1)}
+          style={{
+            background: "#334155",
+            color: "#fff",
+            padding: "8px 12px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          🔙 رجوع
+        </button>
+      </div>
+
+      {/* TOP BAR */}
       <div style={styles.topBar}>
-        {/* أدوات البحث (يسار) */}
         <div style={styles.leftTools}>
           <input
             placeholder="🔍 بحث عن موظف..."
@@ -156,12 +203,11 @@ export default function Employees() {
             onChange={(e) => setFilterStatus(e.target.value)}
           >
             <option value="">كل الحالات</option>
-            <option value="نشط||active">نشط</option>
-            <option value="محذوف||deleted">محذوف</option>
+            <option value="نشط">نشط</option>
+            <option value="محذوف">محذوف</option>
           </select>
         </div>
 
-        {/* الأزرار (يمين) */}
         <div style={styles.rightTools}>
           <button style={styles.trashBtn} onClick={() => setShowTrash(true)}>
             🗑️ سلة المحذوفات
@@ -177,7 +223,7 @@ export default function Employees() {
         </div>
       </div>
 
-      {/* الجدول */}
+      {/* TABLE */}
       <div style={styles.table}>
         {filteredEmployees.map((emp) => (
           <div key={emp.employee_id} style={styles.row}>
@@ -207,7 +253,7 @@ export default function Employees() {
               <span
                 style={{
                   ...styles.statusBadge,
-                  ...(emp.status === "نشط"||"active"
+                  ...(getStatusKey(emp.status) === "active"
                     ? styles.statusActive
                     : styles.statusDeleted),
                 }}
@@ -216,7 +262,8 @@ export default function Employees() {
               </span>
             </div>
 
-            {emp.status === "نشط" || "active"? (
+            {/* ACTIONS */}
+            {getStatusKey(emp.status) === "active" ? (
               <div>
                 <button
                   style={{ ...styles.button, ...styles.editBtn }}
@@ -244,11 +291,10 @@ export default function Employees() {
         ))}
       </div>
 
-      {/* 🗑️ سلة المحذوفات */}
+      {/* TRASH MODAL */}
       {showTrash && (
         <div style={styles.modalOverlay}>
           <div style={styles.trashModal}>
-            {/* HEADER */}
             <div style={styles.trashHeader}>
               <h2>🗑️ سلة المحذوفات</h2>
 
@@ -260,7 +306,6 @@ export default function Employees() {
               </button>
             </div>
 
-            {/* LIST */}
             <div style={styles.trashList}>
               {deletedEmployees.length === 0 ? (
                 <p style={{ textAlign: "center", color: "#9ca3af" }}>
@@ -286,7 +331,6 @@ export default function Employees() {
               )}
             </div>
 
-            {/* FOOTER */}
             <div style={styles.trashFooter}>
               <button
                 style={styles.cancelBtn}
@@ -299,7 +343,7 @@ export default function Employees() {
         </div>
       )}
 
-      {/* ✏️ Modal */}
+      {/* EDIT MODAL */}
       {editing && (
         <div style={styles.modalOverlay}>
           <div style={styles.editModal}>
@@ -311,7 +355,9 @@ export default function Employees() {
                 <input
                   style={styles.input}
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, name: e.target.value })
+                  }
                 />
               </div>
 
@@ -320,7 +366,9 @@ export default function Employees() {
                 <input
                   style={styles.input}
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, email: e.target.value })
+                  }
                 />
               </div>
 
@@ -351,17 +399,22 @@ export default function Employees() {
                 <input
                   style={styles.input}
                   value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, role: e.target.value })
+                  }
                 />
               </div>
             </div>
 
             <div style={styles.modalActions}>
               <button style={styles.saveBtn} onClick={updateEmployee}>
-                💾 حفظ التعديلات
+                💾 حفظ
               </button>
 
-              <button style={styles.cancelBtn} onClick={() => setEditing(null)}>
+              <button
+                style={styles.cancelBtn}
+                onClick={() => setEditing(null)}
+              >
                 إلغاء
               </button>
             </div>
@@ -381,36 +434,20 @@ const styles = {
     color: "#fff",
     direction: "rtl",
   },
-
-  title: {
-    fontSize: "28px",
-    marginBottom: "20px",
-  },
+  title: { fontSize: "28px", marginBottom: "20px" },
   topBar: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
     flexWrap: "wrap",
     marginBottom: "20px",
   },
-  label: {
-    fontSize: "11px",
-    color: "#9ca3af",
-    marginBottom: "2px",
-    display: "block",
-  },
+  leftTools: { display: "flex", gap: "10px", flexWrap: "wrap" },
+  rightTools: { display: "flex", gap: "10px", flexWrap: "wrap" },
 
-  leftTools: {
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-  },
-
-  rightTools: {
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-    justifyContent: "flex-end",
+  input: {
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #333",
   },
 
   addBtn: {
@@ -419,91 +456,25 @@ const styles = {
     padding: "10px 15px",
     borderRadius: "8px",
     border: "none",
-    cursor: "pointer",
   },
 
-  input: {
+  trashBtn: {
+    background: "red",
+    color: "#fff",
     padding: "10px",
     borderRadius: "8px",
-    border: "1px solid #333",
-  },
-
-  trashModal: {
-    width: "500px",
-    maxHeight: "80vh",
-    background: "#0f172a",
-    borderRadius: "15px",
-    padding: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "15px",
-    boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
-  },
-
-  trashHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottom: "1px solid #1f2937",
-    paddingBottom: "10px",
-  },
-
-  closeBtn: {
-    background: "transparent",
     border: "none",
+  },
+
+  exportBtn: {
+    background: "green",
     color: "#fff",
-    fontSize: "18px",
-    cursor: "pointer",
-  },
-
-  trashList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    overflowY: "auto",
-    maxHeight: "50vh",
-  },
-
-  trashCard: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    background: "#111827",
-    padding: "12px",
-    borderRadius: "10px",
-    border: "1px solid rgba(255,255,255,0.05)",
-  },
-
-  trashName: {
-    fontWeight: "bold",
-    fontSize: "14px",
-  },
-
-  trashInfo: {
-    fontSize: "12px",
-    color: "#9ca3af",
-  },
-
-  restoreBtn: {
-    background: "#22c55e",
-    color: "#fff",
-    border: "none",
-    padding: "8px 12px",
+    padding: "10px",
     borderRadius: "8px",
-    cursor: "pointer",
+    border: "none",
   },
 
-  trashFooter: {
-    marginTop: "10px",
-    display: "flex",
-    justifyContent: "flex-end",
-  },
-
-  table: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
+  table: { display: "flex", flexDirection: "column", gap: "10px" },
 
   row: {
     display: "grid",
@@ -511,7 +482,6 @@ const styles = {
     background: "#111827",
     padding: "12px",
     borderRadius: "10px",
-    alignItems: "center",
   },
 
   button: {
@@ -525,42 +495,29 @@ const styles = {
   editBtn: { background: "#3b82f6", color: "#fff" },
   deleteBtn: { background: "#ef4444", color: "#fff" },
 
-  trashBtn: {
-    background: "red",
+  restoreBtn: {
+    background: "#22c55e",
     color: "#fff",
-    padding: "10px",
+    padding: "8px 12px",
     borderRadius: "8px",
-  },
-
-  exportBtn: {
-    background: "green",
-    color: "#fff",
-    padding: "10px",
-    borderRadius: "8px",
+    border: "none",
   },
 
   statusBadge: {
     padding: "4px 10px",
     borderRadius: "20px",
-    fontSize: "12px",
-    fontWeight: "bold",
-    display: "inline-block",
-    marginTop: "3px",
   },
 
   statusActive: {
-    background: "rgba(34, 197, 94, 0.15)",
+    background: "#14532d",
     color: "#22c55e",
-    border: "1px solid #22c55e",
-    fontWeight: "bold",
   },
 
   statusDeleted: {
-    background: "rgba(239, 68, 68, 0.15)",
+    background: "#450a0a",
     color: "#ef4444",
-    border: "1px solid #ef4444",
-    fontWeight: "bold",
   },
+
   modalOverlay: {
     position: "fixed",
     inset: 0,
@@ -570,72 +527,53 @@ const styles = {
     alignItems: "center",
   },
 
-  modal: {
-    background: "#0f172a",
-    padding: "20px",
-    borderRadius: "10px",
-    width: "400px",
-  },
-
-  /* ✨ MODAL EDIT الجديد */
   editModal: {
     background: "#0f172a",
     padding: "25px",
     borderRadius: "15px",
     width: "500px",
-    color: "#fff",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-    animation: "fadeIn 0.3s ease-in-out",
   },
 
-  modalTitle: {
-    textAlign: "center",
-    marginBottom: "20px",
-    fontSize: "22px",
+  trashModal: {
+    width: "500px",
+    maxHeight: "80vh",
+    background: "#0f172a",
+    padding: "20px",
+    borderRadius: "15px",
   },
 
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "15px",
+  trashList: {
+    maxHeight: "50vh",
+    overflowY: "auto",
   },
 
-  field: {
+  trashCard: {
     display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-  },
-
-  fieldFull: {
-    gridColumn: "1 / -1",
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
+    justifyContent: "space-between",
+    padding: "12px",
   },
 
   modalActions: {
     display: "flex",
-    marginTop: "20px",
     gap: "10px",
+    marginTop: "20px",
   },
 
   saveBtn: {
     background: "#22c55e",
     color: "#fff",
+    flex: 1,
     padding: "10px",
     borderRadius: "8px",
     border: "none",
-    cursor: "pointer",
-    flex: 1,
   },
 
   cancelBtn: {
     background: "#ef4444",
     color: "#fff",
+    flex: 1,
     padding: "10px",
     borderRadius: "8px",
     border: "none",
-    cursor: "pointer",
-    flex: 1,
   },
 };
