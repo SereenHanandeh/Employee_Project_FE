@@ -42,9 +42,7 @@ export default function Employees() {
       await API.delete(`/employees/${id}/delete`);
 
       setEmployees((prev) =>
-        prev.map((e) =>
-          e.employee_id === id ? { ...e, status: "محذوف" } : e
-        )
+        prev.map((e) => (e.employee_id === id ? { ...e, status: "محذوف" } : e)),
       );
     } catch {
       alert("فشل عملية الحذف");
@@ -56,9 +54,7 @@ export default function Employees() {
       await API.put(`/employees/${id}/restore`);
 
       setEmployees((prev) =>
-        prev.map((e) =>
-          e.employee_id === id ? { ...e, status: "نشط" } : e
-        )
+        prev.map((e) => (e.employee_id === id ? { ...e, status: "نشط" } : e)),
       );
     } catch {
       alert("فشل الاسترجاع");
@@ -83,8 +79,8 @@ export default function Employees() {
 
       setEmployees((prev) =>
         prev.map((e) =>
-          e.employee_id === editing.employee_id ? { ...e, ...form } : e
-        )
+          e.employee_id === editing.employee_id ? { ...e, ...form } : e,
+        ),
       );
 
       setEditing(null);
@@ -102,18 +98,16 @@ export default function Employees() {
     );
   });
 
-  const deletedEmployees = employees.filter(
-    (emp) => emp.status === "محذوف"
-  );
+  const deletedEmployees = employees.filter((emp) => emp.status === "محذوف");
 
   // ================= Excel =================
   const exportToExcel = () => {
     const data = filteredEmployees.map((emp) => ({
-      "الاسم": emp.name,
+      الاسم: emp.name,
       "البريد الإلكتروني": emp.email,
-      "القسم": emp.department,
-      "المنصب": emp.position,
-      "الحالة": emp.status,
+      القسم: emp.department,
+      المنصب: emp.position,
+      الحالة: emp.status,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -127,7 +121,7 @@ export default function Employees() {
 
     saveAs(
       new Blob([file], { type: "application/octet-stream" }),
-      "الموظفين.xlsx"
+      "الموظفين.xlsx",
     );
   };
 
@@ -137,76 +131,90 @@ export default function Employees() {
 
       {/* أدوات التحكم */}
       <div style={styles.topBar}>
-  {/* أدوات البحث (يسار) */}
-  <div style={styles.leftTools}>
-    <input
-      placeholder="🔍 بحث عن موظف..."
-      style={styles.input}
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-    />
+        {/* أدوات البحث (يسار) */}
+        <div style={styles.leftTools}>
+          <input
+            placeholder="🔍 بحث عن موظف..."
+            style={styles.input}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
-    <select
-      style={styles.input}
-      value={filterDept}
-      onChange={(e) => setFilterDept(e.target.value)}
-    >
-      <option value="">كل الأقسام</option>
-      <option value="IT">تقنية المعلومات</option>
-      <option value="HR">الموارد البشرية</option>
-    </select>
+          <select
+            style={styles.input}
+            value={filterDept}
+            onChange={(e) => setFilterDept(e.target.value)}
+          >
+            <option value="">كل الأقسام</option>
+            <option value="IT">تقنية المعلومات</option>
+            <option value="HR">الموارد البشرية</option>
+          </select>
 
-    <select
-      style={styles.input}
-      value={filterStatus}
-      onChange={(e) => setFilterStatus(e.target.value)}
-    >
-      <option value="">كل الحالات</option>
-      <option value="نشط">نشط</option>
-      <option value="محذوف">محذوف</option>
-    </select>
-  </div>
+          <select
+            style={styles.input}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="">كل الحالات</option>
+            <option value="نشط">نشط</option>
+            <option value="محذوف">محذوف</option>
+          </select>
+        </div>
 
-  {/* الأزرار (يمين) */}
-  <div style={styles.rightTools}>
-    <button
-      style={styles.trashBtn}
-      onClick={() => setShowTrash(true)}
-    >
-      🗑️ سلة المحذوفات
-    </button>
+        {/* الأزرار (يمين) */}
+        <div style={styles.rightTools}>
+          <button style={styles.trashBtn} onClick={() => setShowTrash(true)}>
+            🗑️ سلة المحذوفات
+          </button>
 
-    <button style={styles.exportBtn} onClick={exportToExcel}>
-      📥 تصدير Excel
-    </button>
+          <button style={styles.exportBtn} onClick={exportToExcel}>
+            📥 تصدير Excel
+          </button>
 
-    <button
-      style={styles.addBtn}
-      onClick={() => nav("/add-employee")}
-    >
-      ➕ إضافة موظف
-    </button>
-  </div>
-</div>
+          <button style={styles.addBtn} onClick={() => nav("/add-employee")}>
+            ➕ إضافة موظف
+          </button>
+        </div>
+      </div>
 
       {/* الجدول */}
       <div style={styles.table}>
         {filteredEmployees.map((emp) => (
           <div key={emp.employee_id} style={styles.row}>
-            <span>{emp.name}</span>
-            <span>{emp.email}</span>
-            <span>{emp.department}</span>
-            <span>{emp.position}</span>
+            <div>
+              <small style={styles.label}>الاسم</small>
+              <div>{emp.name}</div>
+            </div>
 
-            <span
-              style={
-                emp.status === "نشط"
-                  ? styles.statusActive
-                  : styles.statusDeleted
-              }
-            >
-              {emp.status}
-            </span>
+            <div>
+              <small style={styles.label}>البريد الإلكتروني</small>
+              <div>{emp.email}</div>
+            </div>
+
+            <div>
+              <small style={styles.label}>القسم</small>
+              <div>{emp.department}</div>
+            </div>
+
+            <div>
+              <small style={styles.label}>المنصب</small>
+              <div>{emp.position}</div>
+            </div>
+
+            <div>
+              <small style={styles.label}>الحالة</small>
+
+              <span
+                style={{
+                  ...styles.statusBadge,
+                  ...(emp.status === "نشط"
+                    ? styles.statusActive
+                    : styles.statusDeleted),
+                }}
+              >
+                {emp.status}
+              </span>
+            </div>
 
             <div>
               <button
@@ -262,9 +270,7 @@ export default function Employees() {
                 <input
                   style={styles.input}
                   value={form.name}
-                  onChange={(e) =>
-                    setForm({ ...form, name: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </div>
 
@@ -273,9 +279,7 @@ export default function Employees() {
                 <input
                   style={styles.input}
                   value={form.email}
-                  onChange={(e) =>
-                    setForm({ ...form, email: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
               </div>
 
@@ -306,9 +310,7 @@ export default function Employees() {
                 <input
                   style={styles.input}
                   value={form.role}
-                  onChange={(e) =>
-                    setForm({ ...form, role: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
                 />
               </div>
             </div>
@@ -318,10 +320,7 @@ export default function Employees() {
                 💾 حفظ التعديلات
               </button>
 
-              <button
-                style={styles.cancelBtn}
-                onClick={() => setEditing(null)}
-              >
+              <button style={styles.cancelBtn} onClick={() => setEditing(null)}>
                 إلغاء
               </button>
             </div>
@@ -346,35 +345,41 @@ const styles = {
     fontSize: "28px",
     marginBottom: "20px",
   },
-topBar: {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  flexWrap: "wrap",
-  marginBottom: "20px",
-},
+  topBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginBottom: "20px",
+  },
+  label: {
+    fontSize: "11px",
+    color: "#9ca3af",
+    marginBottom: "2px",
+    display: "block",
+  },
 
-leftTools: {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-},
+  leftTools: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+  },
 
-rightTools: {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
-},
+  rightTools: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+  },
 
-addBtn: {
-  background: "#6366f1",
-  color: "#fff",
-  padding: "10px 15px",
-  borderRadius: "8px",
-  border: "none",
-  cursor: "pointer",
-},
+  addBtn: {
+    background: "#6366f1",
+    color: "#fff",
+    padding: "10px 15px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+  },
 
   input: {
     padding: "10px",
@@ -422,9 +427,28 @@ addBtn: {
     borderRadius: "8px",
   },
 
-  statusActive: { color: "#22c55e", fontWeight: "bold" },
-  statusDeleted: { color: "#ef4444", fontWeight: "bold" },
+  statusBadge: {
+    padding: "4px 10px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "bold",
+    display: "inline-block",
+    marginTop: "3px",
+  },
 
+  statusActive: {
+    background: "rgba(34, 197, 94, 0.15)",
+    color: "#22c55e",
+    border: "1px solid #22c55e",
+    fontWeight: "bold",
+  },
+
+  statusDeleted: {
+    background: "rgba(239, 68, 68, 0.15)",
+    color: "#ef4444",
+    border: "1px solid #ef4444",
+    fontWeight: "bold",
+  },
   modalOverlay: {
     position: "fixed",
     inset: 0,
