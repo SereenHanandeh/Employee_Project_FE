@@ -2,6 +2,19 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+
 export default function AdminDashboard() {
   const nav = useNavigate();
 
@@ -34,6 +47,21 @@ export default function AdminDashboard() {
     }
   };
 
+  // ================= DATA FOR CHARTS =================
+  const barData = [
+    { name: "الموظفين", value: stats.employees },
+    { name: "التقييمات", value: stats.evaluations },
+    { name: "الإجازات", value: stats.leaves },
+  ];
+
+  const pieData = [
+    { name: "الموظفين", value: stats.employees },
+    { name: "التقييمات", value: stats.evaluations },
+    { name: "الإجازات", value: stats.leaves },
+  ];
+
+  const COLORS = ["#38bdf8", "#fb923c", "#4ade80"];
+
   // ================= LOGOUT =================
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -43,8 +71,7 @@ export default function AdminDashboard() {
 
   return (
     <div style={styles.container}>
-
-      {/* ================= HEADER ================= */}
+      {/* ===== HEADER ===== */}
       <div style={styles.header}>
         <h1 style={styles.heading}>لوحة تحكم الأدمن</h1>
 
@@ -53,25 +80,47 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* ================= STATS ================= */}
-      <div style={styles.cards}>
-        <div style={{ ...styles.card, ...styles.blue }}>
-          <h2 style={styles.number}>{stats.employees}</h2>
-          <p style={styles.text}>الموظفين</p>
+      {/* ===== CHARTS ===== */}
+      <div style={styles.chartsContainer}>
+        {/* ===== BAR CHART ===== */}
+        <div style={styles.chartBox}>
+          <h3 style={styles.chartTitle}>إحصائيات النظام</h3>
+
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={barData}>
+              <XAxis dataKey="name" stroke="#fff" />
+              <YAxis stroke="#fff" />
+              <Tooltip />
+              <Bar dataKey="value" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
 
-        <div style={{ ...styles.card, ...styles.orange }}>
-          <h2 style={styles.number}>{stats.evaluations}</h2>
-          <p style={styles.text}>التقييمات</p>
-        </div>
+        {/* ===== PIE CHART ===== */}
+        <div style={styles.chartBox}>
+          <h3 style={styles.chartTitle}>توزيع البيانات</h3>
 
-        <div style={{ ...styles.card, ...styles.green }}>
-          <h2 style={styles.number}>{stats.leaves}</h2>
-          <p style={styles.text}>الإجازات</p>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                dataKey="value"
+                outerRadius={100}
+                label
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+
+              <Legend />
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
-      {/* ================= BUTTONS ================= */}
+      {/* ===== BUTTONS ===== */}
       <div style={styles.buttons}>
         <button style={styles.button} onClick={() => nav("/add-employee")}>
           ➕ إضافة موظف
@@ -94,17 +143,16 @@ export default function AdminDashboard() {
 }
 
 /* ===================== STYLES ===================== */
+
 const styles = {
   container: {
     minHeight: "100vh",
     padding: "50px 20px",
     direction: "rtl",
     fontFamily: "Cairo, sans-serif",
-
     background: "linear-gradient(135deg, #0f172a, #1e293b, #0b1220)",
   },
 
-  /* ===== HEADER ===== */
   header: {
     display: "flex",
     justifyContent: "space-between",
@@ -116,7 +164,6 @@ const styles = {
     fontSize: "34px",
     fontWeight: "bold",
     color: "#fff",
-    margin: 0,
   },
 
   logoutButton: {
@@ -124,53 +171,33 @@ const styles = {
     borderRadius: "10px",
     border: "none",
     cursor: "pointer",
-    fontWeight: "bold",
     color: "#fff",
-    background: "linear-gradient(135deg, #ef4444, #dc2626)",
-    boxShadow: "0 8px 20px rgba(239,68,68,0.3)",
-    transition: "0.3s",
+    background: "#ef4444",
   },
 
-  /* ===== STATS ===== */
-  cards: {
+  chartsContainer: {
     display: "flex",
-    justifyContent: "center",
     gap: "25px",
     flexWrap: "wrap",
+    justifyContent: "center",
     marginBottom: "50px",
   },
 
-  card: {
-    width: "220px",
-    padding: "25px",
+  chartBox: {
+    width: "450px",
+    padding: "20px",
     borderRadius: "18px",
-    textAlign: "center",
-    color: "#fff",
-
-    backdropFilter: "blur(12px)",
     background: "rgba(255,255,255,0.08)",
+    backdropFilter: "blur(12px)",
     border: "1px solid rgba(255,255,255,0.15)",
-
-    boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
   },
 
-  blue: { borderLeft: "4px solid #38bdf8" },
-  orange: { borderLeft: "4px solid #fb923c" },
-  green: { borderLeft: "4px solid #4ade80" },
-
-  number: {
-    fontSize: "28px",
-    margin: "0",
-    fontWeight: "bold",
+  chartTitle: {
+    color: "#fff",
+    marginBottom: "15px",
+    textAlign: "center",
   },
 
-  text: {
-    marginTop: "8px",
-    fontSize: "14px",
-    opacity: 0.8,
-  },
-
-  /* ===== BUTTONS ===== */
   buttons: {
     display: "flex",
     justifyContent: "center",
@@ -185,8 +212,6 @@ const styles = {
     cursor: "pointer",
     fontWeight: "bold",
     color: "#fff",
-    background: "linear-gradient(135deg, #3b82f6, #6366f1)",
-    boxShadow: "0 8px 20px rgba(59,130,246,0.3)",
-    transition: "0.3s",
+    background: "#3b82f6",
   },
 };
