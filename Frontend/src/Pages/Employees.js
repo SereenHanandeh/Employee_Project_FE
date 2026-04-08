@@ -38,7 +38,7 @@ export default function Employees() {
     if (!window.confirm("هل أنت متأكد من الحذف؟")) return;
 
     try {
-      await API.put(`/employees/${id}/delete`, { status: "deleted" });
+      await API.delete(/employees/${id}/delete);
 
       setEmployees((prev) =>
         prev.map((e) =>
@@ -52,7 +52,7 @@ export default function Employees() {
 
   const restoreEmployee = async (id) => {
     try {
-      await API.put(`/employees/${id}/restore`, { status: "active" });
+      await API.put(/employees/${id}/restore);
 
       setEmployees((prev) =>
         prev.map((e) =>
@@ -78,13 +78,11 @@ export default function Employees() {
 
   const updateEmployee = async () => {
     try {
-      await API.put(`/employees/${editing.employee_id}/update`, form);
+      await API.put(/employees/${editing.employee_id}/update, form);
 
       setEmployees((prev) =>
         prev.map((e) =>
-          e.employee_id === editing.employee_id
-            ? { ...e, ...form }
-            : e
+          e.employee_id === editing.employee_id ? { ...e, ...form } : e
         )
       );
 
@@ -97,10 +95,9 @@ export default function Employees() {
   // ================= FILTER =================
   const filteredEmployees = employees.filter((emp) => {
     return (
-      emp.status !== "deleted" &&
       emp.name.toLowerCase().includes(search.toLowerCase()) &&
       (filterDept ? emp.department === filterDept : true) &&
-      (filterStatus ? emp.status === filterStatus : true)
+      (filterStatus ? emp.status === filterStatus : emp.status !== "deleted")
     );
   });
 
@@ -135,15 +132,12 @@ export default function Employees() {
 
   return (
     <div style={styles.page}>
-      {/* HEADER */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>👨‍💼 الموظفين</h1>
-      </div>
+      <h1 style={styles.title}>👨‍💼 Employees Dashboard</h1>
 
       {/* TOP BAR */}
       <div style={styles.topBar}>
         <input
-          placeholder="🔍 بحث"
+          placeholder="🔍 Search..."
           style={styles.input}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -154,7 +148,7 @@ export default function Employees() {
           value={filterDept}
           onChange={(e) => setFilterDept(e.target.value)}
         >
-          <option value="">كل الأقسام</option>
+          <option value="">All Departments</option>
           <option value="IT">IT</option>
           <option value="HR">HR</option>
         </select>
@@ -164,13 +158,13 @@ export default function Employees() {
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
         >
-          <option value="">كل الحالات</option>
-          <option value="active">نشط</option>
-          <option value="deleted">محذوف</option>
+          <option value="">Active Only</option>
+          <option value="active">Active</option>
+          <option value="deleted">Deleted</option>
         </select>
 
         <button style={styles.trashBtn} onClick={() => setShowTrash(true)}>
-          🗑️ سلة المهملات
+          🗑️ Trash
         </button>
 
         <button style={styles.exportBtn} onClick={exportToExcel}>
@@ -181,19 +175,44 @@ export default function Employees() {
       {/* TABLE */}
       <div style={styles.table}>
         {filteredEmployees.map((emp) => (
-          <div key={emp.employee_id} style={styles.row}>
+          <div
+            key={emp.employee_id}
+            style={styles.row}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.transform = "scale(1.01)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.transform = "scale(1)")
+            }
+          >
             <span>{emp.name}</span>
             <span>{emp.email}</span>
             <span>{emp.department}</span>
             <span>{emp.position}</span>
-            <span>
-              {emp.status === "active" ? "🟢 نشط" : "🔴 محذوف"}
+
+            <span
+              style={
+                emp.status === "active"
+                  ? styles.statusActive
+                  : styles.statusDeleted
+              }
+            >
+              {emp.status}
             </span>
 
             <div>
-              <button onClick={() => openEdit(emp)}>تعديل</button>
-              <button onClick={() => deleteEmployee(emp.employee_id)}>
-                حذف
+              <button
+                style={{ ...styles.button, ...styles.editBtn }}
+                onClick={() => openEdit(emp)}
+              >
+                Edit
+              </button>
+
+              <button
+                style={{ ...styles.button, ...styles.deleteBtn }}
+                onClick={() => deleteEmployee(emp.employee_id)}
+              >
+                Delete
               </button>
             </div>
           </div>
@@ -204,18 +223,21 @@ export default function Employees() {
       {showTrash && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
-            <h2>🗑️ سلة المهملات</h2>
+            <h2>🗑️ Trash</h2>
 
             {deletedEmployees.map((emp) => (
               <div key={emp.employee_id} style={styles.row}>
                 <span>{emp.name}</span>
-                <button onClick={() => restoreEmployee(emp.employee_id)}>
-                  استرجاع
+                <button
+                  style={{ ...styles.button, ...styles.restoreBtn }}
+                  onClick={() => restoreEmployee(emp.employee_id)}
+                >
+                  Restore
                 </button>
               </div>
             ))}
 
-            <button onClick={() => setShowTrash(false)}>إغلاق</button>
+            <button onClick={() => setShowTrash(false)}>Close</button>
           </div>
         </div>
       )}
@@ -224,55 +246,55 @@ export default function Employees() {
       {editing && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
-            <h2>تعديل موظف</h2>
+            <h2>Edit Employee</h2>
 
-            <label>الاسم</label>
             <input
               style={styles.input}
               value={form.name}
               onChange={(e) =>
                 setForm({ ...form, name: e.target.value })
               }
+              placeholder="Name"
             />
 
-            <label>الإيميل</label>
             <input
               style={styles.input}
               value={form.email}
               onChange={(e) =>
                 setForm({ ...form, email: e.target.value })
               }
+              placeholder="Email"
             />
 
-            <label>القسم</label>
             <input
               style={styles.input}
               value={form.department}
               onChange={(e) =>
                 setForm({ ...form, department: e.target.value })
               }
+              placeholder="Department"
             />
 
-            <label>المنصب</label>
             <input
               style={styles.input}
               value={form.position}
               onChange={(e) =>
                 setForm({ ...form, position: e.target.value })
               }
+              placeholder="Position"
             />
 
-            <label>الدور</label>
             <input
               style={styles.input}
               value={form.role}
               onChange={(e) =>
                 setForm({ ...form, role: e.target.value })
               }
+              placeholder="Role"
             />
 
-            <button onClick={updateEmployee}>حفظ</button>
-            <button onClick={() => setEditing(null)}>إلغاء</button>
+            <button onClick={updateEmployee}>Save</button>
+            <button onClick={() => setEditing(null)}>Cancel</button>
           </div>
         </div>
       )}
@@ -282,52 +304,93 @@ export default function Employees() {
 
 /* ================= STYLE ================= */
 const styles = {
-  page: { padding: "30px", color: "#fff" },
+  page: {
+    padding: "30px",
+    background: "#0b1220",
+    minHeight: "100vh",
+    color: "#e5e7eb",
+    fontFamily: "Arial",
+  },
 
-  header: { marginBottom: "20px" },
-
-  title: { fontSize: "26px" },
+  title: {
+    fontSize: "28px",
+    fontWeight: "bold",
+    marginBottom: "20px",
+  },
 
   topBar: {
     display: "flex",
     gap: "10px",
-    marginBottom: "20px",
     flexWrap: "wrap",
+    marginBottom: "20px",
   },
 
   input: {
-    padding: "8px",
-    borderRadius: "8px",
-  },
-
-  trashBtn: {
-    background: "red",
+    padding: "10px",
+    borderRadius: "10px",
+    border: "1px solid #334155",
+    background: "#111827",
     color: "#fff",
-    border: "none",
-    padding: "8px",
   },
 
-  exportBtn: {
-    background: "green",
-    color: "#fff",
-    border: "none",
-    padding: "8px",
+  table: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
   },
-
-  table: { display: "flex", flexDirection: "column", gap: "10px" },
 
   row: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr",
-    background: "#1e293b",
+    gridTemplateColumns: "1.5fr 2fr 1fr 1fr 1fr 1fr",
+    background: "#111827",
+    padding: "14px",
+    borderRadius: "12px",
+    transition: "0.2s",
+    alignItems: "center",
+  },
+
+  button: {
+    padding: "6px 10px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+    marginLeft: "5px",
+  },
+
+  editBtn: { background: "#3b82f6", color: "#fff" },
+  deleteBtn: { background: "#ef4444", color: "#fff" },
+  restoreBtn: { background: "#f59e0b", color: "#fff" },
+
+  trashBtn: {
+    background: "#ef4444",
+    color: "#fff",
+    border: "none",
     padding: "10px",
     borderRadius: "10px",
+  },
+
+  exportBtn: {
+    background: "#22c55e",
+    color: "#fff",
+    border: "none",
+    padding: "10px",
+    borderRadius: "10px",
+  },
+
+  statusActive: {
+    color: "#22c55e",
+    fontWeight: "bold",
+  },
+
+  statusDeleted: {
+    color: "#ef4444",
+    fontWeight: "bold",
   },
 
   modalOverlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.6)",
+    background: "rgba(0,0,0,0.7)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
@@ -336,7 +399,8 @@ const styles = {
   modal: {
     background: "#0f172a",
     padding: "20px",
-    borderRadius: "10px",
+    borderRadius: "12px",
+    width: "400px",
     display: "flex",
     flexDirection: "column",
     gap: "10px",
