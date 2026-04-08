@@ -216,7 +216,7 @@ export default function Employees() {
               </span>
             </div>
 
-            {emp.status === "نشط" ? (
+            {emp.status === "نشط" || "active"? (
               <div>
                 <button
                   style={{ ...styles.button, ...styles.editBtn }}
