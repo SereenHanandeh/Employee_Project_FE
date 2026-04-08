@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import API from "../api/api";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
   const [editing, setEditing] = useState(null);
+
+  const [search, setSearch] = useState("");
+  const [filterDept, setFilterDept] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [showTrash, setShowTrash] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -17,30 +24,47 @@ export default function Employees() {
     fetchEmployees();
   }, []);
 
-  const goBack = () => window.history.back();
-
   const fetchEmployees = async () => {
     try {
       const res = await API.get("/employees");
       setEmployees(res.data || []);
-    } catch (err) {
+    } catch {
       alert("فشل تحميل الموظفين");
     }
   };
 
+  // ================= SOFT DELETE =================
   const deleteEmployee = async (id) => {
     if (!window.confirm("هل أنت متأكد من الحذف؟")) return;
 
     try {
-      await API.delete(`/employees/${id}`);
+      await API.put(`/employees/${id}`, { status: "deleted" });
+
       setEmployees((prev) =>
-        prev.filter((e) => e.employee_id !== id)
+        prev.map((e) =>
+          e.employee_id === id ? { ...e, status: "deleted" } : e
+        )
       );
     } catch {
       alert("فشل الحذف");
     }
   };
 
+  const restoreEmployee = async (id) => {
+    try {
+      await API.put(`/employees/${id}`, { status: "active" });
+
+      setEmployees((prev) =>
+        prev.map((e) =>
+          e.employee_id === id ? { ...e, status: "active" } : e
+        )
+      );
+    } catch {
+      alert("فشل الاسترجاع");
+    }
+  };
+
+  // ================= EDIT =================
   const openEdit = (emp) => {
     setEditing(emp);
     setForm({
@@ -53,17 +77,6 @@ export default function Employees() {
   };
 
   const updateEmployee = async () => {
-    const emailExists = employees.some(
-      (e) =>
-        e.email === form.email &&
-        e.employee_id !== editing.employee_id
-    );
-
-    if (emailExists) {
-      alert("❌ هذا الإيميل مستخدم مسبقاً");
-      return;
-    }
-
     try {
       await API.put(`/employees/${editing.employee_id}`, form);
 
@@ -81,54 +94,105 @@ export default function Employees() {
     }
   };
 
+  // ================= FILTER =================
+  const filteredEmployees = employees.filter((emp) => {
+    return (
+      emp.status !== "deleted" &&
+      emp.name.toLowerCase().includes(search.toLowerCase()) &&
+      (filterDept ? emp.department === filterDept : true) &&
+      (filterStatus ? emp.status === filterStatus : true)
+    );
+  });
+
+  const deletedEmployees = employees.filter(
+    (emp) => emp.status === "deleted"
+  );
+
+  // ================= EXPORT EXCEL =================
+  const exportToExcel = () => {
+    const data = filteredEmployees.map((emp) => ({
+      الاسم: emp.name,
+      الإيميل: emp.email,
+      القسم: emp.department,
+      المنصب: emp.position,
+      الحالة: emp.status,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Employees");
+
+    const file = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    saveAs(
+      new Blob([file], { type: "application/octet-stream" }),
+      "employees.xlsx"
+    );
+  };
+
   return (
     <div style={styles.page}>
-      
       {/* HEADER */}
       <div style={styles.header}>
-        <button style={styles.backBtn} onClick={goBack}>
-          ⬅ رجوع
+        <h1 style={styles.title}>👨‍💼 الموظفين</h1>
+      </div>
+
+      {/* TOP BAR */}
+      <div style={styles.topBar}>
+        <input
+          placeholder="🔍 بحث"
+          style={styles.input}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        <select
+          style={styles.input}
+          value={filterDept}
+          onChange={(e) => setFilterDept(e.target.value)}
+        >
+          <option value="">كل الأقسام</option>
+          <option value="IT">IT</option>
+          <option value="HR">HR</option>
+        </select>
+
+        <select
+          style={styles.input}
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option value="">كل الحالات</option>
+          <option value="active">نشط</option>
+          <option value="deleted">محذوف</option>
+        </select>
+
+        <button style={styles.trashBtn} onClick={() => setShowTrash(true)}>
+          🗑️ سلة المهملات
         </button>
 
-        <h1 style={styles.title}>👨‍💼 الموظفين</h1>
-
-        <button
-          style={styles.addBtn}
-          onClick={() => (window.location.href = "/add-employee")}
-        >
-          ➕ إضافة موظف
+        <button style={styles.exportBtn} onClick={exportToExcel}>
+          📥 Excel
         </button>
       </div>
 
       {/* TABLE */}
       <div style={styles.table}>
-        <div style={styles.headerRow}>
-          <span>الاسم</span>
-          <span>الإيميل</span>
-          <span>القسم</span>
-          <span>المنصب</span>
-          <span>الإجراءات</span>
-        </div>
-
-        {employees.map((emp) => (
+        {filteredEmployees.map((emp) => (
           <div key={emp.employee_id} style={styles.row}>
             <span>{emp.name}</span>
             <span>{emp.email}</span>
             <span>{emp.department}</span>
             <span>{emp.position}</span>
+            <span>
+              {emp.status === "active" ? "🟢 نشط" : "🔴 محذوف"}
+            </span>
 
-            <div style={styles.actions}>
-              <button
-                style={styles.editBtn}
-                onClick={() => openEdit(emp)}
-              >
-                تعديل
-              </button>
-
-              <button
-                style={styles.deleteBtn}
-                onClick={() => deleteEmployee(emp.employee_id)}
-              >
+            <div>
+              <button onClick={() => openEdit(emp)}>تعديل</button>
+              <button onClick={() => deleteEmployee(emp.employee_id)}>
                 حذف
               </button>
             </div>
@@ -136,69 +200,79 @@ export default function Employees() {
         ))}
       </div>
 
-      {/* MODAL */}
+      {/* TRASH */}
+      {showTrash && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <h2>🗑️ سلة المهملات</h2>
+
+            {deletedEmployees.map((emp) => (
+              <div key={emp.employee_id} style={styles.row}>
+                <span>{emp.name}</span>
+                <button onClick={() => restoreEmployee(emp.employee_id)}>
+                  استرجاع
+                </button>
+              </div>
+            ))}
+
+            <button onClick={() => setShowTrash(false)}>إغلاق</button>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
       {editing && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
             <h2>تعديل موظف</h2>
 
+            <label>الاسم</label>
             <input
               style={styles.input}
-              placeholder="الاسم"
               value={form.name}
               onChange={(e) =>
                 setForm({ ...form, name: e.target.value })
               }
             />
 
+            <label>الإيميل</label>
             <input
               style={styles.input}
-              placeholder="الإيميل"
               value={form.email}
               onChange={(e) =>
                 setForm({ ...form, email: e.target.value })
               }
             />
 
+            <label>القسم</label>
             <input
               style={styles.input}
-              placeholder="القسم"
               value={form.department}
               onChange={(e) =>
                 setForm({ ...form, department: e.target.value })
               }
             />
 
+            <label>المنصب</label>
             <input
               style={styles.input}
-              placeholder="المنصب"
               value={form.position}
               onChange={(e) =>
                 setForm({ ...form, position: e.target.value })
               }
             />
 
+            <label>الدور</label>
             <input
               style={styles.input}
-              placeholder="الدور"
               value={form.role}
               onChange={(e) =>
                 setForm({ ...form, role: e.target.value })
               }
             />
 
-            <div style={styles.modalActions}>
-              <button style={styles.saveBtn} onClick={updateEmployee}>
-                حفظ
-              </button>
-
-              <button
-                style={styles.cancelBtn}
-                onClick={() => setEditing(null)}
-              >
-                إلغاء
-              </button>
-            </div>
+            <button onClick={updateEmployee}>حفظ</button>
+            <button onClick={() => setEditing(null)}>إلغاء</button>
           </div>
         </div>
       )}
@@ -207,105 +281,47 @@ export default function Employees() {
 }
 
 /* ================= STYLE ================= */
-
 const styles = {
-  page: {
-    minHeight: "100vh",
-    padding: "40px",
-    direction: "rtl",
+  page: { padding: "30px", color: "#fff" },
 
-    fontFamily:
-      "'Cairo', 'Tajawal', 'Segoe UI', Arial, sans-serif",
+  header: { marginBottom: "20px" },
 
-    background: "linear-gradient(135deg,#0f172a,#1e293b)",
-    color: "#f1f5f9",
-  },
+  title: { fontSize: "26px" },
 
-  header: {
+  topBar: {
     display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "30px",
-    flexWrap: "wrap",
     gap: "10px",
+    marginBottom: "20px",
+    flexWrap: "wrap",
   },
 
-  title: {
-    fontSize: "28px",
-    fontWeight: "800",
+  input: {
+    padding: "8px",
+    borderRadius: "8px",
   },
 
-  backBtn: {
-    background: "rgba(148,163,184,0.15)",
-    border: "1px solid rgba(148,163,184,0.3)",
-    color: "#cbd5e1",
-    padding: "10px 14px",
-    borderRadius: "12px",
-    cursor: "pointer",
-    fontWeight: "600",
-  },
-
-  addBtn: {
-    background: "linear-gradient(135deg,#3b82f6,#6366f1)",
-    border: "none",
-    padding: "10px 16px",
-    borderRadius: "12px",
+  trashBtn: {
+    background: "red",
     color: "#fff",
-    cursor: "pointer",
-    fontWeight: "600",
-    boxShadow: "0 10px 20px rgba(59,130,246,0.3)",
+    border: "none",
+    padding: "8px",
   },
 
-  table: {
-    maxWidth: "1000px",
-    margin: "auto",
-    background: "rgba(255,255,255,0.05)",
-    borderRadius: "14px",
-    overflow: "hidden",
-    border: "1px solid rgba(255,255,255,0.1)",
-    backdropFilter: "blur(10px)",
+  exportBtn: {
+    background: "green",
+    color: "#fff",
+    border: "none",
+    padding: "8px",
   },
 
-  headerRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr",
-    padding: "15px",
-    background: "rgba(59,130,246,0.25)",
-    fontWeight: "700",
-    fontSize: "14px",
-  },
+  table: { display: "flex", flexDirection: "column", gap: "10px" },
 
   row: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr",
-    padding: "15px",
-    borderBottom: "1px solid rgba(255,255,255,0.06)",
-    fontSize: "14px",
-  },
-
-  actions: {
-    display: "flex",
-    gap: "10px",
-  },
-
-  editBtn: {
-    background: "linear-gradient(135deg,#f59e0b,#fbbf24)",
-    border: "none",
-    padding: "6px 12px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    color: "#111",
-    fontWeight: "600",
-  },
-
-  deleteBtn: {
-    background: "linear-gradient(135deg,#ef4444,#f87171)",
-    border: "none",
-    padding: "6px 12px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    color: "#fff",
-    fontWeight: "600",
+    gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr",
+    background: "#1e293b",
+    padding: "10px",
+    borderRadius: "10px",
   },
 
   modalOverlay: {
@@ -318,51 +334,11 @@ const styles = {
   },
 
   modal: {
-    width: "380px",
-    padding: "25px",
-    borderRadius: "16px",
-    background: "rgba(15,23,42,0.95)",
-    border: "1px solid rgba(255,255,255,0.1)",
+    background: "#0f172a",
+    padding: "20px",
+    borderRadius: "10px",
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
-
-    fontFamily:
-      "'Cairo', 'Tajawal', 'Segoe UI', Arial, sans-serif",
-  },
-
-  input: {
-    padding: "10px",
-    borderRadius: "8px",
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(255,255,255,0.05)",
-    color: "#fff",
-    outline: "none",
-    fontSize: "14px",
-  },
-
-  modalActions: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: "10px",
-  },
-
-  saveBtn: {
-    background: "#22c55e",
-    border: "none",
-    padding: "8px 12px",
-    borderRadius: "8px",
-    color: "#fff",
-    cursor: "pointer",
-    fontWeight: "600",
-  },
-
-  cancelBtn: {
-    background: "#64748b",
-    border: "none",
-    padding: "8px 12px",
-    borderRadius: "8px",
-    color: "#fff",
-    cursor: "pointer",
+    gap: "10px",
   },
 };
