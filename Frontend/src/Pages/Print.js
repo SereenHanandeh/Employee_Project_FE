@@ -1,17 +1,17 @@
 import html2pdf from "html2pdf.js";
+import { performance, personality, relations } from "../data/criteria";
 import { useRef, useEffect, useState } from "react";
 import API from "../api/api";
 import { useNavigate, useLocation } from "react-router-dom";
-import { performance, personality, relations } from "../data/criteria";
 
 export default function Print() {
   const printRef = useRef();
-  // eslint-disable-next-line no-unused-vars
   const nav = useNavigate();
   const { state } = useLocation();
 
   const [data, setData] = useState(null);
 
+  // ✅ أخذ ID من Result page
   const evaluationId = state?.evaluationId;
 
   /* ================= FETCH DATA ================= */
@@ -33,20 +33,20 @@ export default function Print() {
 
   /* ================= DATA ================= */
   const emp = {
-    name: data.name || "غير متوفر",
-    major: data.major || "-",
-    degree: data.degree || "-",
+    name: data.name,
+    major: data.major,
+    degree: data.degree,
   };
 
   const perf = data.performance_details || {};
   const pers = data.personality_details || {};
   const rel = data.relations_details || {};
 
-  const pTotal = data.performance || 0;
-  const peTotal = data.personality || 0;
-  const rTotal = data.relations || 0;
-  const total = data.total || 0;
-  const grade = data.grade || "لا يوجد";
+  const pTotal = data.performance;
+  const peTotal = data.personality;
+  const rTotal = data.relations;
+  const total = data.total;
+  const grade = data.grade;
 
   const mark = (g) => (grade === g ? "✔" : "☐");
 
@@ -84,115 +84,123 @@ export default function Print() {
   );
 
   return (
-    <div ref={printRef} style={styles.paper}>
-      <h3 style={{ textAlign: "center" }}>بسم الله الرحمن الرحيم</h3>
-      <h2 style={{ textAlign: "center" }}>الأداء الوظيفي في قسم Blackboard</h2>
+    <div style={{ padding: 15 }}>
+      <div ref={printRef} style={styles.paper}>
+        <h3 style={{ textAlign: "center" }}>
+          بسم الله الرحمن الرحيم
+        </h3>
 
-      {/* ===== بيانات الموظف ===== */}
-      <table style={styles.table}>
-        <tbody>
-          <tr>
-            <td>القسم</td>
-            <td>Blackboard</td>
-            <td>فترة التقييم</td>
-            <td>
-              {data.from_date} - {data.to_date}
-            </td>
-          </tr>
+        <h2 style={{ textAlign: "center" }}>
+          الأداء الوظيفي في قسم Blackboard
+        </h2>
 
-          <tr>
-            <td>الاسم</td>
-            <td>{emp.name}</td>
-            <td>المؤهل</td>
-            <td>{emp.degree || "-"}</td>
-          </tr>
+        {/* بيانات الموظف */}
+        <table style={styles.table}>
+          <tbody>
+            <tr>
+              <td style={styles.cell}>القسم</td>
+              <td style={styles.cell}>Blackboard</td>
+              <td style={styles.cell}>فترة التقييم</td>
+              <td style={styles.cell}>-</td>
+            </tr>
 
-          <tr>
-            <td>التخصص</td>
-            <td>{emp.major || "-"}</td>
-            <td></td>
-            <td></td>
-          </tr>
-        </tbody>
-      </table>
+            <tr>
+              <td style={styles.cell}>الاسم</td>
+              <td style={styles.cell}>{emp.name}</td>
+              <td style={styles.cell}>المؤهل</td>
+              <td style={styles.cell}>{emp.degree}</td>
+            </tr>
 
-      {/* ===== الجسم الرئيسي ===== */}
-      <div style={{ display: "flex", gap: "10px" }}>
-        {/* ===== اليسار ===== */}
-        <div style={{ width: "40%" }}>
-          {/* المجاميع */}
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th>الأداء</th>
-                <th>الشخصية</th>
-                <th>العلاقات</th>
-                <th>المجموع</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{pTotal}</td>
-                <td>{peTotal}</td>
-                <td>{rTotal}</td>
-                <td>{total}</td>
-              </tr>
-            </tbody>
-          </table>
+            <tr>
+              <td style={styles.cell}>التخصص</td>
+              <td style={styles.cell}>{emp.major}</td>
+              <td style={styles.cell}></td>
+              <td style={styles.cell}></td>
+            </tr>
+          </tbody>
+        </table>
 
-          {/* التقدير */}
-          <table style={styles.table}>
-            <tbody>
-              <tr>
-                <td>ممتاز (100-90)</td>
-                <td>{mark("ممتاز")}</td>
-              </tr>
-              <tr>
-                <td>جيد جداً (89-75)</td>
-                <td>{mark("جيد جدا")}</td>
-              </tr>
-              <tr>
-                <td>جيد (74-60)</td>
-                <td>{mark("جيد")}</td>
-              </tr>
-              <tr>
-                <td>ضعيف</td>
-                <td>{mark("ضعيف")}</td>
-              </tr>
-            </tbody>
-          </table>
+        {/* المجاميع */}
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.cell}>الأداء</th>
+              <th style={styles.cell}>الشخصية</th>
+              <th style={styles.cell}>العلاقات</th>
+              <th style={styles.cell}>المجموع</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <td style={styles.cell}>{pTotal}</td>
+              <td style={styles.cell}>{peTotal}</td>
+              <td style={styles.cell}>{rTotal}</td>
+              <td style={styles.cell}>{total}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* التقدير */}
+        <table style={styles.table}>
+          <tbody>
+            <tr>
+              <td style={styles.cell}>ممتاز (90-100)</td>
+              <td style={styles.cell}>{mark("ممتاز")}</td>
+              <td style={styles.cell}>جيد جداً (75-89)</td>
+              <td style={styles.cell}>{mark("جيد جدا")}</td>
+            </tr>
+
+            <tr>
+              <td style={styles.cell}>جيد (60-74)</td>
+              <td style={styles.cell}>{mark("جيد")}</td>
+              <td style={styles.cell}>ضعيف</td>
+              <td style={styles.cell}>{mark("ضعيف")}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* التفاصيل */}
+        <h3>الأداء الوظيفي</h3>
+        <TableSection dataList={performance} values={perf} />
+        <p>المجموع: {pTotal}</p>
+
+        <h3>الصفات الشخصية</h3>
+        <TableSection dataList={personality} values={pers} />
+        <p>المجموع: {peTotal}</p>
+
+        <h3>العلاقات</h3>
+        <TableSection dataList={relations} values={rel} />
+        <p>المجموع: {rTotal}</p>
+
+        <h3>المجموع الكلي: {total}</h3>
+        <h3>التقدير: {grade}</h3>
+
+        <h3>الملاحظات</h3>
+        <p>{data.notes || "لا يوجد ملاحظات"}</p>
+
+        <div style={{ marginTop: 30 }}>
+          <p>التوقيع: ____________</p>
+          <p>التاريخ: ____________</p>
         </div>
 
-        {/* ===== اليمين ===== */}
-        <div style={{ width: "60%" }}>
-          {/* الأداء */}
-          <h4>الأداء الوظيفي</h4>
-          <TableSection dataList={performance} values={perf} />
+        {/* أزرار */}
+        <div style={styles.buttonsContainer}>
+          <button onClick={downloadPDF} style={styles.pdfButton}>
+            📄 تحميل PDF
+          </button>
 
-          {/* الشخصية */}
-          <h4>الصفات الشخصية</h4>
-          <TableSection dataList={personality} values={pers} />
+          <button onClick={() => window.print()} style={styles.printButton}>
+            🖨 طباعة
+          </button>
 
-          {/* العلاقات */}
-          <h4>العلاقات</h4>
-          <TableSection dataList={relations} values={rel} />
+          <button
+            onClick={() => nav("/dashboard")}
+            style={styles.backButton}
+          >
+            ⬅ الرجوع
+          </button>
         </div>
-      </div>
-
-      <h3>المجموع الكلي: {total}</h3>
-      <h3>التقدير: {grade}</h3>
-
-      <h3>الملاحظات</h3>
-      <p>{data.notes || "لا يوجد ملاحظات"}</p>
-
-      <div style={styles.buttonsContainer}>
-        <button onClick={downloadPDF} style={styles.pdfButton}>
-          📄 تحميل PDF
-        </button>
-
-        <button onClick={() => window.print()} style={styles.printButton}>
-          🖨 طباعة
-        </button>
       </div>
     </div>
   );
@@ -201,10 +209,11 @@ export default function Print() {
 // ===== Styles =====
 const styles = {
   paper: {
-    width: "180mm",
+    width: "150mm",
+    minHeight: "297mm",
     margin: "auto",
     padding: "10mm",
-    border: "2px solid black",
+    border: "1px solid black",
     fontFamily: "Tahoma",
     fontSize: "13px",
     direction: "rtl",
@@ -212,14 +221,53 @@ const styles = {
   },
 
   table: {
-    width: "100%",
+    width: "90%",
     borderCollapse: "collapse",
-    marginBottom: "10px",
+    marginBottom: 10,
   },
 
   cell: {
     border: "1px solid black",
-    padding: "6px",
+    padding: "5px",
     textAlign: "center",
+  },
+
+  // ===== الأزرار =====
+  buttonsContainer: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "12px",
+    marginTop: "20px",
+    flexWrap: "wrap",
+  },
+
+  pdfButton: {
+    padding: "10px 18px",
+    borderRadius: "10px",
+    border: "none",
+    cursor: "pointer",
+    background: "linear-gradient(90deg, #3b82f6, #1d4ed8)",
+    color: "#fff",
+    fontWeight: "600",
+  },
+
+  printButton: {
+    padding: "10px 18px",
+    borderRadius: "10px",
+    border: "none",
+    cursor: "pointer",
+    background: "linear-gradient(90deg, #10b981, #059669)",
+    color: "#fff",
+    fontWeight: "600",
+  },
+
+  backButton: {
+    padding: "10px 18px",
+    borderRadius: "10px",
+    border: "none",
+    cursor: "pointer",
+    background: "#ef4444",
+    color: "#fff",
+    fontWeight: "600",
   },
 };
