@@ -38,7 +38,7 @@ export default function Employees() {
     if (!window.confirm("هل أنت متأكد من الحذف؟")) return;
 
     try {
-      await API.put(`/employees/${id}`, { status: "deleted" });
+      await API.put(`/employees/${id}/delete`, { status: "deleted" });
 
       setEmployees((prev) =>
         prev.map((e) =>
@@ -52,7 +52,7 @@ export default function Employees() {
 
   const restoreEmployee = async (id) => {
     try {
-      await API.put(`/employees/${id}`, { status: "active" });
+      await API.put(`/employees/${id}/restore`, { status: "active" });
 
       setEmployees((prev) =>
         prev.map((e) =>
@@ -78,7 +78,7 @@ export default function Employees() {
 
   const updateEmployee = async () => {
     try {
-      await API.put(`/employees/${editing.employee_id}`, form);
+      await API.put(`/employees/${editing.employee_id}/update`, form);
 
       setEmployees((prev) =>
         prev.map((e) =>
