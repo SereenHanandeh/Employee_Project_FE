@@ -216,21 +216,30 @@ export default function Employees() {
               </span>
             </div>
 
-            <div>
-              <button
-                style={{ ...styles.button, ...styles.editBtn }}
-                onClick={() => openEdit(emp)}
-              >
-                تعديل
-              </button>
+            {emp.status === "نشط" ? (
+              <div>
+                <button
+                  style={{ ...styles.button, ...styles.editBtn }}
+                  onClick={() => openEdit(emp)}
+                >
+                  تعديل
+                </button>
 
+                <button
+                  style={{ ...styles.button, ...styles.deleteBtn }}
+                  onClick={() => deleteEmployee(emp.employee_id)}
+                >
+                  حذف
+                </button>
+              </div>
+            ) : (
               <button
-                style={{ ...styles.button, ...styles.deleteBtn }}
-                onClick={() => deleteEmployee(emp.employee_id)}
+                style={styles.restoreBtn}
+                onClick={() => restoreEmployee(emp.employee_id)}
               >
-                حذف
+                استرجاع
               </button>
-            </div>
+            )}
           </div>
         ))}
       </div>
@@ -238,22 +247,54 @@ export default function Employees() {
       {/* 🗑️ سلة المحذوفات */}
       {showTrash && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
-            <h2>سلة المحذوفات</h2>
+          <div style={styles.trashModal}>
+            {/* HEADER */}
+            <div style={styles.trashHeader}>
+              <h2>🗑️ سلة المحذوفات</h2>
 
-            {deletedEmployees.map((emp) => (
-              <div key={emp.employee_id} style={styles.row}>
-                <span>{emp.name}</span>
-                <button
-                  style={styles.restoreBtn}
-                  onClick={() => restoreEmployee(emp.employee_id)}
-                >
-                  استرجاع
-                </button>
-              </div>
-            ))}
+              <button
+                style={styles.closeBtn}
+                onClick={() => setShowTrash(false)}
+              >
+                ✖
+              </button>
+            </div>
 
-            <button onClick={() => setShowTrash(false)}>إغلاق</button>
+            {/* LIST */}
+            <div style={styles.trashList}>
+              {deletedEmployees.length === 0 ? (
+                <p style={{ textAlign: "center", color: "#9ca3af" }}>
+                  لا يوجد موظفين محذوفين
+                </p>
+              ) : (
+                deletedEmployees.map((emp) => (
+                  <div key={emp.employee_id} style={styles.trashCard}>
+                    <div>
+                      <div style={styles.trashName}>{emp.name}</div>
+                      <div style={styles.trashInfo}>{emp.email}</div>
+                      <div style={styles.trashInfo}>{emp.department}</div>
+                    </div>
+
+                    <button
+                      style={styles.restoreBtn}
+                      onClick={() => restoreEmployee(emp.employee_id)}
+                    >
+                      🔄 استرجاع
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* FOOTER */}
+            <div style={styles.trashFooter}>
+              <button
+                style={styles.cancelBtn}
+                onClick={() => setShowTrash(false)}
+              >
+                إغلاق
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -385,6 +426,77 @@ const styles = {
     padding: "10px",
     borderRadius: "8px",
     border: "1px solid #333",
+  },
+
+  trashModal: {
+    width: "500px",
+    maxHeight: "80vh",
+    background: "#0f172a",
+    borderRadius: "15px",
+    padding: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
+  },
+
+  trashHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottom: "1px solid #1f2937",
+    paddingBottom: "10px",
+  },
+
+  closeBtn: {
+    background: "transparent",
+    border: "none",
+    color: "#fff",
+    fontSize: "18px",
+    cursor: "pointer",
+  },
+
+  trashList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    overflowY: "auto",
+    maxHeight: "50vh",
+  },
+
+  trashCard: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    background: "#111827",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid rgba(255,255,255,0.05)",
+  },
+
+  trashName: {
+    fontWeight: "bold",
+    fontSize: "14px",
+  },
+
+  trashInfo: {
+    fontSize: "12px",
+    color: "#9ca3af",
+  },
+
+  restoreBtn: {
+    background: "#22c55e",
+    color: "#fff",
+    border: "none",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+
+  trashFooter: {
+    marginTop: "10px",
+    display: "flex",
+    justifyContent: "flex-end",
   },
 
   table: {
