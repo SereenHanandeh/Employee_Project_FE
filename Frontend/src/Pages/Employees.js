@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import API from "../api/api";
 import * as XLSX from "xlsx";
+import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
   const [editing, setEditing] = useState(null);
-
+  const nav = useNavigate();
   const [search, setSearch] = useState("");
   const [filterDept, setFilterDept] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -33,20 +34,20 @@ export default function Employees() {
     }
   };
 
-  // ================= SOFT DELETE =================
+  // ================= حذف =================
   const deleteEmployee = async (id) => {
-    if (!window.confirm("هل أنت متأكد من الحذف؟")) return;
+    if (!window.confirm("هل أنت متأكد من حذف الموظف؟")) return;
 
     try {
       await API.delete(`/employees/${id}/delete`);
 
       setEmployees((prev) =>
         prev.map((e) =>
-          e.employee_id === id ? { ...e, status: "deleted" } : e
+          e.employee_id === id ? { ...e, status: "محذوف" } : e
         )
       );
     } catch {
-      alert("فشل الحذف");
+      alert("فشل عملية الحذف");
     }
   };
 
@@ -56,7 +57,7 @@ export default function Employees() {
 
       setEmployees((prev) =>
         prev.map((e) =>
-          e.employee_id === id ? { ...e, status: "active" } : e
+          e.employee_id === id ? { ...e, status: "نشط" } : e
         )
       );
     } catch {
@@ -64,7 +65,7 @@ export default function Employees() {
     }
   };
 
-  // ================= EDIT =================
+  // ================= تعديل =================
   const openEdit = (emp) => {
     setEditing(emp);
     setForm({
@@ -92,32 +93,32 @@ export default function Employees() {
     }
   };
 
-  // ================= FILTER =================
+  // ================= فلترة =================
   const filteredEmployees = employees.filter((emp) => {
     return (
       emp.name.toLowerCase().includes(search.toLowerCase()) &&
       (filterDept ? emp.department === filterDept : true) &&
-      (filterStatus ? emp.status === filterStatus : emp.status !== "deleted")
+      (filterStatus ? emp.status === filterStatus : emp.status !== "محذوف")
     );
   });
 
   const deletedEmployees = employees.filter(
-    (emp) => emp.status === "deleted"
+    (emp) => emp.status === "محذوف"
   );
 
-  // ================= EXPORT EXCEL =================
+  // ================= Excel =================
   const exportToExcel = () => {
     const data = filteredEmployees.map((emp) => ({
-      الاسم: emp.name,
-      الإيميل: emp.email,
-      القسم: emp.department,
-      المنصب: emp.position,
-      الحالة: emp.status,
+      "الاسم": emp.name,
+      "البريد الإلكتروني": emp.email,
+      "القسم": emp.department,
+      "المنصب": emp.position,
+      "الحالة": emp.status,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Employees");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "الموظفين");
 
     const file = XLSX.write(workbook, {
       bookType: "xlsx",
@@ -126,65 +127,72 @@ export default function Employees() {
 
     saveAs(
       new Blob([file], { type: "application/octet-stream" }),
-      "employees.xlsx"
+      "الموظفين.xlsx"
     );
   };
 
   return (
     <div style={styles.page}>
-      <h1 style={styles.title}>👨‍💼 Employees Dashboard</h1>
+      <h1 style={styles.title}>👨‍💼 إدارة الموظفين</h1>
 
-      {/* TOP BAR */}
+      {/* أدوات التحكم */}
       <div style={styles.topBar}>
-        <input
-          placeholder="🔍 Search..."
-          style={styles.input}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+  {/* أدوات البحث (يسار) */}
+  <div style={styles.leftTools}>
+    <input
+      placeholder="🔍 بحث عن موظف..."
+      style={styles.input}
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+    />
 
-        <select
-          style={styles.input}
-          value={filterDept}
-          onChange={(e) => setFilterDept(e.target.value)}
-        >
-          <option value="">All Departments</option>
-          <option value="IT">IT</option>
-          <option value="HR">HR</option>
-        </select>
+    <select
+      style={styles.input}
+      value={filterDept}
+      onChange={(e) => setFilterDept(e.target.value)}
+    >
+      <option value="">كل الأقسام</option>
+      <option value="IT">تقنية المعلومات</option>
+      <option value="HR">الموارد البشرية</option>
+    </select>
 
-        <select
-          style={styles.input}
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option value="">Active Only</option>
-          <option value="active">Active</option>
-          <option value="deleted">Deleted</option>
-        </select>
+    <select
+      style={styles.input}
+      value={filterStatus}
+      onChange={(e) => setFilterStatus(e.target.value)}
+    >
+      <option value="">كل الحالات</option>
+      <option value="نشط">نشط</option>
+      <option value="محذوف">محذوف</option>
+    </select>
+  </div>
 
-        <button style={styles.trashBtn} onClick={() => setShowTrash(true)}>
-          🗑️ Trash
-        </button>
+  {/* الأزرار (يمين) */}
+  <div style={styles.rightTools}>
+    <button
+      style={styles.trashBtn}
+      onClick={() => setShowTrash(true)}
+    >
+      🗑️ سلة المحذوفات
+    </button>
 
-        <button style={styles.exportBtn} onClick={exportToExcel}>
-          📥 Excel
-        </button>
-      </div>
+    <button style={styles.exportBtn} onClick={exportToExcel}>
+      📥 تصدير Excel
+    </button>
 
-      {/* TABLE */}
+    <button
+      style={styles.addBtn}
+      onClick={() => nav("/add-employee")}
+    >
+      ➕ إضافة موظف
+    </button>
+  </div>
+</div>
+
+      {/* الجدول */}
       <div style={styles.table}>
         {filteredEmployees.map((emp) => (
-          <div
-            key={emp.employee_id}
-            style={styles.row}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.transform = "scale(1.01)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.transform = "scale(1)")
-            }
-          >
+          <div key={emp.employee_id} style={styles.row}>
             <span>{emp.name}</span>
             <span>{emp.email}</span>
             <span>{emp.department}</span>
@@ -192,7 +200,7 @@ export default function Employees() {
 
             <span
               style={
-                emp.status === "active"
+                emp.status === "نشط"
                   ? styles.statusActive
                   : styles.statusDeleted
               }
@@ -205,96 +213,118 @@ export default function Employees() {
                 style={{ ...styles.button, ...styles.editBtn }}
                 onClick={() => openEdit(emp)}
               >
-                Edit
+                تعديل
               </button>
 
               <button
                 style={{ ...styles.button, ...styles.deleteBtn }}
                 onClick={() => deleteEmployee(emp.employee_id)}
               >
-                Delete
+                حذف
               </button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* TRASH */}
+      {/* 🗑️ سلة المحذوفات */}
       {showTrash && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
-            <h2>🗑️ Trash</h2>
+            <h2>سلة المحذوفات</h2>
 
             {deletedEmployees.map((emp) => (
               <div key={emp.employee_id} style={styles.row}>
                 <span>{emp.name}</span>
                 <button
-                  style={{ ...styles.button, ...styles.restoreBtn }}
+                  style={styles.restoreBtn}
                   onClick={() => restoreEmployee(emp.employee_id)}
                 >
-                  Restore
+                  استرجاع
                 </button>
               </div>
             ))}
 
-            <button onClick={() => setShowTrash(false)}>Close</button>
+            <button onClick={() => setShowTrash(false)}>إغلاق</button>
           </div>
         </div>
       )}
 
-      {/* EDIT MODAL */}
+      {/* ✏️ Modal */}
       {editing && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
-            <h2>Edit Employee</h2>
+          <div style={styles.editModal}>
+            <h2 style={styles.modalTitle}>✏️ تعديل بيانات الموظف</h2>
 
-            <input
-              style={styles.input}
-              value={form.name}
-              onChange={(e) =>
-                setForm({ ...form, name: e.target.value })
-              }
-              placeholder="Name"
-            />
+            <div style={styles.formGrid}>
+              <div style={styles.field}>
+                <label>الاسم</label>
+                <input
+                  style={styles.input}
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm({ ...form, name: e.target.value })
+                  }
+                />
+              </div>
 
-            <input
-              style={styles.input}
-              value={form.email}
-              onChange={(e) =>
-                setForm({ ...form, email: e.target.value })
-              }
-              placeholder="Email"
-            />
+              <div style={styles.field}>
+                <label>البريد الإلكتروني</label>
+                <input
+                  style={styles.input}
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm({ ...form, email: e.target.value })
+                  }
+                />
+              </div>
 
-            <input
-              style={styles.input}
-              value={form.department}
-              onChange={(e) =>
-                setForm({ ...form, department: e.target.value })
-              }
-              placeholder="Department"
-            />
+              <div style={styles.field}>
+                <label>القسم</label>
+                <input
+                  style={styles.input}
+                  value={form.department}
+                  onChange={(e) =>
+                    setForm({ ...form, department: e.target.value })
+                  }
+                />
+              </div>
 
-            <input
-              style={styles.input}
-              value={form.position}
-              onChange={(e) =>
-                setForm({ ...form, position: e.target.value })
-              }
-              placeholder="Position"
-            />
+              <div style={styles.field}>
+                <label>المنصب</label>
+                <input
+                  style={styles.input}
+                  value={form.position}
+                  onChange={(e) =>
+                    setForm({ ...form, position: e.target.value })
+                  }
+                />
+              </div>
 
-            <input
-              style={styles.input}
-              value={form.role}
-              onChange={(e) =>
-                setForm({ ...form, role: e.target.value })
-              }
-              placeholder="Role"
-            />
+              <div style={styles.fieldFull}>
+                <label>الدور</label>
+                <input
+                  style={styles.input}
+                  value={form.role}
+                  onChange={(e) =>
+                    setForm({ ...form, role: e.target.value })
+                  }
+                />
+              </div>
+            </div>
 
-            <button onClick={updateEmployee}>Save</button>
-            <button onClick={() => setEditing(null)}>Cancel</button>
+            <div style={styles.modalActions}>
+              <button style={styles.saveBtn} onClick={updateEmployee}>
+                💾 حفظ التعديلات
+              </button>
+
+              <button
+                style={styles.cancelBtn}
+                onClick={() => setEditing(null)}
+              >
+                إلغاء
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -308,50 +338,68 @@ const styles = {
     padding: "30px",
     background: "#0b1220",
     minHeight: "100vh",
-    color: "#e5e7eb",
-    fontFamily: "Arial",
+    color: "#fff",
+    direction: "rtl",
   },
 
   title: {
     fontSize: "28px",
-    fontWeight: "bold",
     marginBottom: "20px",
   },
+topBar: {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  flexWrap: "wrap",
+  marginBottom: "20px",
+},
 
-  topBar: {
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-    marginBottom: "20px",
-  },
+leftTools: {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+},
+
+rightTools: {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+},
+
+addBtn: {
+  background: "#6366f1",
+  color: "#fff",
+  padding: "10px 15px",
+  borderRadius: "8px",
+  border: "none",
+  cursor: "pointer",
+},
 
   input: {
     padding: "10px",
-    borderRadius: "10px",
-    border: "1px solid #334155",
-    background: "#111827",
-    color: "#fff",
+    borderRadius: "8px",
+    border: "1px solid #333",
   },
 
   table: {
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
+    gap: "10px",
   },
 
   row: {
     display: "grid",
     gridTemplateColumns: "1.5fr 2fr 1fr 1fr 1fr 1fr",
     background: "#111827",
-    padding: "14px",
-    borderRadius: "12px",
-    transition: "0.2s",
+    padding: "12px",
+    borderRadius: "10px",
     alignItems: "center",
   },
 
   button: {
-    padding: "6px 10px",
-    borderRadius: "8px",
+    padding: "5px 10px",
+    borderRadius: "6px",
     border: "none",
     cursor: "pointer",
     marginLeft: "5px",
@@ -359,33 +407,23 @@ const styles = {
 
   editBtn: { background: "#3b82f6", color: "#fff" },
   deleteBtn: { background: "#ef4444", color: "#fff" },
-  restoreBtn: { background: "#f59e0b", color: "#fff" },
 
   trashBtn: {
-    background: "#ef4444",
+    background: "red",
     color: "#fff",
-    border: "none",
     padding: "10px",
-    borderRadius: "10px",
+    borderRadius: "8px",
   },
 
   exportBtn: {
-    background: "#22c55e",
+    background: "green",
     color: "#fff",
-    border: "none",
     padding: "10px",
-    borderRadius: "10px",
+    borderRadius: "8px",
   },
 
-  statusActive: {
-    color: "#22c55e",
-    fontWeight: "bold",
-  },
-
-  statusDeleted: {
-    color: "#ef4444",
-    fontWeight: "bold",
-  },
+  statusActive: { color: "#22c55e", fontWeight: "bold" },
+  statusDeleted: { color: "#ef4444", fontWeight: "bold" },
 
   modalOverlay: {
     position: "fixed",
@@ -399,10 +437,69 @@ const styles = {
   modal: {
     background: "#0f172a",
     padding: "20px",
-    borderRadius: "12px",
+    borderRadius: "10px",
     width: "400px",
+  },
+
+  /* ✨ MODAL EDIT الجديد */
+  editModal: {
+    background: "#0f172a",
+    padding: "25px",
+    borderRadius: "15px",
+    width: "500px",
+    color: "#fff",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+    animation: "fadeIn 0.3s ease-in-out",
+  },
+
+  modalTitle: {
+    textAlign: "center",
+    marginBottom: "20px",
+    fontSize: "22px",
+  },
+
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "15px",
+  },
+
+  field: {
     display: "flex",
     flexDirection: "column",
+    gap: "5px",
+  },
+
+  fieldFull: {
+    gridColumn: "1 / -1",
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+  },
+
+  modalActions: {
+    display: "flex",
+    marginTop: "20px",
     gap: "10px",
+  },
+
+  saveBtn: {
+    background: "#22c55e",
+    color: "#fff",
+    padding: "10px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+    flex: 1,
+  },
+
+  cancelBtn: {
+    background: "#ef4444",
+    color: "#fff",
+    padding: "10px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+    flex: 1,
   },
 };
