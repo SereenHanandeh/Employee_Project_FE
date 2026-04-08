@@ -13,9 +13,10 @@ import {
   Pie,
   Cell,
   Legend,
+  CartesianGrid,
 } from "recharts";
 
-export default function AdminDashboard() {
+export default function Dashboard() {
   const nav = useNavigate();
 
   const [stats, setStats] = useState({
@@ -47,20 +48,16 @@ export default function AdminDashboard() {
     }
   };
 
-  // ================= DATA FOR CHARTS =================
+  // ================= DATA =================
   const barData = [
     { name: "الموظفين", value: stats.employees },
     { name: "التقييمات", value: stats.evaluations },
     { name: "الإجازات", value: stats.leaves },
   ];
 
-  const pieData = [
-    { name: "الموظفين", value: stats.employees },
-    { name: "التقييمات", value: stats.evaluations },
-    { name: "الإجازات", value: stats.leaves },
-  ];
+  const pieData = [...barData];
 
-  const COLORS = ["#38bdf8", "#fb923c", "#4ade80"];
+  const COLORS = ["#0ea5e9", "#f97316", "#22c55e"];
 
   // ================= LOGOUT =================
   const handleLogout = () => {
@@ -80,6 +77,13 @@ export default function AdminDashboard() {
         </button>
       </div>
 
+      {/* ===== CARDS ===== */}
+      <div style={styles.cards}>
+        <div style={styles.card}>👨‍💼 {stats.employees} موظف</div>
+        <div style={styles.card}>📊 {stats.evaluations} تقييم</div>
+        <div style={styles.card}>📋 {stats.leaves} إجازة</div>
+      </div>
+
       {/* ===== CHARTS ===== */}
       <div style={styles.chartsContainer}>
         {/* ===== BAR CHART ===== */}
@@ -88,10 +92,25 @@ export default function AdminDashboard() {
 
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={barData}>
-              <XAxis dataKey="name" stroke="#fff" />
-              <YAxis stroke="#fff" />
-              <Tooltip />
-              <Bar dataKey="value" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+
+              <XAxis dataKey="name" stroke="#ccc" />
+              <YAxis stroke="#ccc" />
+
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1e293b",
+                  border: "none",
+                  borderRadius: "10px",
+                  color: "#fff",
+                }}
+              />
+
+              <Bar
+                dataKey="value"
+                radius={[10, 10, 0, 0]}
+                animationDuration={800}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -105,11 +124,16 @@ export default function AdminDashboard() {
               <Pie
                 data={pieData}
                 dataKey="value"
-                outerRadius={100}
+                outerRadius={110}
+                innerRadius={50}
+                paddingAngle={5}
                 label
               >
                 {pieData.map((entry, index) => (
-                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                  <Cell
+                    key={index}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
 
@@ -157,7 +181,7 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "40px",
+    marginBottom: "30px",
   },
 
   heading: {
@@ -175,6 +199,25 @@ const styles = {
     background: "#ef4444",
   },
 
+  /* ===== CARDS ===== */
+  cards: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "20px",
+    marginBottom: "40px",
+    flexWrap: "wrap",
+  },
+
+  card: {
+    padding: "20px 30px",
+    borderRadius: "15px",
+    background: "rgba(255,255,255,0.1)",
+    color: "#fff",
+    fontSize: "18px",
+    fontWeight: "bold",
+    backdropFilter: "blur(10px)",
+  },
+
   chartsContainer: {
     display: "flex",
     gap: "25px",
@@ -190,6 +233,7 @@ const styles = {
     background: "rgba(255,255,255,0.08)",
     backdropFilter: "blur(12px)",
     border: "1px solid rgba(255,255,255,0.15)",
+    transition: "0.3s",
   },
 
   chartTitle: {
