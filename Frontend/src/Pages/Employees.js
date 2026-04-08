@@ -42,7 +42,7 @@ export default function Employees() {
       await API.delete(`/employees/${id}/delete`);
 
       setEmployees((prev) =>
-        prev.map((e) => (e.employee_id === id ? { ...e, status: "محذوف" } : e)),
+        prev.map((e) => (e.employee_id === id ? { ...e, status: "محذوف" ||"deleted"} : e)),
       );
     } catch {
       alert("فشل عملية الحذف");
@@ -54,7 +54,7 @@ export default function Employees() {
       await API.put(`/employees/${id}/restore`);
 
       setEmployees((prev) =>
-        prev.map((e) => (e.employee_id === id ? { ...e, status: "نشط" } : e)),
+        prev.map((e) => (e.employee_id === id ? { ...e, status: "نشط"||"active" } : e)),
       );
     } catch {
       alert("فشل الاسترجاع");
@@ -94,11 +94,11 @@ export default function Employees() {
     return (
       emp.name.toLowerCase().includes(search.toLowerCase()) &&
       (filterDept ? emp.department === filterDept : true) &&
-      (filterStatus ? emp.status === filterStatus : emp.status !== "محذوف")
+      (filterStatus ? emp.status === filterStatus : emp.status !== "محذوف"||"deleted")
     );
   });
 
-  const deletedEmployees = employees.filter((emp) => emp.status === "محذوف");
+  const deletedEmployees = employees.filter((emp) => emp.status === "محذوف"||"deleted");
 
   // ================= Excel =================
   const exportToExcel = () => {
@@ -156,8 +156,8 @@ export default function Employees() {
             onChange={(e) => setFilterStatus(e.target.value)}
           >
             <option value="">كل الحالات</option>
-            <option value="نشط">نشط</option>
-            <option value="محذوف">محذوف</option>
+            <option value="نشط||active">نشط</option>
+            <option value="محذوف||deleted">محذوف</option>
           </select>
         </div>
 
@@ -207,7 +207,7 @@ export default function Employees() {
               <span
                 style={{
                   ...styles.statusBadge,
-                  ...(emp.status === "نشط"
+                  ...(emp.status === "نشط"||"active"
                     ? styles.statusActive
                     : styles.statusDeleted),
                 }}
