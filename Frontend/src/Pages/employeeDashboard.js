@@ -5,12 +5,15 @@ import { useNavigate } from "react-router-dom";
 export default function EmployeeDashboard() {
   const [employee, setEmployee] = useState(null);
   const [leaves, setLeaves] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   const nav = useNavigate();
 
   useEffect(() => {
     fetchEmployee();
     fetchLeaves();
+    fetchTasks();
   }, []);
 
   // ================= EMPLOYEE =================
@@ -28,6 +31,29 @@ export default function EmployeeDashboard() {
     try {
       const res = await API.get("/leaves/my-leaves");
       setLeaves(res.data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  const fetchTasks = async () => {
+    try {
+      const res = await API.get("/tasks");
+      setTasks(res.data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const chooseTask = async (task) => {
+    try {
+      await API.post("/tasks/assign", {
+        employee_id: employee.employee_id,
+        task_id: task.task_id,
+      });
+
+      setSelectedTask(task);
+
+      alert("تم اختيار المهمة ✅");
     } catch (err) {
       console.log(err);
     }
@@ -102,20 +128,58 @@ export default function EmployeeDashboard() {
                     l.status === "approved"
                       ? "#dcfce7"
                       : l.status === "rejected"
-                      ? "#fee2e2"
-                      : "#fef9c3",
+                        ? "#fee2e2"
+                        : "#fef9c3",
                   color:
                     l.status === "approved"
                       ? "#166534"
                       : l.status === "rejected"
-                      ? "#991b1b"
-                      : "#854d0e",
+                        ? "#991b1b"
+                        : "#854d0e",
                 }}
               >
                 {l.status}
               </span>
             </div>
           ))
+        )}
+        <h2 style={styles.section}>📋 المهام</h2>
+
+        {tasks.length === 0 ? (
+          <p style={styles.empty}>لا توجد مهام</p>
+        ) : (
+          <div style={styles.tasksGrid}>
+            {tasks.map((task) => (
+              <div
+                key={task.task_id}
+                style={{
+                  ...styles.taskCard,
+                  border:
+                    selectedTask?.task_id === task.task_id
+                      ? "2px solid #22c55e"
+                      : "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                <h4>{task.title}</h4>
+                <p style={{ color: "#94a3b8" }}>{task.description}</p>
+
+                <button
+                  style={{
+                    ...styles.taskBtn,
+                    background:
+                      selectedTask?.task_id === task.task_id
+                        ? "#22c55e"
+                        : "linear-gradient(135deg,#3b82f6,#6366f1)",
+                  }}
+                  onClick={() => chooseTask(task)}
+                >
+                  {selectedTask?.task_id === task.task_id
+                    ? "✔ مختارة"
+                    : "اختيار"}
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -232,5 +296,28 @@ const styles = {
 
   empty: {
     color: "#94a3b8",
+  },
+
+  tasksGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px,1fr))",
+    gap: "15px",
+  },
+
+  taskCard: {
+    padding: "15px",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.08)",
+    backdropFilter: "blur(6px)",
+  },
+
+  taskBtn: {
+    marginTop: "10px",
+    padding: "10px",
+    borderRadius: "10px",
+    border: "none",
+    cursor: "pointer",
+    color: "#fff",
+    fontWeight: "600",
   },
 };

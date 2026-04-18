@@ -15,6 +15,8 @@ import Login from "./Pages/login";
 import CreateEmployee from "./Pages/CreateEmployee";
 import EmployeeDashboard from "./Pages/employeeDashboard";
 import Employees from "./Pages/Employees";
+import AddTask from "./Pages/AddTask";
+import SelectTask from "./Pages/SelectTask";
 
 function App() {
   return (
@@ -48,6 +50,9 @@ function App() {
 
         {/* سجل التقييمات */}
         <Route path="/history" element={<History />} />
+
+        <Route path="/add-task" element={<AddTask />} />
+        <Route path="/tasks" element={<SelectTask />} />
       </Routes>
     </BrowserRouter>
   );

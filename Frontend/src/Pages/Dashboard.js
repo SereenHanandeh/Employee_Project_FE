@@ -9,6 +9,7 @@ export default function AdminDashboard() {
     employees: 0,
     evaluations: 0,
     leaves: 0,
+    tasks: 0,
   });
 
   useEffect(() => {
@@ -17,16 +18,18 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const [empRes, evalRes, leaveRes] = await Promise.all([
+      const [empRes, evalRes, leaveRes, taskRes] = await Promise.all([
         API.get("/employees"),
         API.get("/evaluations"),
         API.get("/leaves"),
+        API.get("/tasks"),
       ]);
 
       setStats({
         employees: empRes.data?.length || 0,
         evaluations: evalRes.data?.length || 0,
         leaves: leaveRes.data?.length || 0,
+        tasks: taskRes.data?.length || 0,
       });
     } catch (err) {
       console.error(err);
@@ -43,7 +46,6 @@ export default function AdminDashboard() {
 
   return (
     <div style={styles.container}>
-
       {/* ================= HEADER ================= */}
       <div style={styles.header}>
         <h1 style={styles.heading}>لوحة تحكم الأدمن</h1>
@@ -69,6 +71,10 @@ export default function AdminDashboard() {
           <h2 style={styles.number}>{stats.leaves}</h2>
           <p style={styles.text}>الإجازات</p>
         </div>
+        <div style={{ ...styles.card, borderLeft: "4px solid #a78bfa" }}>
+          <h2 style={styles.number}>{stats.tasks}</h2>
+          <p style={styles.text}>التاسكات</p>
+        </div>
       </div>
 
       {/* ================= BUTTONS ================= */}
@@ -87,6 +93,13 @@ export default function AdminDashboard() {
 
         <button style={styles.button} onClick={() => nav("/history")}>
           📊 التقييمات
+        </button>
+        <button style={styles.button} onClick={() => nav("/add-task")}>
+          📝 إضافة Task
+        </button>
+
+        <button style={styles.button} onClick={() => nav("/tasks")}>
+          📋 إدارة Tasks
         </button>
       </div>
     </div>
