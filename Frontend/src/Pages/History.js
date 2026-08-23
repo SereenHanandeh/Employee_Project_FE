@@ -50,7 +50,7 @@ export default function History() {
 
   const goToTasks = () => nav("/tasks");
 
-  const goToLeaves = () => nav("/leaves");
+  const goToLeaves = () => nav("/leaves-list");
 
   const goToAddEvaluation = () => nav("/step1");
 
