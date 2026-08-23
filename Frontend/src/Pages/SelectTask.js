@@ -3,6 +3,8 @@ import API from "../api/api";
 
 export default function SelectTask() {
   const [tasks, setTasks] = useState([]);
+  const [employees, setEmployees] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -14,13 +16,17 @@ export default function SelectTask() {
   const [form, setForm] = useState({
     title: "",
     description: "",
+    employee_id: "",
   });
 
-  const emp = JSON.parse(localStorage.getItem("employee"));
+  const emp = JSON.parse(
+    localStorage.getItem("employee") || "null"
+  );
 
-  // =============================
+  // =====================================================
   // GET TASKS
-  // =============================
+  // =====================================================
+
   const fetchTasks = async () => {
     try {
       setLoading(true);
@@ -30,47 +36,84 @@ export default function SelectTask() {
       setTasks(res.data || []);
     } catch (err) {
       console.error(err);
-      alert("فشل تحميل المهام");
+
+      alert(
+        err?.response?.data?.message ||
+          "فشل تحميل المهام"
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  // =====================================================
+  // GET EMPLOYEES
+  // =====================================================
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await API.get("/employees");
+
+      setEmployees(res.data || []);
+    } catch (err) {
+      console.error(err);
+
+      alert(
+        err?.response?.data?.message ||
+          "فشل تحميل الموظفين"
+      );
+    }
+  };
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
+
   useEffect(() => {
     fetchTasks();
+    fetchEmployees();
   }, []);
 
-  // =============================
+  // =====================================================
   // OPEN ADD MODAL
-  // =============================
+  // =====================================================
+
   const openAddModal = () => {
     setEditingTask(null);
 
     setForm({
       title: "",
       description: "",
+      employee_id: "",
     });
 
     setShowModal(true);
   };
 
-  // =============================
+  // =====================================================
   // OPEN EDIT MODAL
-  // =============================
+  // =====================================================
+
   const openEditModal = (task) => {
     setEditingTask(task);
 
     setForm({
       title: task.title || "",
       description: task.description || "",
+      employee_id:
+        task.employee_id !== null &&
+        task.employee_id !== undefined
+          ? String(task.employee_id)
+          : "",
     });
 
     setShowModal(true);
   };
 
-  // =============================
+  // =====================================================
   // CLOSE MODAL
-  // =============================
+  // =====================================================
+
   const closeModal = () => {
     if (saving) return;
 
@@ -80,12 +123,14 @@ export default function SelectTask() {
     setForm({
       title: "",
       description: "",
+      employee_id: "",
     });
   };
 
-  // =============================
+  // =====================================================
   // FORM CHANGE
-  // =============================
+  // =====================================================
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -95,9 +140,10 @@ export default function SelectTask() {
     }));
   };
 
-  // =============================
+  // =====================================================
   // ADD / UPDATE TASK
-  // =============================
+  // =====================================================
+
   const saveTask = async (e) => {
     e.preventDefault();
 
@@ -109,14 +155,26 @@ export default function SelectTask() {
     try {
       setSaving(true);
 
+      const taskData = {
+        title: form.title.trim(),
+
+        description: form.description.trim(),
+
+        // إذا لم يتم اختيار موظف
+        // تصبح المهمة عامة
+        employee_id: form.employee_id
+          ? Number(form.employee_id)
+          : null,
+      };
+
+      // =================================================
+      // UPDATE
+      // =================================================
+
       if (editingTask) {
-        // UPDATE
         const res = await API.put(
           `/tasks/${editingTask.task_id}`,
-          {
-            title: form.title.trim(),
-            description: form.description.trim(),
-          }
+          taskData
         );
 
         setTasks((prev) =>
@@ -128,14 +186,22 @@ export default function SelectTask() {
         );
 
         alert("تم تعديل المهمة بنجاح ✅");
-      } else {
-        // CREATE
-        const res = await API.post("/tasks", {
-          title: form.title.trim(),
-          description: form.description.trim(),
-        });
+      }
 
-        setTasks((prev) => [res.data, ...prev]);
+      // =================================================
+      // CREATE
+      // =================================================
+
+      else {
+        const res = await API.post(
+          "/tasks",
+          taskData
+        );
+
+        setTasks((prev) => [
+          res.data,
+          ...prev,
+        ]);
 
         alert("تمت إضافة المهمة بنجاح ✅");
       }
@@ -153,9 +219,10 @@ export default function SelectTask() {
     }
   };
 
-  // =============================
+  // =====================================================
   // DELETE TASK
-  // =============================
+  // =====================================================
+
   const deleteTask = async (task) => {
     const confirmed = window.confirm(
       `هل أنت متأكد من حذف المهمة:\n\n"${task.title}"؟`
@@ -164,11 +231,16 @@ export default function SelectTask() {
     if (!confirmed) return;
 
     try {
-      await API.delete(`/tasks/${task.task_id}`);
+      setSaving(true);
+
+      await API.delete(
+        `/tasks/${task.task_id}`
+      );
 
       setTasks((prev) =>
         prev.filter(
-          (item) => item.task_id !== task.task_id
+          (item) =>
+            item.task_id !== task.task_id
         )
       );
 
@@ -180,12 +252,15 @@ export default function SelectTask() {
         err?.response?.data?.message ||
           "فشل حذف المهمة"
       );
+    } finally {
+      setSaving(false);
     }
   };
 
-  // =============================
+  // =====================================================
   // ASSIGN TASK
-  // =============================
+  // =====================================================
+
   const selectTask = async (task_id) => {
     if (!emp?.id) {
       alert("لم يتم العثور على بيانات الموظف");
@@ -213,21 +288,62 @@ export default function SelectTask() {
     }
   };
 
-  // =============================
-  // SEARCH
-  // =============================
-  const filteredTasks = tasks.filter((task) => {
-    const text = `${task.title || ""} ${
-      task.description || ""
-    }`.toLowerCase();
+  // =====================================================
+  // GET EMPLOYEE NAME
+  // =====================================================
 
-    return text.includes(search.toLowerCase());
+  const getEmployeeName = (employeeId) => {
+    if (
+      employeeId === null ||
+      employeeId === undefined ||
+      employeeId === ""
+    ) {
+      return "متاحة لجميع الموظفين";
+    }
+
+    const employee = employees.find(
+      (item) =>
+        Number(item.id) === Number(employeeId)
+    );
+
+    return (
+      employee?.name ||
+      employee?.full_name ||
+      employee?.username ||
+      `موظف #${employeeId}`
+    );
+  };
+
+  // =====================================================
+  // SEARCH
+  // =====================================================
+
+  const filteredTasks = tasks.filter((task) => {
+    const employeeName = getEmployeeName(
+      task.employee_id
+    );
+
+    const text = `
+      ${task.title || ""}
+      ${task.description || ""}
+      ${employeeName || ""}
+    `.toLowerCase();
+
+    return text.includes(
+      search.toLowerCase()
+    );
   });
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
     <div style={styles.page}>
 
-      {/* ================= HEADER ================= */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
       <div style={styles.header}>
 
@@ -241,7 +357,7 @@ export default function SelectTask() {
           </h1>
 
           <p style={styles.subtitle}>
-            إدارة وإضافة وتعديل المهام واختيار المهمة المناسبة
+            إدارة وإضافة وتعديل المهام وتخصيصها للموظفين
           </p>
         </div>
 
@@ -249,18 +365,26 @@ export default function SelectTask() {
           style={styles.addButton}
           onClick={openAddModal}
         >
-          <span style={styles.plusIcon}>＋</span>
+          <span style={styles.plusIcon}>
+            ＋
+          </span>
+
           إضافة مهمة
         </button>
 
       </div>
 
-      {/* ================= STATS ================= */}
+      {/* =================================================
+          STATS
+      ================================================= */}
 
       <div style={styles.stats}>
 
         <div style={styles.statCard}>
-          <div style={styles.statIcon}>📋</div>
+
+          <div style={styles.statIcon}>
+            📋
+          </div>
 
           <div>
             <div style={styles.statLabel}>
@@ -271,10 +395,14 @@ export default function SelectTask() {
               {tasks.length}
             </div>
           </div>
+
         </div>
 
         <div style={styles.statCard}>
-          <div style={styles.statIconGreen}>✓</div>
+
+          <div style={styles.statIconGreen}>
+            ✓
+          </div>
 
           <div>
             <div style={styles.statLabel}>
@@ -285,11 +413,32 @@ export default function SelectTask() {
               {filteredTasks.length}
             </div>
           </div>
+
+        </div>
+
+        <div style={styles.statCard}>
+
+          <div style={styles.statIconPurple}>
+            👤
+          </div>
+
+          <div>
+            <div style={styles.statLabel}>
+              الموظفون
+            </div>
+
+            <div style={styles.statNumber}>
+              {employees.length}
+            </div>
+          </div>
+
         </div>
 
       </div>
 
-      {/* ================= SEARCH ================= */}
+      {/* =================================================
+          SEARCH
+      ================================================= */}
 
       <div style={styles.toolbar}>
 
@@ -301,7 +450,7 @@ export default function SelectTask() {
 
           <input
             type="text"
-            placeholder="ابحث عن مهمة..."
+            placeholder="ابحث عن مهمة أو موظف..."
             value={search}
             onChange={(e) =>
               setSearch(e.target.value)
@@ -312,7 +461,9 @@ export default function SelectTask() {
           {search && (
             <button
               style={styles.clearSearch}
-              onClick={() => setSearch("")}
+              onClick={() =>
+                setSearch("")
+              }
             >
               ✕
             </button>
@@ -322,17 +473,27 @@ export default function SelectTask() {
 
       </div>
 
-      {/* ================= LOADING ================= */}
+      {/* =================================================
+          LOADING
+      ================================================= */}
 
       {loading ? (
+
         <div style={styles.loading}>
+
           <div style={styles.spinner}></div>
 
-          <p>جاري تحميل المهام...</p>
+          <p>
+            جاري تحميل المهام...
+          </p>
+
         </div>
+
       ) : filteredTasks.length === 0 ? (
 
-        /* ================= EMPTY ================= */
+        /* =================================================
+           EMPTY
+        ================================================= */
 
         <div style={styles.empty}>
 
@@ -365,103 +526,162 @@ export default function SelectTask() {
 
       ) : (
 
-        /* ================= TASKS ================= */
+        /* =================================================
+           TASKS
+        ================================================= */
 
         <div style={styles.grid}>
 
-          {filteredTasks.map((task, index) => (
+          {filteredTasks.map(
+            (task, index) => (
 
-            <div
-              key={task.task_id}
-              style={styles.card}
-            >
+              <div
+                key={task.task_id}
+                style={styles.card}
 
-              {/* CARD HEADER */}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform =
+                    "translateY(-5px)";
 
-              <div style={styles.cardHeader}>
+                  e.currentTarget.style.borderColor =
+                    "rgba(96,165,250,0.35)";
 
-                <div style={styles.taskNumber}>
-                  #{String(index + 1).padStart(2, "0")}
+                  e.currentTarget.style.boxShadow =
+                    "0 20px 45px rgba(0,0,0,0.35)";
+                }}
+
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform =
+                    "translateY(0)";
+
+                  e.currentTarget.style.borderColor =
+                    "rgba(255,255,255,0.10)";
+
+                  e.currentTarget.style.boxShadow =
+                    "0 15px 35px rgba(0,0,0,0.25)";
+                }}
+              >
+
+                {/* CARD HEADER */}
+
+                <div style={styles.cardHeader}>
+
+                  <div style={styles.taskNumber}>
+                    #{String(index + 1).padStart(2, "0")}
+                  </div>
+
+                  <div style={styles.actions}>
+
+                    <button
+                      style={styles.editButton}
+                      onClick={() =>
+                        openEditModal(task)
+                      }
+                      title="تعديل"
+                    >
+                      ✏️
+                    </button>
+
+                    <button
+                      style={styles.deleteButton}
+                      onClick={() =>
+                        deleteTask(task)
+                      }
+                      title="حذف"
+                    >
+                      🗑️
+                    </button>
+
+                  </div>
+
                 </div>
 
-                <div style={styles.actions}>
+                {/* TITLE */}
+
+                <h3 style={styles.taskTitle}>
+                  {task.title}
+                </h3>
+
+                {/* DESCRIPTION */}
+
+                <p style={styles.description}>
+                  {task.description ||
+                    "لا يوجد وصف للمهمة"}
+                </p>
+
+                {/* ASSIGNED EMPLOYEE */}
+
+                <div style={styles.assignmentBox}>
+
+                  <div style={styles.assignmentIcon}>
+                    👤
+                  </div>
+
+                  <div>
+
+                    <div style={styles.assignmentLabel}>
+                      مخصصة إلى
+                    </div>
+
+                    <div style={styles.assignmentName}>
+                      {getEmployeeName(
+                        task.employee_id
+                      )}
+                    </div>
+
+                  </div>
+
+                </div>
+
+                {/* DIVIDER */}
+
+                <div style={styles.divider}></div>
+
+                {/* FOOTER */}
+
+                <div style={styles.cardFooter}>
 
                   <button
-                    style={styles.editButton}
-                    onClick={() =>
-                      openEditModal(task)
+                    style={
+                      saving
+                        ? styles.selectButtonDisabled
+                        : styles.selectButton
                     }
-                    title="تعديل"
+                    disabled={saving}
+                    onClick={() =>
+                      selectTask(
+                        task.task_id
+                      )
+                    }
                   >
-                    ✏️
-                  </button>
 
-                  <button
-                    style={styles.deleteButton}
-                    onClick={() =>
-                      deleteTask(task)
-                    }
-                    title="حذف"
-                  >
-                    🗑️
+                    {saving ? (
+                      "جاري التنفيذ..."
+                    ) : (
+                      <>
+                        اختيار المهمة
+
+                        <span>
+                          ←
+                        </span>
+                      </>
+                    )}
+
                   </button>
 
                 </div>
 
               </div>
 
-              {/* TITLE */}
-
-              <h3 style={styles.taskTitle}>
-                {task.title}
-              </h3>
-
-              {/* DESCRIPTION */}
-
-              <p style={styles.description}>
-                {task.description ||
-                  "لا يوجد وصف للمهمة"}
-              </p>
-
-              {/* DIVIDER */}
-
-              <div style={styles.divider}></div>
-
-              {/* FOOTER */}
-
-              <div style={styles.cardFooter}>
-
-                <button
-                  style={
-                    saving
-                      ? styles.selectButtonDisabled
-                      : styles.selectButton
-                  }
-                  disabled={saving}
-                  onClick={() =>
-                    selectTask(task.task_id)
-                  }
-                >
-                  {saving ? (
-                    "جاري التنفيذ..."
-                  ) : (
-                    <>
-                      اختيار المهمة
-                      <span>←</span>
-                    </>
-                  )}
-                </button>
-
-              </div>
-
-            </div>
-
-          ))}
+            )
+          )}
 
         </div>
       )}
 
-      {/* ================= MODAL ================= */}
+      {/* =================================================
+          ADD / EDIT MODAL
+      ================================================= */}
 
       {showModal && (
 
@@ -484,22 +704,22 @@ export default function SelectTask() {
               <div>
 
                 <div style={styles.modalIcon}>
-                  {editingTask ? "✏️" : "＋"}
+                  {editingTask
+                    ? "✏️"
+                    : "＋"}
                 </div>
 
-                <div>
-                  <h2 style={styles.modalTitle}>
-                    {editingTask
-                      ? "تعديل المهمة"
-                      : "إضافة مهمة جديدة"}
-                  </h2>
+                <h2 style={styles.modalTitle}>
+                  {editingTask
+                    ? "تعديل المهمة"
+                    : "إضافة مهمة جديدة"}
+                </h2>
 
-                  <p style={styles.modalSubtitle}>
-                    {editingTask
-                      ? "قم بتعديل بيانات المهمة"
-                      : "أدخل بيانات المهمة الجديدة"}
-                  </p>
-                </div>
+                <p style={styles.modalSubtitle}>
+                  {editingTask
+                    ? "قم بتعديل بيانات المهمة وتخصيصها"
+                    : "أدخل بيانات المهمة واختر الموظف المسؤول عنها"}
+                </p>
 
               </div>
 
@@ -515,6 +735,8 @@ export default function SelectTask() {
             {/* FORM */}
 
             <form onSubmit={saveTask}>
+
+              {/* TITLE */}
 
               <div style={styles.formGroup}>
 
@@ -534,6 +756,8 @@ export default function SelectTask() {
 
               </div>
 
+              {/* DESCRIPTION */}
+
               <div style={styles.formGroup}>
 
                 <label style={styles.label}>
@@ -548,6 +772,51 @@ export default function SelectTask() {
                   style={styles.textarea}
                   rows={5}
                 />
+
+              </div>
+
+              {/* EMPLOYEE */}
+
+              <div style={styles.formGroup}>
+
+                <label style={styles.label}>
+                  تخصيص المهمة
+                </label>
+
+                <select
+                  name="employee_id"
+                  value={form.employee_id}
+                  onChange={handleChange}
+                  style={styles.selectInput}
+                >
+
+                  <option value="">
+                    🌐 متاحة لجميع الموظفين
+                  </option>
+
+                  {employees.map(
+                    (employee) => (
+
+                      <option
+                        key={employee.id}
+                        value={employee.id}
+                      >
+                        👤{" "}
+                        {employee.name ||
+                          employee.full_name ||
+                          employee.username ||
+                          `موظف #${employee.id}`}
+                      </option>
+
+                    )
+                  )}
+
+                </select>
+
+                <small style={styles.helperText}>
+                  اختر موظفًا معينًا لتظهر له المهمة فقط،
+                  أو اختر "متاحة لجميع الموظفين".
+                </small>
 
               </div>
 
@@ -566,14 +835,20 @@ export default function SelectTask() {
 
                 <button
                   type="submit"
-                  style={styles.saveButton}
+                  style={
+                    saving
+                      ? styles.saveButtonDisabled
+                      : styles.saveButton
+                  }
                   disabled={saving}
                 >
+
                   {saving
                     ? "جاري الحفظ..."
                     : editingTask
                     ? "حفظ التعديلات"
                     : "إضافة المهمة"}
+
                 </button>
 
               </div>
@@ -589,9 +864,9 @@ export default function SelectTask() {
   );
 }
 
-/* ========================================================= */
-/*                         STYLES                             */
-/* ========================================================= */
+/* =========================================================
+   STYLES
+========================================================= */
 
 const styles = {
   page: {
@@ -600,12 +875,10 @@ const styles = {
     fontFamily: "Cairo, sans-serif",
     direction: "rtl",
     background:
-      "linear-gradient(135deg, #020617 0%, #0f172a 50%, #111827 100%)",
+      "radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 35%), linear-gradient(135deg,#020617 0%,#0f172a 50%,#111827 100%)",
     color: "#fff",
     boxSizing: "border-box",
   },
-
-  /* HEADER */
 
   header: {
     display: "flex",
@@ -641,7 +914,7 @@ const styles = {
     alignItems: "center",
     gap: "8px",
     background:
-      "linear-gradient(135deg, #2563eb, #4f46e5)",
+      "linear-gradient(135deg,#2563eb,#4f46e5)",
     border: "none",
     color: "#fff",
     padding: "13px 20px",
@@ -664,7 +937,7 @@ const styles = {
   stats: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(auto-fit, minmax(220px, 1fr))",
+      "repeat(auto-fit,minmax(220px,1fr))",
     gap: "18px",
     marginBottom: "25px",
   },
@@ -675,8 +948,10 @@ const styles = {
     gap: "15px",
     padding: "18px 20px",
     borderRadius: "16px",
-    background: "rgba(255,255,255,0.055)",
-    border: "1px solid rgba(255,255,255,0.09)",
+    background:
+      "rgba(255,255,255,0.055)",
+    border:
+      "1px solid rgba(255,255,255,0.09)",
     backdropFilter: "blur(12px)",
   },
 
@@ -687,7 +962,8 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     borderRadius: "13px",
-    background: "rgba(59,130,246,0.15)",
+    background:
+      "rgba(59,130,246,0.15)",
     fontSize: "22px",
   },
 
@@ -698,10 +974,24 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     borderRadius: "13px",
-    background: "rgba(34,197,94,0.15)",
+    background:
+      "rgba(34,197,94,0.15)",
     color: "#4ade80",
     fontSize: "23px",
     fontWeight: "800",
+  },
+
+  statIconPurple: {
+    width: "48px",
+    height: "48px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "13px",
+    background:
+      "rgba(168,85,247,0.15)",
+    color: "#c084fc",
+    fontSize: "21px",
   },
 
   statLabel: {
@@ -726,22 +1016,25 @@ const styles = {
   searchWrapper: {
     position: "relative",
     width: "100%",
-    maxWidth: "430px",
+    maxWidth: "500px",
   },
 
   searchIcon: {
     position: "absolute",
     right: "15px",
     top: "50%",
-    transform: "translateY(-50%)",
+    transform:
+      "translateY(-50%)",
     opacity: 0.7,
   },
 
   search: {
     width: "100%",
     boxSizing: "border-box",
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.12)",
+    background:
+      "rgba(255,255,255,0.06)",
+    border:
+      "1px solid rgba(255,255,255,0.12)",
     borderRadius: "13px",
     padding: "13px 45px 13px 40px",
     color: "#fff",
@@ -754,7 +1047,8 @@ const styles = {
     position: "absolute",
     left: "12px",
     top: "50%",
-    transform: "translateY(-50%)",
+    transform:
+      "translateY(-50%)",
     border: "none",
     background: "transparent",
     color: "#94a3b8",
@@ -767,7 +1061,7 @@ const styles = {
   grid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(auto-fill, minmax(300px, 1fr))",
+      "repeat(auto-fill,minmax(310px,1fr))",
     gap: "20px",
   },
 
@@ -778,12 +1072,14 @@ const styles = {
     padding: "22px",
     borderRadius: "18px",
     background:
-      "linear-gradient(145deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035))",
-    border: "1px solid rgba(255,255,255,0.10)",
+      "linear-gradient(145deg,rgba(255,255,255,0.075),rgba(255,255,255,0.035))",
+    border:
+      "1px solid rgba(255,255,255,0.10)",
     backdropFilter: "blur(14px)",
     boxShadow:
       "0 15px 35px rgba(0,0,0,0.25)",
-    transition: "transform .2s ease, border .2s ease",
+    transition:
+      "all .25s ease",
   },
 
   cardHeader: {
@@ -809,8 +1105,10 @@ const styles = {
     width: "34px",
     height: "34px",
     borderRadius: "9px",
-    border: "1px solid rgba(59,130,246,0.25)",
-    background: "rgba(59,130,246,0.12)",
+    border:
+      "1px solid rgba(59,130,246,0.25)",
+    background:
+      "rgba(59,130,246,0.12)",
     cursor: "pointer",
     fontSize: "14px",
   },
@@ -819,8 +1117,10 @@ const styles = {
     width: "34px",
     height: "34px",
     borderRadius: "9px",
-    border: "1px solid rgba(239,68,68,0.25)",
-    background: "rgba(239,68,68,0.10)",
+    border:
+      "1px solid rgba(239,68,68,0.25)",
+    background:
+      "rgba(239,68,68,0.10)",
     cursor: "pointer",
     fontSize: "14px",
   },
@@ -840,9 +1140,49 @@ const styles = {
     margin: "10px 0",
   },
 
+  /* ASSIGNMENT */
+
+  assignmentBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    marginTop: "15px",
+    padding: "11px 12px",
+    borderRadius: "12px",
+    background:
+      "rgba(59,130,246,0.07)",
+    border:
+      "1px solid rgba(59,130,246,0.12)",
+  },
+
+  assignmentIcon: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background:
+      "rgba(59,130,246,0.13)",
+    fontSize: "15px",
+  },
+
+  assignmentLabel: {
+    color: "#64748b",
+    fontSize: "10px",
+    marginBottom: "2px",
+  },
+
+  assignmentName: {
+    color: "#cbd5e1",
+    fontSize: "12px",
+    fontWeight: "700",
+  },
+
   divider: {
     height: "1px",
-    background: "rgba(255,255,255,0.08)",
+    background:
+      "rgba(255,255,255,0.08)",
     margin: "17px 0",
   },
 
@@ -857,8 +1197,10 @@ const styles = {
     alignItems: "center",
     padding: "11px 14px",
     borderRadius: "11px",
-    border: "1px solid rgba(34,197,94,0.25)",
-    background: "rgba(34,197,94,0.12)",
+    border:
+      "1px solid rgba(34,197,94,0.25)",
+    background:
+      "rgba(34,197,94,0.12)",
     color: "#4ade80",
     cursor: "pointer",
     fontFamily: "inherit",
@@ -870,7 +1212,8 @@ const styles = {
     padding: "11px 14px",
     borderRadius: "11px",
     border: "none",
-    background: "rgba(148,163,184,0.1)",
+    background:
+      "rgba(148,163,184,0.1)",
     color: "#64748b",
     cursor: "not-allowed",
     fontFamily: "inherit",
@@ -883,8 +1226,10 @@ const styles = {
     textAlign: "center",
     padding: "70px 20px",
     borderRadius: "20px",
-    border: "1px dashed rgba(255,255,255,0.13)",
-    background: "rgba(255,255,255,0.03)",
+    border:
+      "1px dashed rgba(255,255,255,0.13)",
+    background:
+      "rgba(255,255,255,0.03)",
   },
 
   emptyIcon: {
@@ -898,7 +1243,8 @@ const styles = {
     padding: "11px 18px",
     borderRadius: "11px",
     border: "none",
-    background: "linear-gradient(135deg,#2563eb,#4f46e5)",
+    background:
+      "linear-gradient(135deg,#2563eb,#4f46e5)",
     color: "#fff",
     cursor: "pointer",
     fontFamily: "inherit",
@@ -920,9 +1266,11 @@ const styles = {
     width: "35px",
     height: "35px",
     borderRadius: "50%",
-    border: "3px solid rgba(255,255,255,0.1)",
+    border:
+      "3px solid rgba(255,255,255,0.1)",
     borderTopColor: "#60a5fa",
-    animation: "spin 1s linear infinite",
+    animation:
+      "spin 1s linear infinite",
   },
 
   /* MODAL */
@@ -930,7 +1278,8 @@ const styles = {
   overlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(2,6,23,0.78)",
+    background:
+      "rgba(2,6,23,0.78)",
     backdropFilter: "blur(8px)",
     display: "flex",
     justifyContent: "center",
@@ -941,10 +1290,13 @@ const styles = {
 
   modal: {
     width: "100%",
-    maxWidth: "520px",
+    maxWidth: "540px",
+    maxHeight: "90vh",
+    overflowY: "auto",
     background:
       "linear-gradient(145deg,#111827,#0f172a)",
-    border: "1px solid rgba(255,255,255,0.12)",
+    border:
+      "1px solid rgba(255,255,255,0.12)",
     borderRadius: "20px",
     padding: "25px",
     boxShadow:
@@ -959,18 +1311,12 @@ const styles = {
     marginBottom: "25px",
   },
 
-  modalHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: "25px",
-  },
-
   modalIcon: {
     width: "45px",
     height: "45px",
     borderRadius: "12px",
-    background: "rgba(59,130,246,0.15)",
+    background:
+      "rgba(59,130,246,0.15)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -988,14 +1334,17 @@ const styles = {
     margin: "5px 0 0",
     color: "#64748b",
     fontSize: "12px",
+    lineHeight: 1.7,
   },
 
   closeButton: {
     width: "35px",
     height: "35px",
     borderRadius: "9px",
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(255,255,255,0.05)",
+    border:
+      "1px solid rgba(255,255,255,0.1)",
+    background:
+      "rgba(255,255,255,0.05)",
     color: "#94a3b8",
     cursor: "pointer",
   },
@@ -1017,8 +1366,10 @@ const styles = {
     boxSizing: "border-box",
     padding: "13px",
     borderRadius: "11px",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.05)",
+    border:
+      "1px solid rgba(255,255,255,0.12)",
+    background:
+      "rgba(255,255,255,0.05)",
     color: "#fff",
     outline: "none",
     fontFamily: "inherit",
@@ -1030,13 +1381,38 @@ const styles = {
     boxSizing: "border-box",
     padding: "13px",
     borderRadius: "11px",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.05)",
+    border:
+      "1px solid rgba(255,255,255,0.12)",
+    background:
+      "rgba(255,255,255,0.05)",
     color: "#fff",
     outline: "none",
     fontFamily: "inherit",
     fontSize: "13px",
     resize: "vertical",
+  },
+
+  selectInput: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "13px",
+    borderRadius: "11px",
+    border:
+      "1px solid rgba(255,255,255,0.12)",
+    background: "#111827",
+    color: "#fff",
+    outline: "none",
+    fontFamily: "inherit",
+    fontSize: "13px",
+    cursor: "pointer",
+  },
+
+  helperText: {
+    display: "block",
+    marginTop: "7px",
+    color: "#64748b",
+    fontSize: "11px",
+    lineHeight: 1.7,
   },
 
   modalActions: {
@@ -1049,8 +1425,10 @@ const styles = {
     flex: 1,
     padding: "12px",
     borderRadius: "11px",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.05)",
+    border:
+      "1px solid rgba(255,255,255,0.12)",
+    background:
+      "rgba(255,255,255,0.05)",
     color: "#cbd5e1",
     cursor: "pointer",
     fontFamily: "inherit",
@@ -1066,6 +1444,19 @@ const styles = {
       "linear-gradient(135deg,#2563eb,#4f46e5)",
     color: "#fff",
     cursor: "pointer",
+    fontFamily: "inherit",
+    fontWeight: "700",
+  },
+
+  saveButtonDisabled: {
+    flex: 2,
+    padding: "12px",
+    borderRadius: "11px",
+    border: "none",
+    background:
+      "rgba(148,163,184,0.15)",
+    color: "#64748b",
+    cursor: "not-allowed",
     fontFamily: "inherit",
     fontWeight: "700",
   },

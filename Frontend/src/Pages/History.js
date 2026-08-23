@@ -3,20 +3,26 @@ import API from "../api/api";
 import { useNavigate } from "react-router-dom";
 
 export default function History() {
+  const nav = useNavigate();
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState("الكل");
   const [sortOrder, setSortOrder] = useState("newest");
-  const [deleteId, setDeleteId] = useState(null);
 
-  const nav = useNavigate();
+  const [deleteId, setDeleteId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // =====================================================
+  // FETCH
+  // =====================================================
 
   useEffect(() => {
     fetchEvaluations();
   }, []);
 
-  // ================= FETCH =================
   const fetchEvaluations = async () => {
     try {
       setLoading(true);
@@ -25,13 +31,29 @@ export default function History() {
 
       setData(res.data || []);
     } catch (err) {
+      console.error(err);
       alert("فشل تحميل التقييمات");
     } finally {
       setLoading(false);
     }
   };
 
-  // ================= VIEW REPORT =================
+  // =====================================================
+  // NAVIGATION
+  // =====================================================
+
+  const goToDashboard = () => nav("/dashboard");
+
+  const goToEmployees = () => nav("/employees");
+
+  const goToEvaluations = () => nav("/history");
+
+  const goToTasks = () => nav("/tasks");
+
+  const goToLeaves = () => nav("/leaves");
+
+  const goToAddEvaluation = () => nav("/step1");
+
   const viewReport = (id) => {
     nav("/print", {
       state: {
@@ -40,7 +62,10 @@ export default function History() {
     });
   };
 
-  // ================= DELETE =================
+  // =====================================================
+  // DELETE
+  // =====================================================
+
   const deleteOne = async (id) => {
     try {
       await API.delete(`/evaluations/${id}`);
@@ -51,16 +76,15 @@ export default function History() {
 
       setDeleteId(null);
     } catch (err) {
+      console.error(err);
       alert("فشل حذف التقييم");
     }
   };
 
-  // ================= NAVIGATION =================
-  const goToAddEvaluation = () => nav("/step1");
+  // =====================================================
+  // GRADE STYLE
+  // =====================================================
 
-  const goBack = () => nav(-1);
-
-  // ================= GRADE STYLE =================
   const gradeStyle = (grade) => {
     if (!grade) {
       return {
@@ -69,7 +93,9 @@ export default function History() {
       };
     }
 
-    if (grade.includes("ممتاز")) {
+    const value = String(grade);
+
+    if (value.includes("ممتاز")) {
       return {
         background: "rgba(34,197,94,0.15)",
         color: "#4ade80",
@@ -77,7 +103,7 @@ export default function History() {
       };
     }
 
-    if (grade.includes("جيد جداً")) {
+    if (value.includes("جيد جداً")) {
       return {
         background: "rgba(59,130,246,0.15)",
         color: "#60a5fa",
@@ -85,7 +111,7 @@ export default function History() {
       };
     }
 
-    if (grade.includes("جيد")) {
+    if (value.includes("جيد")) {
       return {
         background: "rgba(245,158,11,0.15)",
         color: "#fbbf24",
@@ -93,7 +119,7 @@ export default function History() {
       };
     }
 
-    if (grade.includes("مقبول")) {
+    if (value.includes("مقبول")) {
       return {
         background: "rgba(249,115,22,0.15)",
         color: "#fb923c",
@@ -108,7 +134,10 @@ export default function History() {
     };
   };
 
-  // ================= SCORE STYLE =================
+  // =====================================================
+  // SCORE COLOR
+  // =====================================================
+
   const scoreColor = (total) => {
     const score = Number(total);
 
@@ -120,15 +149,20 @@ export default function History() {
     return "#f87171";
   };
 
-  // ================= FILTER + SEARCH + SORT =================
+  // =====================================================
+  // FILTER + SEARCH + SORT
+  // =====================================================
+
   const filteredData = useMemo(() => {
     let result = [...data];
 
     if (search.trim()) {
+      const searchValue = search.trim().toLowerCase();
+
       result = result.filter((item) =>
         String(item.name || "")
           .toLowerCase()
-          .includes(search.toLowerCase())
+          .includes(searchValue)
       );
     }
 
@@ -167,7 +201,10 @@ export default function History() {
     return result;
   }, [data, search, gradeFilter, sortOrder]);
 
-  // ================= STATISTICS =================
+  // =====================================================
+  // STATISTICS
+  // =====================================================
+
   const statistics = useMemo(() => {
     const total = data.length;
 
@@ -197,42 +234,208 @@ export default function History() {
     };
   }, [data]);
 
-  // ================= LOADING =================
+  // =====================================================
+  // DATE
+  // =====================================================
+
+  const formatDate = (date) => {
+    if (!date) return "-";
+
+    try {
+      return new Date(date).toLocaleDateString("ar-SA");
+    } catch {
+      return "-";
+    }
+  };
+
+  // =====================================================
+  // LOADING
+  // =====================================================
+
   if (loading) {
     return (
-      <div style={styles.page}>
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-          <p style={styles.loadingText}>جاري تحميل سجل التقييمات...</p>
-        </div>
+      <div style={styles.loadingPage}>
+        <div style={styles.spinner}></div>
+        <p style={styles.loadingText}>
+          جاري تحميل سجل التقييمات...
+        </p>
       </div>
     );
   }
 
-  return (
-    <div style={styles.page}>
-      <div style={styles.container}>
+  // =====================================================
+  // UI
+  // =====================================================
 
-        {/* ================= HEADER ================= */}
-        <div style={styles.header}>
+  return (
+    <div style={styles.app}>
+
+      {/* =================================================
+          MOBILE OVERLAY
+      ================================================= */}
+
+      {sidebarOpen && (
+        <div
+          style={styles.mobileOverlay}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* =================================================
+          SIDEBAR
+      ================================================= */}
+
+      <aside
+        style={{
+          ...styles.sidebar,
+          ...(sidebarOpen ? styles.sidebarMobileOpen : {}),
+        }}
+      >
+
+        {/* LOGO */}
+
+        <div style={styles.logoArea}>
+          <div style={styles.logoIcon}>HR</div>
+
+          <div>
+            <div style={styles.logoTitle}>
+              HR System
+            </div>
+
+            <div style={styles.logoSubtitle}>
+              نظام إدارة الموظفين
+            </div>
+          </div>
+
+          <button
+            style={styles.closeSidebar}
+            onClick={() => setSidebarOpen(false)}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* USER */}
+
+        <div style={styles.userCard}>
+          <div style={styles.userAvatar}>
+            A
+          </div>
+
+          <div style={styles.userInfo}>
+            <strong>المدير</strong>
+            <span>مدير النظام</span>
+          </div>
+
+          <span style={styles.onlineDot}></span>
+        </div>
+
+        {/* MENU */}
+
+        <div style={styles.menuLabel}>
+          القائمة الرئيسية
+        </div>
+
+        <nav style={styles.nav}>
+
+          <button
+            style={styles.navItem}
+            onClick={goToDashboard}
+          >
+            <span style={styles.navIcon}>⌂</span>
+            <span>لوحة التحكم</span>
+          </button>
+
+          <button
+            style={styles.navItem}
+            onClick={goToEmployees}
+          >
+            <span style={styles.navIcon}>👥</span>
+            <span>الموظفين</span>
+          </button>
+
+          <button
+            style={{
+              ...styles.navItem,
+              ...styles.navItemActive,
+            }}
+            onClick={goToEvaluations}
+          >
+            <span style={styles.navIcon}>📊</span>
+            <span>التقييمات</span>
+            <span style={styles.activeIndicator}></span>
+          </button>
+
+          <button
+            style={styles.navItem}
+            onClick={goToTasks}
+          >
+            <span style={styles.navIcon}>✓</span>
+            <span>المهام</span>
+          </button>
+
+          <button
+            style={styles.navItem}
+            onClick={goToLeaves}
+          >
+            <span style={styles.navIcon}>📅</span>
+            <span>الإجازات</span>
+          </button>
+
+        </nav>
+
+        {/* SIDEBAR FOOTER */}
+
+        <div style={styles.sidebarFooter}>
+
+          <button
+            style={styles.navItem}
+            onClick={() => alert("الإعدادات قريباً")}
+          >
+            <span style={styles.navIcon}>⚙</span>
+            <span>الإعدادات</span>
+          </button>
+
+          <button
+            style={styles.logoutBtn}
+            onClick={() => {
+              localStorage.removeItem("token");
+              nav("/");
+            }}
+          >
+            <span>⇥</span>
+            تسجيل الخروج
+          </button>
+
+        </div>
+
+      </aside>
+
+      {/* =================================================
+          MAIN
+      ================================================= */}
+
+      <main style={styles.main}>
+
+        {/* =================================================
+            HEADER
+        ================================================= */}
+
+        <header style={styles.header}>
+
           <div style={styles.headerRight}>
+
             <button
-              style={styles.backBtn}
-              onClick={goBack}
-              onMouseEnter={(e) =>
-                Object.assign(e.currentTarget.style, styles.backBtnHover)
-              }
-              onMouseLeave={(e) =>
-                Object.assign(e.currentTarget.style, styles.backBtn)
-              }
+              style={styles.menuButton}
+              onClick={() => setSidebarOpen(true)}
             >
-              <span>→</span>
-              رجوع
+              ☰
             </button>
 
             <div>
-              <div style={styles.pageLabel}>
-                لوحة التحكم
+
+              <div style={styles.breadcrumb}>
+                لوحة التحكم / التقييمات
               </div>
 
               <h1 style={styles.title}>
@@ -242,389 +445,655 @@ export default function History() {
               <p style={styles.subtitle}>
                 إدارة ومتابعة جميع تقييمات الموظفين
               </p>
-            </div>
-          </div>
 
-          <button
-            style={styles.addBtn}
-            onClick={goToAddEvaluation}
-            onMouseEnter={(e) =>
-              Object.assign(e.currentTarget.style, styles.addBtnHover)
-            }
-            onMouseLeave={(e) =>
-              Object.assign(e.currentTarget.style, styles.addBtn)
-            }
-          >
-            <span style={styles.addIcon}>+</span>
-            إضافة تقييم جديد
-          </button>
-        </div>
-
-        {/* ================= STATISTICS ================= */}
-        <div style={styles.statsGrid}>
-
-          <div style={styles.statCard}>
-            <div
-              style={{
-                ...styles.statIcon,
-                background: "rgba(59,130,246,0.15)",
-                color: "#60a5fa",
-              }}
-            >
-              📊
             </div>
 
-            <div>
-              <p style={styles.statLabel}>إجمالي التقييمات</p>
-              <h2 style={styles.statValue}>
-                {statistics.total}
-              </h2>
-            </div>
           </div>
 
-          <div style={styles.statCard}>
-            <div
-              style={{
-                ...styles.statIcon,
-                background: "rgba(168,85,247,0.15)",
-                color: "#c084fc",
-              }}
-            >
-              %
+          <div style={styles.headerLeft}>
+
+            <div style={styles.notification}>
+              🔔
+              <span style={styles.notificationDot}></span>
             </div>
 
-            <div>
-              <p style={styles.statLabel}>متوسط التقييم</p>
-              <h2 style={styles.statValue}>
-                {statistics.average}%
-              </h2>
-            </div>
-          </div>
-
-          <div style={styles.statCard}>
-            <div
-              style={{
-                ...styles.statIcon,
-                background: "rgba(34,197,94,0.15)",
-                color: "#4ade80",
-              }}
-            >
-              ★
-            </div>
-
-            <div>
-              <p style={styles.statLabel}>تقييم ممتاز</p>
-              <h2 style={styles.statValue}>
-                {statistics.excellent}
-              </h2>
-            </div>
-          </div>
-
-          <div style={styles.statCard}>
-            <div
-              style={{
-                ...styles.statIcon,
-                background: "rgba(59,130,246,0.15)",
-                color: "#60a5fa",
-              }}
-            >
-              ✓
-            </div>
-
-            <div>
-              <p style={styles.statLabel}>جيد جداً</p>
-              <h2 style={styles.statValue}>
-                {statistics.veryGood}
-              </h2>
-            </div>
-          </div>
-
-        </div>
-
-        {/* ================= FILTER BAR ================= */}
-        <div style={styles.filterBar}>
-
-          <div style={styles.searchWrapper}>
-            <span style={styles.searchIcon}>⌕</span>
-
-            <input
-              type="text"
-              placeholder="ابحث باسم الموظف..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={styles.searchInput}
-            />
-          </div>
-
-          <select
-            value={gradeFilter}
-            onChange={(e) => setGradeFilter(e.target.value)}
-            style={styles.select}
-          >
-            <option value="الكل">كل التقديرات</option>
-            <option value="ممتاز">ممتاز</option>
-            <option value="جيد جداً">جيد جداً</option>
-            <option value="جيد">جيد</option>
-            <option value="مقبول">مقبول</option>
-          </select>
-
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            style={styles.select}
-          >
-            <option value="newest">الأحدث أولاً</option>
-            <option value="oldest">الأقدم أولاً</option>
-            <option value="highest">أعلى تقييم</option>
-            <option value="lowest">أقل تقييم</option>
-          </select>
-
-        </div>
-
-        {/* ================= RESULT COUNT ================= */}
-        {data.length > 0 && (
-          <div style={styles.resultInfo}>
-            <span>
-              عرض <strong>{filteredData.length}</strong> من{" "}
-              <strong>{data.length}</strong> تقييم
-            </span>
-          </div>
-        )}
-
-        {/* ================= EMPTY ================= */}
-        {data.length === 0 ? (
-          <div style={styles.emptyCard}>
-            <div style={styles.emptyIcon}>📊</div>
-
-            <h2 style={styles.emptyTitle}>
-              لا توجد تقييمات حتى الآن
-            </h2>
-
-            <p style={styles.emptyText}>
-              ابدأ بإضافة أول تقييم للموظفين وسيظهر هنا.
-            </p>
-
-            <button
-              style={styles.emptyBtn}
-              onClick={goToAddEvaluation}
-            >
-              + إضافة أول تقييم
-            </button>
-          </div>
-        ) : filteredData.length === 0 ? (
-          <div style={styles.emptyCard}>
-            <div style={styles.emptyIcon}>🔎</div>
-
-            <h2 style={styles.emptyTitle}>
-              لا توجد نتائج
-            </h2>
-
-            <p style={styles.emptyText}>
-              لم نجد أي تقييم يطابق البحث أو الفلترة الحالية.
-            </p>
-
-            <button
-              style={styles.resetBtn}
-              onClick={() => {
-                setSearch("");
-                setGradeFilter("الكل");
-              }}
-            >
-              إعادة ضبط البحث
-            </button>
-          </div>
-        ) : (
-
-          /* ================= CARDS ================= */
-          <div style={styles.grid}>
-
-            {filteredData.map((e) => (
-
-              <div
-                key={e.evaluation_id}
-                style={styles.card}
-                onMouseEnter={(event) => {
-                  event.currentTarget.style.transform =
-                    "translateY(-5px)";
-                  event.currentTarget.style.borderColor =
-                    "rgba(96,165,250,0.35)";
-                  event.currentTarget.style.boxShadow =
-                    "0 20px 45px rgba(0,0,0,0.35)";
-                }}
-                onMouseLeave={(event) => {
-                  event.currentTarget.style.transform =
-                    "translateY(0)";
-                  event.currentTarget.style.borderColor =
-                    "rgba(255,255,255,0.08)";
-                  event.currentTarget.style.boxShadow =
-                    "0 12px 30px rgba(0,0,0,0.22)";
-                }}
-              >
-
-                {/* CARD HEADER */}
-                <div style={styles.cardHeader}>
-
-                  <div style={styles.employeeInfo}>
-
-                    <div style={styles.avatar}>
-                      {String(e.name || "?")
-                        .trim()
-                        .charAt(0)}
-                    </div>
-
-                    <div>
-                      <h3 style={styles.name}>
-                        {e.name || "موظف غير معروف"}
-                      </h3>
-
-                      <span style={styles.evaluationNumber}>
-                        تقييم #{e.evaluation_id}
-                      </span>
-                    </div>
-
-                  </div>
-
-                  <span
-                    style={{
-                      ...styles.grade,
-                      ...gradeStyle(e.grade),
-                    }}
-                  >
-                    {e.grade || "-"}
-                  </span>
-
-                </div>
-
-                {/* DIVIDER */}
-                <div style={styles.divider}></div>
-
-                {/* SCORE */}
-                <div style={styles.scoreBox}>
-
-                  <div>
-                    <span style={styles.scoreLabel}>
-                      النتيجة النهائية
-                    </span>
-
-                    <div style={styles.scoreValue}>
-                      <span
-                        style={{
-                          color: scoreColor(e.total),
-                        }}
-                      >
-                        {e.total || 0}
-                      </span>
-                      <small>%</small>
-                    </div>
-                  </div>
-
-                  <div style={styles.progressWrapper}>
-                    <div style={styles.progressBackground}>
-                      <div
-                        style={{
-                          ...styles.progress,
-                          width: `${Math.min(
-                            Number(e.total || 0),
-                            100
-                          )}%`,
-                          background: scoreColor(e.total),
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* INFO */}
-                <div style={styles.infoList}>
-
-                  <div style={styles.infoRow}>
-                    <span style={styles.infoIcon}>📅</span>
-
-                    <div>
-                      <span style={styles.infoLabel}>
-                        فترة التقييم
-                      </span>
-
-                      <span style={styles.infoValue}>
-                        {e.from_date || "-"}{" "}
-                        <span style={styles.arrow}>←</span>{" "}
-                        {e.to_date || "-"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={styles.infoRow}>
-                    <span style={styles.infoIcon}>🕒</span>
-
-                    <div>
-                      <span style={styles.infoLabel}>
-                        تاريخ الإنشاء
-                      </span>
-
-                      <span style={styles.infoValue}>
-                        {e.created_at
-                          ? new Date(
-                              e.created_at
-                            ).toLocaleDateString("en-GB")
-                          : "-"}
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* ACTIONS */}
-                <div style={styles.actions}>
-
-                  <button
-                    style={styles.viewBtn}
-                    onClick={() =>
-                      viewReport(e.evaluation_id)
-                    }
-                    onMouseEnter={(event) => {
-                      event.currentTarget.style.background =
-                        "rgba(59,130,246,0.25)";
-                    }}
-                    onMouseLeave={(event) => {
-                      event.currentTarget.style.background =
-                        "rgba(59,130,246,0.12)";
-                    }}
-                  >
-                    📄 عرض التقرير
-                  </button>
-
-                  <button
-                    style={styles.deleteBtn}
-                    onClick={() =>
-                      setDeleteId(e.evaluation_id)
-                    }
-                    onMouseEnter={(event) => {
-                      event.currentTarget.style.background =
-                        "rgba(239,68,68,0.18)";
-                    }}
-                    onMouseLeave={(event) => {
-                      event.currentTarget.style.background =
-                        "rgba(239,68,68,0.10)";
-                    }}
-                  >
-                    🗑 حذف
-                  </button>
-
-                </div>
-
+            <div style={styles.headerUser}>
+              <div style={styles.smallAvatar}>
+                A
               </div>
 
-            ))}
+              <div>
+                <strong>المدير</strong>
+                <span>مدير النظام</span>
+              </div>
+            </div>
 
           </div>
-        )}
 
-      </div>
+        </header>
 
-      {/* ================= DELETE MODAL ================= */}
+        {/* =================================================
+            CONTENT
+        ================================================= */}
+
+        <section style={styles.content}>
+
+          {/* =================================================
+              TOP ACTION
+          ================================================= */}
+
+          <div style={styles.pageActions}>
+
+            <div>
+              <span style={styles.sectionLabel}>
+                التقييمات
+              </span>
+
+              <h2 style={styles.sectionTitle}>
+                جميع التقييمات
+              </h2>
+            </div>
+
+            <button
+              style={styles.addBtn}
+              onClick={goToAddEvaluation}
+            >
+              <span style={styles.addIcon}>+</span>
+              إضافة تقييم جديد
+            </button>
+
+          </div>
+
+          {/* =================================================
+              STATISTICS
+          ================================================= */}
+
+          <div style={styles.statsGrid}>
+
+            <div style={styles.statCard}>
+
+              <div
+                style={{
+                  ...styles.statIcon,
+                  background:
+                    "rgba(59,130,246,0.13)",
+                  color: "#60a5fa",
+                }}
+              >
+                📊
+              </div>
+
+              <div>
+                <span style={styles.statLabel}>
+                  إجمالي التقييمات
+                </span>
+
+                <strong style={styles.statValue}>
+                  {statistics.total}
+                </strong>
+
+                <span style={styles.statHint}>
+                  جميع التقييمات
+                </span>
+              </div>
+
+            </div>
+
+            <div style={styles.statCard}>
+
+              <div
+                style={{
+                  ...styles.statIcon,
+                  background:
+                    "rgba(168,85,247,0.13)",
+                  color: "#c084fc",
+                }}
+              >
+                %
+              </div>
+
+              <div>
+                <span style={styles.statLabel}>
+                  متوسط التقييم
+                </span>
+
+                <strong style={styles.statValue}>
+                  {statistics.average}%
+                </strong>
+
+                <span style={styles.statHint}>
+                  متوسط النتائج
+                </span>
+              </div>
+
+            </div>
+
+            <div style={styles.statCard}>
+
+              <div
+                style={{
+                  ...styles.statIcon,
+                  background:
+                    "rgba(34,197,94,0.13)",
+                  color: "#4ade80",
+                }}
+              >
+                ★
+              </div>
+
+              <div>
+                <span style={styles.statLabel}>
+                  تقييم ممتاز
+                </span>
+
+                <strong style={styles.statValue}>
+                  {statistics.excellent}
+                </strong>
+
+                <span style={styles.statHint}>
+                  أداء ممتاز
+                </span>
+              </div>
+
+            </div>
+
+            <div style={styles.statCard}>
+
+              <div
+                style={{
+                  ...styles.statIcon,
+                  background:
+                    "rgba(59,130,246,0.13)",
+                  color: "#60a5fa",
+                }}
+              >
+                ✓
+              </div>
+
+              <div>
+                <span style={styles.statLabel}>
+                  جيد جداً
+                </span>
+
+                <strong style={styles.statValue}>
+                  {statistics.veryGood}
+                </strong>
+
+                <span style={styles.statHint}>
+                  أداء جيد جداً
+                </span>
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* =================================================
+              FILTER
+          ================================================= */}
+
+          <div style={styles.filterCard}>
+
+            <div style={styles.searchWrapper}>
+
+              <span style={styles.searchIcon}>
+                🔍
+              </span>
+
+              <input
+                type="text"
+                placeholder="ابحث باسم الموظف..."
+                value={search}
+                onChange={(e) =>
+                  setSearch(e.target.value)
+                }
+                style={styles.searchInput}
+              />
+
+              {search && (
+                <button
+                  style={styles.clearSearch}
+                  onClick={() => setSearch("")}
+                >
+                  ✕
+                </button>
+              )}
+
+            </div>
+
+            <select
+              value={gradeFilter}
+              onChange={(e) =>
+                setGradeFilter(e.target.value)
+              }
+              style={styles.select}
+            >
+              <option value="الكل">
+                كل التقديرات
+              </option>
+
+              <option value="ممتاز">
+                ممتاز
+              </option>
+
+              <option value="جيد جداً">
+                جيد جداً
+              </option>
+
+              <option value="جيد">
+                جيد
+              </option>
+
+              <option value="مقبول">
+                مقبول
+              </option>
+            </select>
+
+            <select
+              value={sortOrder}
+              onChange={(e) =>
+                setSortOrder(e.target.value)
+              }
+              style={styles.select}
+            >
+              <option value="newest">
+                الأحدث أولاً
+              </option>
+
+              <option value="oldest">
+                الأقدم أولاً
+              </option>
+
+              <option value="highest">
+                أعلى تقييم
+              </option>
+
+              <option value="lowest">
+                أقل تقييم
+              </option>
+            </select>
+
+          </div>
+
+          {/* =================================================
+              RESULT COUNT
+          ================================================= */}
+
+          {data.length > 0 && (
+            <div style={styles.resultInfo}>
+
+              <span>
+                عرض{" "}
+                <strong>
+                  {filteredData.length}
+                </strong>{" "}
+                من{" "}
+                <strong>
+                  {data.length}
+                </strong>{" "}
+                تقييم
+              </span>
+
+              {(search ||
+                gradeFilter !== "الكل") && (
+                <button
+                  style={styles.resetFilter}
+                  onClick={() => {
+                    setSearch("");
+                    setGradeFilter("الكل");
+                  }}
+                >
+                  إعادة ضبط
+                </button>
+              )}
+
+            </div>
+          )}
+
+          {/* =================================================
+              EMPTY
+          ================================================= */}
+
+          {data.length === 0 ? (
+
+            <div style={styles.emptyCard}>
+
+              <div style={styles.emptyIcon}>
+                📊
+              </div>
+
+              <h2 style={styles.emptyTitle}>
+                لا توجد تقييمات حتى الآن
+              </h2>
+
+              <p style={styles.emptyText}>
+                ابدأ بإضافة أول تقييم للموظفين
+                وسيظهر هنا.
+              </p>
+
+              <button
+                style={styles.emptyBtn}
+                onClick={goToAddEvaluation}
+              >
+                + إضافة أول تقييم
+              </button>
+
+            </div>
+
+          ) : filteredData.length === 0 ? (
+
+            <div style={styles.emptyCard}>
+
+              <div style={styles.emptyIcon}>
+                🔎
+              </div>
+
+              <h2 style={styles.emptyTitle}>
+                لا توجد نتائج
+              </h2>
+
+              <p style={styles.emptyText}>
+                لم نجد أي تقييم يطابق البحث
+                أو الفلترة الحالية.
+              </p>
+
+              <button
+                style={styles.resetBtn}
+                onClick={() => {
+                  setSearch("");
+                  setGradeFilter("الكل");
+                  setSortOrder("newest");
+                }}
+              >
+                إعادة ضبط البحث
+              </button>
+
+            </div>
+
+          ) : (
+
+            /* =================================================
+               CARDS
+            ================================================= */
+
+            <div style={styles.grid}>
+
+              {filteredData.map((e) => {
+
+                const score = Math.min(
+                  Math.max(
+                    Number(e.total || 0),
+                    0
+                  ),
+                  100
+                );
+
+                return (
+                  <div
+                    key={e.evaluation_id}
+                    style={styles.card}
+                    onMouseEnter={(event) => {
+                      event.currentTarget.style.transform =
+                        "translateY(-5px)";
+
+                      event.currentTarget.style.borderColor =
+                        "rgba(96,165,250,0.35)";
+
+                      event.currentTarget.style.boxShadow =
+                        "0 20px 45px rgba(0,0,0,0.35)";
+                    }}
+                    onMouseLeave={(event) => {
+                      event.currentTarget.style.transform =
+                        "translateY(0)";
+
+                      event.currentTarget.style.borderColor =
+                        "rgba(255,255,255,0.07)";
+
+                      event.currentTarget.style.boxShadow =
+                        "0 12px 30px rgba(0,0,0,0.22)";
+                    }}
+                  >
+
+                    {/* CARD HEADER */}
+
+                    <div style={styles.cardHeader}>
+
+                      <div style={styles.employeeInfo}>
+
+                        <div style={styles.avatar}>
+                          {String(e.name || "?")
+                            .trim()
+                            .charAt(0)}
+                        </div>
+
+                        <div style={styles.nameArea}>
+
+                          <h3 style={styles.name}>
+                            {e.name ||
+                              "موظف غير معروف"}
+                          </h3>
+
+                          <span
+                            style={
+                              styles.evaluationNumber
+                            }
+                          >
+                            تقييم #
+                            {e.evaluation_id}
+                          </span>
+
+                        </div>
+
+                      </div>
+
+                      <span
+                        style={{
+                          ...styles.grade,
+                          ...gradeStyle(e.grade),
+                        }}
+                      >
+                        {e.grade || "-"}
+                      </span>
+
+                    </div>
+
+                    <div style={styles.divider}></div>
+
+                    {/* SCORE */}
+
+                    <div style={styles.scoreBox}>
+
+                      <div style={styles.scoreNumber}>
+
+                        <span
+                          style={
+                            styles.scoreLabel
+                          }
+                        >
+                          النتيجة النهائية
+                        </span>
+
+                        <div
+                          style={
+                            styles.scoreValue
+                          }
+                        >
+                          <span
+                            style={{
+                              color:
+                                scoreColor(
+                                  e.total
+                                ),
+                            }}
+                          >
+                            {e.total || 0}
+                          </span>
+
+                          <small>%</small>
+                        </div>
+
+                      </div>
+
+                      <div
+                        style={
+                          styles.progressWrapper
+                        }
+                      >
+
+                        <div
+                          style={
+                            styles.progressBackground
+                          }
+                        >
+
+                          <div
+                            style={{
+                              ...styles.progress,
+                              width: `${score}%`,
+                              background:
+                                scoreColor(
+                                  e.total
+                                ),
+                            }}
+                          />
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                    {/* INFO */}
+
+                    <div style={styles.infoList}>
+
+                      <div
+                        style={styles.infoRow}
+                      >
+
+                        <div
+                          style={
+                            styles.infoIcon
+                          }
+                        >
+                          📅
+                        </div>
+
+                        <div>
+                          <span
+                            style={
+                              styles.infoLabel
+                            }
+                          >
+                            فترة التقييم
+                          </span>
+
+                          <span
+                            style={
+                              styles.infoValue
+                            }
+                          >
+                            {e.from_date || "-"}
+                            {" "}
+                            <span
+                              style={
+                                styles.arrow
+                              }
+                            >
+                              ←
+                            </span>
+                            {" "}
+                            {e.to_date || "-"}
+                          </span>
+                        </div>
+
+                      </div>
+
+                      <div
+                        style={styles.infoRow}
+                      >
+
+                        <div
+                          style={
+                            styles.infoIcon
+                          }
+                        >
+                          🕒
+                        </div>
+
+                        <div>
+                          <span
+                            style={
+                              styles.infoLabel
+                            }
+                          >
+                            تاريخ الإنشاء
+                          </span>
+
+                          <span
+                            style={
+                              styles.infoValue
+                            }
+                          >
+                            {formatDate(
+                              e.created_at
+                            )}
+                          </span>
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                    {/* ACTIONS */}
+
+                    <div style={styles.actions}>
+
+                      <button
+                        style={styles.viewBtn}
+                        onClick={() =>
+                          viewReport(
+                            e.evaluation_id
+                          )
+                        }
+                      >
+                        📄 عرض التقرير
+                      </button>
+
+                      <button
+                        style={
+                          styles.deleteBtn
+                        }
+                        onClick={() =>
+                          setDeleteId(
+                            e.evaluation_id
+                          )
+                        }
+                      >
+                        🗑 حذف
+                      </button>
+
+                    </div>
+
+                  </div>
+                );
+              })}
+
+            </div>
+
+          )}
+
+        </section>
+
+      </main>
+
+      {/* =================================================
+          DELETE MODAL
+      ================================================= */}
+
       {deleteId !== null && (
-        <div style={styles.overlay}>
+
+        <div style={styles.modalOverlay}>
 
           <div style={styles.modal}>
 
@@ -646,14 +1115,20 @@ export default function History() {
 
               <button
                 style={styles.cancelBtn}
-                onClick={() => setDeleteId(null)}
+                onClick={() =>
+                  setDeleteId(null)
+                }
               >
                 إلغاء
               </button>
 
               <button
-                style={styles.confirmDeleteBtn}
-                onClick={() => deleteOne(deleteId)}
+                style={
+                  styles.confirmDeleteBtn
+                }
+                onClick={() =>
+                  deleteOne(deleteId)
+                }
               >
                 نعم، حذف
               </button>
@@ -663,6 +1138,7 @@ export default function History() {
           </div>
 
         </div>
+
       )}
 
     </div>
@@ -674,229 +1150,521 @@ export default function History() {
 ========================================================= */
 
 const styles = {
-  page: {
+
+  /* APP */
+
+  app: {
     minHeight: "100vh",
-    padding: "32px",
-    fontFamily: "Cairo, sans-serif",
     direction: "rtl",
     background:
-      "radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 35%), linear-gradient(135deg,#0b1120,#111827 55%,#0f172a)",
+      "radial-gradient(circle at top right, rgba(59,130,246,0.10), transparent 30%), linear-gradient(135deg,#080f1d,#0f172a 55%,#111827)",
     color: "#fff",
-    boxSizing: "border-box",
+    fontFamily: "Cairo, Arial, sans-serif",
   },
 
-  container: {
-    maxWidth: "1450px",
-    margin: "0 auto",
+  /* SIDEBAR */
+
+  sidebar: {
+    position: "fixed",
+    top: 0,
+    right: 0,
+    width: "270px",
+    height: "100vh",
+    background:
+      "linear-gradient(180deg,#111827,#0b1220)",
+    borderLeft:
+      "1px solid rgba(255,255,255,0.07)",
+    padding: "22px 15px",
+    boxSizing: "border-box",
+    zIndex: 1000,
+    display: "flex",
+    flexDirection: "column",
+    boxShadow:
+      "-10px 0 35px rgba(0,0,0,0.18)",
+  },
+
+  sidebarMobileOpen: {
+    transform: "translateX(0)",
+  },
+
+  logoArea: {
+    display: "flex",
+    alignItems: "center",
+    gap: "11px",
+    padding: "5px 8px 22px",
+    borderBottom:
+      "1px solid rgba(255,255,255,0.06)",
+  },
+
+  logoIcon: {
+    width: "43px",
+    height: "43px",
+    borderRadius: "13px",
+    background:
+      "linear-gradient(135deg,#2563eb,#4f46e5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "13px",
+    fontWeight: "900",
+    boxShadow:
+      "0 8px 20px rgba(37,99,235,0.28)",
+  },
+
+  logoTitle: {
+    fontSize: "16px",
+    fontWeight: "800",
+  },
+
+  logoSubtitle: {
+    fontSize: "9px",
+    color: "#64748b",
+    marginTop: "2px",
+  },
+
+  closeSidebar: {
+    display: "none",
+    marginRight: "auto",
+    background: "transparent",
+    border: "none",
+    color: "#94a3b8",
+    fontSize: "18px",
+    cursor: "pointer",
+  },
+
+  userCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    margin: "18px 4px",
+    padding: "12px",
+    borderRadius: "13px",
+    background:
+      "rgba(255,255,255,0.035)",
+    border:
+      "1px solid rgba(255,255,255,0.06)",
+  },
+
+  userAvatar: {
+    width: "38px",
+    height: "38px",
+    borderRadius: "11px",
+    background:
+      "linear-gradient(135deg,#334155,#475569)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "800",
+  },
+
+  userInfo: {
+    display: "flex",
+    flexDirection: "column",
+    flex: 1,
+  },
+
+  userInfoStrong: {
+    fontSize: "12px",
+  },
+
+  onlineDot: {
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    background: "#22c55e",
+    boxShadow:
+      "0 0 8px rgba(34,197,94,0.6)",
+  },
+
+  menuLabel: {
+    color: "#475569",
+    fontSize: "10px",
+    fontWeight: "700",
+    padding: "8px 12px",
+    marginBottom: "5px",
+  },
+
+  nav: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+  },
+
+  navItem: {
+    position: "relative",
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "12px 13px",
+    borderRadius: "11px",
+    border: "1px solid transparent",
+    background: "transparent",
+    color: "#94a3b8",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: "12px",
+    fontWeight: "600",
+    textAlign: "right",
+    transition: "all 0.2s ease",
+  },
+
+  navItemActive: {
+    background:
+      "linear-gradient(90deg,rgba(59,130,246,0.18),rgba(59,130,246,0.06))",
+    border:
+      "1px solid rgba(59,130,246,0.15)",
+    color: "#60a5fa",
+  },
+
+  navIcon: {
+    width: "22px",
+    textAlign: "center",
+    fontSize: "16px",
+  },
+
+  activeIndicator: {
+    position: "absolute",
+    right: 0,
+    width: "3px",
+    height: "22px",
+    borderRadius: "5px 0 0 5px",
+    background: "#3b82f6",
+  },
+
+  sidebarFooter: {
+    marginTop: "auto",
+    paddingTop: "15px",
+    borderTop:
+      "1px solid rgba(255,255,255,0.06)",
+  },
+
+  logoutBtn: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    marginTop: "8px",
+    padding: "11px",
+    borderRadius: "10px",
+    border:
+      "1px solid rgba(239,68,68,0.15)",
+    background:
+      "rgba(239,68,68,0.07)",
+    color: "#f87171",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontWeight: "600",
+  },
+
+  /* MAIN */
+
+  main: {
+    marginRight: "270px",
+    minHeight: "100vh",
   },
 
   /* HEADER */
 
   header: {
+    minHeight: "86px",
+    padding: "18px 32px",
+    boxSizing: "border-box",
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: "20px",
-    marginBottom: "30px",
-    flexWrap: "wrap",
+    borderBottom:
+      "1px solid rgba(255,255,255,0.06)",
+    background:
+      "rgba(8,15,29,0.72)",
+    backdropFilter: "blur(16px)",
+    position: "sticky",
+    top: 0,
+    zIndex: 50,
   },
 
   headerRight: {
     display: "flex",
     alignItems: "center",
-    gap: "18px",
+    gap: "15px",
   },
 
-  pageLabel: {
-    color: "#64748b",
-    fontSize: "12px",
+  menuButton: {
+    display: "none",
+    width: "40px",
+    height: "40px",
+    borderRadius: "10px",
+    border:
+      "1px solid rgba(255,255,255,0.08)",
+    background:
+      "rgba(255,255,255,0.05)",
+    color: "#fff",
+    cursor: "pointer",
+    fontSize: "18px",
+  },
+
+  breadcrumb: {
+    color: "#475569",
+    fontSize: "10px",
     marginBottom: "3px",
   },
 
   title: {
     margin: 0,
-    fontSize: "28px",
+    fontSize: "25px",
     fontWeight: "800",
-    letterSpacing: "-0.5px",
   },
 
   subtitle: {
-    margin: "5px 0 0",
-    color: "#94a3b8",
-    fontSize: "14px",
+    margin: "3px 0 0",
+    color: "#64748b",
+    fontSize: "11px",
   },
 
-  backBtn: {
-    background: "rgba(148,163,184,0.08)",
-    border: "1px solid rgba(148,163,184,0.18)",
-    color: "#cbd5e1",
-    padding: "11px 17px",
-    borderRadius: "12px",
-    cursor: "pointer",
-    fontWeight: "600",
-    fontFamily: "inherit",
-    transition: "all 0.25s ease",
+  headerLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "18px",
   },
 
-  backBtnHover: {
-    background: "rgba(148,163,184,0.16)",
-    border: "1px solid rgba(148,163,184,0.3)",
-    color: "#fff",
-    padding: "11px 17px",
-    borderRadius: "12px",
-    cursor: "pointer",
-    fontWeight: "600",
-    fontFamily: "inherit",
+  notification: {
+    position: "relative",
+    width: "39px",
+    height: "39px",
+    borderRadius: "11px",
+    background:
+      "rgba(255,255,255,0.045)",
+    border:
+      "1px solid rgba(255,255,255,0.07)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "16px",
+  },
+
+  notificationDot: {
+    position: "absolute",
+    top: "8px",
+    right: "8px",
+    width: "6px",
+    height: "6px",
+    borderRadius: "50%",
+    background: "#ef4444",
+  },
+
+  headerUser: {
+    display: "flex",
+    alignItems: "center",
+    gap: "9px",
+  },
+
+  smallAvatar: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "10px",
+    background:
+      "linear-gradient(135deg,#2563eb,#6366f1)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "800",
+  },
+
+  /* CONTENT */
+
+  content: {
+    padding: "30px 32px 50px",
+    maxWidth: "1500px",
+    margin: "0 auto",
+    boxSizing: "border-box",
+  },
+
+  pageActions: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "20px",
+    marginBottom: "22px",
+  },
+
+  sectionLabel: {
+    color: "#64748b",
+    fontSize: "10px",
+  },
+
+  sectionTitle: {
+    margin: "3px 0 0",
+    fontSize: "20px",
+    fontWeight: "800",
   },
 
   addBtn: {
     display: "flex",
     alignItems: "center",
-    gap: "9px",
+    gap: "8px",
     background:
       "linear-gradient(135deg,#2563eb,#4f46e5)",
     border: "none",
-    padding: "12px 20px",
-    borderRadius: "13px",
+    padding: "11px 18px",
+    borderRadius: "11px",
     color: "#fff",
     cursor: "pointer",
-    fontWeight: "700",
     fontFamily: "inherit",
-    boxShadow:
-      "0 10px 25px rgba(37,99,235,0.28)",
-    transition: "all 0.25s ease",
-  },
-
-  addBtnHover: {
-    display: "flex",
-    alignItems: "center",
-    gap: "9px",
-    background:
-      "linear-gradient(135deg,#3b82f6,#6366f1)",
-    border: "none",
-    padding: "12px 20px",
-    borderRadius: "13px",
-    color: "#fff",
-    cursor: "pointer",
     fontWeight: "700",
-    fontFamily: "inherit",
     boxShadow:
-      "0 14px 30px rgba(37,99,235,0.4)",
-    transform: "translateY(-2px)",
+      "0 8px 22px rgba(37,99,235,0.25)",
   },
 
   addIcon: {
-    fontSize: "20px",
+    fontSize: "19px",
     lineHeight: 1,
   },
 
-  /* STATISTICS */
+  /* STATS */
 
   statsGrid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(auto-fit,minmax(210px,1fr))",
-    gap: "16px",
-    marginBottom: "22px",
+      "repeat(4,minmax(0,1fr))",
+    gap: "15px",
+    marginBottom: "18px",
   },
 
   statCard: {
     display: "flex",
     alignItems: "center",
-    gap: "15px",
-    background: "rgba(255,255,255,0.045)",
-    border: "1px solid rgba(255,255,255,0.07)",
-    borderRadius: "16px",
-    padding: "18px",
-    backdropFilter: "blur(15px)",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.15)",
+    gap: "13px",
+    minWidth: 0,
+    padding: "17px",
+    borderRadius: "15px",
+    background:
+      "linear-gradient(145deg,rgba(255,255,255,0.055),rgba(255,255,255,0.025))",
+    border:
+      "1px solid rgba(255,255,255,0.065)",
+    boxShadow:
+      "0 8px 25px rgba(0,0,0,0.13)",
   },
 
   statIcon: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "14px",
+    width: "45px",
+    height: "45px",
+    flexShrink: 0,
+    borderRadius: "13px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "20px",
+    fontSize: "19px",
     fontWeight: "800",
-    flexShrink: 0,
   },
 
   statLabel: {
-    margin: 0,
+    display: "block",
     color: "#94a3b8",
-    fontSize: "12px",
+    fontSize: "10px",
   },
 
   statValue: {
-    margin: "3px 0 0",
-    fontSize: "25px",
+    display: "block",
+    marginTop: "3px",
+    fontSize: "23px",
     fontWeight: "800",
+  },
+
+  statHint: {
+    display: "block",
+    marginTop: "2px",
+    color: "#475569",
+    fontSize: "9px",
   },
 
   /* FILTER */
 
-  filterBar: {
+  filterCard: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
-    padding: "15px",
-    marginBottom: "10px",
-    background: "rgba(255,255,255,0.04)",
+    gap: "10px",
+    padding: "13px",
+    borderRadius: "14px",
+    background:
+      "rgba(255,255,255,0.035)",
     border:
-      "1px solid rgba(255,255,255,0.07)",
-    borderRadius: "15px",
-    backdropFilter: "blur(12px)",
-    flexWrap: "wrap",
+      "1px solid rgba(255,255,255,0.065)",
+    marginBottom: "12px",
   },
 
   searchWrapper: {
     flex: 1,
-    minWidth: "230px",
+    minWidth: "220px",
     position: "relative",
   },
 
   searchIcon: {
     position: "absolute",
-    right: "14px",
+    right: "13px",
     top: "50%",
     transform: "translateY(-50%)",
     color: "#64748b",
-    fontSize: "22px",
+    fontSize: "14px",
   },
 
   searchInput: {
     width: "100%",
     boxSizing: "border-box",
-    background: "rgba(15,23,42,0.7)",
-    border: "1px solid rgba(148,163,184,0.13)",
+    background:
+      "rgba(15,23,42,0.8)",
+    border:
+      "1px solid rgba(148,163,184,0.12)",
     color: "#fff",
-    padding: "11px 43px 11px 14px",
-    borderRadius: "11px",
+    padding: "11px 38px 11px 35px",
+    borderRadius: "10px",
     outline: "none",
     fontFamily: "inherit",
-    fontSize: "13px",
+    fontSize: "11px",
+  },
+
+  clearSearch: {
+    position: "absolute",
+    left: "10px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    border: "none",
+    background: "transparent",
+    color: "#64748b",
+    cursor: "pointer",
   },
 
   select: {
-    minWidth: "165px",
+    minWidth: "160px",
     background: "#111827",
     border:
-      "1px solid rgba(148,163,184,0.15)",
+      "1px solid rgba(148,163,184,0.13)",
     color: "#cbd5e1",
-    padding: "11px 13px",
-    borderRadius: "11px",
+    padding: "10px 12px",
+    borderRadius: "10px",
     outline: "none",
     fontFamily: "inherit",
+    fontSize: "11px",
     cursor: "pointer",
   },
 
   resultInfo: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
     color: "#64748b",
-    fontSize: "12px",
-    margin: "15px 3px",
+    fontSize: "10px",
+    margin: "13px 3px",
+  },
+
+  resetFilter: {
+    background: "transparent",
+    border: "none",
+    color: "#60a5fa",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: "10px",
   },
 
   /* GRID */
@@ -904,24 +1672,23 @@ const styles = {
   grid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(auto-fill,minmax(340px,1fr))",
-    gap: "18px",
+      "repeat(auto-fill,minmax(320px,1fr))",
+    gap: "17px",
   },
 
   /* CARD */
 
   card: {
     background:
-      "linear-gradient(145deg,rgba(255,255,255,0.065),rgba(255,255,255,0.025))",
+      "linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))",
     border:
-      "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "18px",
-    padding: "20px",
-    backdropFilter: "blur(16px)",
+      "1px solid rgba(255,255,255,0.07)",
+    borderRadius: "17px",
+    padding: "19px",
+    backdropFilter: "blur(14px)",
     boxShadow:
       "0 12px 30px rgba(0,0,0,0.22)",
-    transition:
-      "all 0.25s ease",
+    transition: "all 0.25s ease",
   },
 
   cardHeader: {
@@ -934,32 +1701,35 @@ const styles = {
   employeeInfo: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: "11px",
     minWidth: 0,
   },
 
   avatar: {
-    width: "44px",
-    height: "44px",
-    borderRadius: "13px",
+    width: "43px",
+    height: "43px",
+    borderRadius: "12px",
+    flexShrink: 0,
     background:
       "linear-gradient(135deg,#2563eb,#6366f1)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontWeight: "800",
-    fontSize: "17px",
-    flexShrink: 0,
+    fontSize: "16px",
     boxShadow:
-      "0 8px 20px rgba(37,99,235,0.25)",
+      "0 7px 18px rgba(37,99,235,0.23)",
+  },
+
+  nameArea: {
+    minWidth: 0,
   },
 
   name: {
     margin: 0,
-    fontSize: "16px",
+    fontSize: "15px",
     fontWeight: "700",
-    color: "#f8fafc",
-    maxWidth: "180px",
+    maxWidth: "175px",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
@@ -969,13 +1739,13 @@ const styles = {
     display: "block",
     marginTop: "3px",
     color: "#64748b",
-    fontSize: "10px",
+    fontSize: "9px",
   },
 
   grade: {
-    padding: "6px 10px",
-    borderRadius: "20px",
-    fontSize: "11px",
+    padding: "5px 9px",
+    borderRadius: "18px",
+    fontSize: "10px",
     fontWeight: "700",
     whiteSpace: "nowrap",
   },
@@ -983,8 +1753,8 @@ const styles = {
   divider: {
     height: "1px",
     background:
-      "rgba(255,255,255,0.07)",
-    margin: "18px 0",
+      "rgba(255,255,255,0.06)",
+    margin: "17px 0",
   },
 
   /* SCORE */
@@ -992,26 +1762,29 @@ const styles = {
   scoreBox: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: "20px",
-    marginBottom: "20px",
+    gap: "18px",
+    marginBottom: "19px",
+  },
+
+  scoreNumber: {
+    minWidth: "75px",
   },
 
   scoreLabel: {
-    color: "#64748b",
-    fontSize: "11px",
     display: "block",
+    color: "#64748b",
+    fontSize: "9px",
   },
 
   scoreValue: {
-    marginTop: "2px",
-    fontSize: "28px",
-    fontWeight: "800",
+    marginTop: "3px",
+    fontSize: "27px",
     lineHeight: 1,
+    fontWeight: "900",
   },
 
   scoreValueSmall: {
-    fontSize: "13px",
+    fontSize: "12px",
   },
 
   progressWrapper: {
@@ -1022,7 +1795,7 @@ const styles = {
     width: "100%",
     height: "7px",
     background:
-      "rgba(148,163,184,0.12)",
+      "rgba(148,163,184,0.10)",
     borderRadius: "20px",
     overflow: "hidden",
   },
@@ -1038,88 +1811,89 @@ const styles = {
   infoList: {
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
+    gap: "10px",
   },
 
   infoRow: {
     display: "flex",
     alignItems: "center",
-    gap: "11px",
+    gap: "10px",
   },
 
   infoIcon: {
-    width: "34px",
-    height: "34px",
-    borderRadius: "10px",
+    width: "32px",
+    height: "32px",
+    flexShrink: 0,
+    borderRadius: "9px",
     background:
-      "rgba(148,163,184,0.07)",
+      "rgba(148,163,184,0.06)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "14px",
+    fontSize: "13px",
   },
 
   infoLabel: {
     display: "block",
-    color: "#64748b",
-    fontSize: "10px",
+    color: "#475569",
+    fontSize: "9px",
     marginBottom: "2px",
   },
 
   infoValue: {
     display: "block",
     color: "#cbd5e1",
-    fontSize: "12px",
+    fontSize: "10px",
     fontWeight: "600",
   },
 
   arrow: {
     color: "#475569",
-    margin: "0 3px",
   },
 
   /* ACTIONS */
 
   actions: {
     display: "flex",
-    gap: "9px",
-    marginTop: "20px",
+    gap: "8px",
+    marginTop: "18px",
   },
 
   viewBtn: {
     flex: 1,
-    background:
-      "rgba(59,130,246,0.12)",
+    padding: "9px",
+    borderRadius: "9px",
     border:
-      "1px solid rgba(59,130,246,0.22)",
+      "1px solid rgba(59,130,246,0.20)",
+    background:
+      "rgba(59,130,246,0.10)",
     color: "#60a5fa",
-    padding: "10px",
-    borderRadius: "10px",
     cursor: "pointer",
-    fontWeight: "600",
     fontFamily: "inherit",
+    fontSize: "10px",
+    fontWeight: "700",
     transition: "all 0.2s ease",
   },
 
   deleteBtn: {
-    width: "80px",
-    background:
-      "rgba(239,68,68,0.10)",
+    width: "75px",
+    padding: "9px",
+    borderRadius: "9px",
     border:
-      "1px solid rgba(239,68,68,0.20)",
+      "1px solid rgba(239,68,68,0.18)",
+    background:
+      "rgba(239,68,68,0.08)",
     color: "#f87171",
-    padding: "10px",
-    borderRadius: "10px",
     cursor: "pointer",
-    fontWeight: "600",
     fontFamily: "inherit",
+    fontSize: "10px",
+    fontWeight: "700",
     transition: "all 0.2s ease",
   },
 
   /* EMPTY */
 
   emptyCard: {
-    marginTop: "25px",
     minHeight: "320px",
     display: "flex",
     flexDirection: "column",
@@ -1127,35 +1901,35 @@ const styles = {
     justifyContent: "center",
     textAlign: "center",
     background:
-      "rgba(255,255,255,0.035)",
+      "rgba(255,255,255,0.03)",
     border:
-      "1px dashed rgba(148,163,184,0.18)",
-    borderRadius: "20px",
+      "1px dashed rgba(148,163,184,0.16)",
+    borderRadius: "18px",
     padding: "30px",
   },
 
   emptyIcon: {
-    width: "70px",
-    height: "70px",
-    borderRadius: "20px",
+    width: "65px",
+    height: "65px",
+    borderRadius: "18px",
     background:
-      "rgba(59,130,246,0.10)",
+      "rgba(59,130,246,0.09)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "30px",
-    marginBottom: "15px",
+    fontSize: "28px",
+    marginBottom: "14px",
   },
 
   emptyTitle: {
     margin: "0 0 7px",
-    fontSize: "19px",
+    fontSize: "18px",
   },
 
   emptyText: {
-    margin: "0 0 20px",
+    margin: "0 0 18px",
     color: "#64748b",
-    fontSize: "13px",
+    fontSize: "11px",
   },
 
   emptyBtn: {
@@ -1163,8 +1937,8 @@ const styles = {
       "linear-gradient(135deg,#2563eb,#4f46e5)",
     border: "none",
     color: "#fff",
-    padding: "11px 20px",
-    borderRadius: "11px",
+    padding: "10px 18px",
+    borderRadius: "10px",
     cursor: "pointer",
     fontFamily: "inherit",
     fontWeight: "700",
@@ -1172,111 +1946,84 @@ const styles = {
 
   resetBtn: {
     background:
-      "rgba(148,163,184,0.10)",
+      "rgba(148,163,184,0.08)",
     border:
-      "1px solid rgba(148,163,184,0.18)",
+      "1px solid rgba(148,163,184,0.15)",
     color: "#cbd5e1",
-    padding: "10px 18px",
-    borderRadius: "10px",
+    padding: "9px 17px",
+    borderRadius: "9px",
     cursor: "pointer",
     fontFamily: "inherit",
   },
 
-  /* LOADING */
-
-  loadingContainer: {
-    minHeight: "80vh",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  spinner: {
-    width: "42px",
-    height: "42px",
-    border:
-      "3px solid rgba(255,255,255,0.1)",
-    borderTop:
-      "3px solid #3b82f6",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-  },
-
-  loadingText: {
-    color: "#94a3b8",
-    marginTop: "15px",
-    fontSize: "14px",
-  },
-
   /* MODAL */
 
-  overlay: {
+  modalOverlay: {
     position: "fixed",
     inset: 0,
+    zIndex: 9999,
     background:
       "rgba(2,6,23,0.75)",
     backdropFilter: "blur(7px)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 9999,
     padding: "20px",
   },
 
   modal: {
     width: "100%",
-    maxWidth: "420px",
+    maxWidth: "400px",
     background:
       "linear-gradient(145deg,#172033,#0f172a)",
     border:
-      "1px solid rgba(255,255,255,0.10)",
-    borderRadius: "20px",
-    padding: "30px",
+      "1px solid rgba(255,255,255,0.09)",
+    borderRadius: "19px",
+    padding: "28px",
     textAlign: "center",
     boxShadow:
       "0 30px 80px rgba(0,0,0,0.5)",
   },
 
   modalIcon: {
-    width: "62px",
-    height: "62px",
-    borderRadius: "18px",
+    width: "60px",
+    height: "60px",
+    margin: "0 auto 14px",
+    borderRadius: "17px",
     background:
-      "rgba(239,68,68,0.12)",
+      "rgba(239,68,68,0.11)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    margin: "0 auto 15px",
-    fontSize: "28px",
+    fontSize: "27px",
   },
 
   modalTitle: {
-    margin: "0 0 10px",
-    fontSize: "20px",
+    margin: "0 0 8px",
+    fontSize: "19px",
   },
 
   modalText: {
-    margin: "0",
+    margin: 0,
     color: "#94a3b8",
-    fontSize: "13px",
-    lineHeight: "1.8",
+    fontSize: "11px",
+    lineHeight: 1.8,
   },
 
   modalActions: {
     display: "flex",
-    gap: "10px",
-    marginTop: "25px",
+    gap: "9px",
+    marginTop: "23px",
   },
 
   cancelBtn: {
     flex: 1,
-    padding: "11px",
-    borderRadius: "10px",
+    padding: "10px",
+    borderRadius: "9px",
     border:
-      "1px solid rgba(148,163,184,0.18)",
+      "1px solid rgba(148,163,184,0.15)",
     background:
-      "rgba(148,163,184,0.08)",
+      "rgba(148,163,184,0.07)",
     color: "#cbd5e1",
     cursor: "pointer",
     fontFamily: "inherit",
@@ -1285,8 +2032,8 @@ const styles = {
 
   confirmDeleteBtn: {
     flex: 1,
-    padding: "11px",
-    borderRadius: "10px",
+    padding: "10px",
+    borderRadius: "9px",
     border: "none",
     background:
       "linear-gradient(135deg,#dc2626,#ef4444)",
@@ -1294,5 +2041,41 @@ const styles = {
     cursor: "pointer",
     fontFamily: "inherit",
     fontWeight: "700",
+  },
+
+  /* LOADING */
+
+  loadingPage: {
+    minHeight: "100vh",
+    background:
+      "linear-gradient(135deg,#080f1d,#0f172a)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    direction: "rtl",
+    fontFamily: "Cairo, Arial, sans-serif",
+    color: "#fff",
+  },
+
+  spinner: {
+    width: "40px",
+    height: "40px",
+    border:
+      "3px solid rgba(255,255,255,0.08)",
+    borderTop:
+      "3px solid #3b82f6",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+  },
+
+  loadingText: {
+    marginTop: "14px",
+    color: "#94a3b8",
+    fontSize: "12px",
+  },
+
+  mobileOverlay: {
+    display: "none",
   },
 };
