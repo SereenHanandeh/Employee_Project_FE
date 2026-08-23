@@ -136,7 +136,7 @@ export default function Dashboard() {
 
           <button
             className="menu-item active"
-            onClick={() => nav("/admin-dashboard")}
+            onClick={() => nav("/dashboard")}
           >
             <span>🏠</span>
             <span>لوحة التحكم</span>
