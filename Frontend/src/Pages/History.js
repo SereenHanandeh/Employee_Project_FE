@@ -103,7 +103,7 @@ export default function History() {
       };
     }
 
-    if (value.includes("جيد جداً")) {
+    if (value.includes("جيد جدا")) {
       return {
         background: "rgba(59,130,246,0.15)",
         color: "#60a5fa",
