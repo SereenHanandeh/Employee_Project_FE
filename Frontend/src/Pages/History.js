@@ -612,7 +612,7 @@ export default function History() {
 
               <div>
                 <span style={styles.statLabel}>
-                  جيد جداً
+                جيد جدا
                 </span>
 
                 <strong style={styles.statValue}>
@@ -620,7 +620,7 @@ export default function History() {
                 </strong>
 
                 <span style={styles.statHint}>
-                  أداء جيد جداً
+                  أداء جيد جدا
                 </span>
               </div>
 
@@ -676,8 +676,8 @@ export default function History() {
                 ممتاز
               </option>
 
-              <option value="جيد جداً">
-                جيد جداً
+              <option value="جيد جدا">
+                جيد جدا
               </option>
 
               <option value="جيد">
