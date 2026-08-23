@@ -16,7 +16,19 @@ export default function LeavesList() {
   const [filterStatus, setFilterStatus] = useState("");
 
   const [mobileMenu, setMobileMenu] = useState(false);
+
+  // عرض تفاصيل
   const [selectedLeave, setSelectedLeave] = useState(null);
+
+  // تعديل الإجازة
+  const [editingLeave, setEditingLeave] = useState(null);
+
+  const [editForm, setEditForm] = useState({
+    type: "",
+    from_date: "",
+    to_date: "",
+    notes: "",
+  });
 
   // =========================================================
   // FETCH
@@ -52,16 +64,14 @@ export default function LeavesList() {
 
     if (
       s === "approved" ||
-      s === "مقبول" ||
-      s === "approved "
+      s === "مقبول"
     ) {
       return "approved";
     }
 
     if (
       s === "rejected" ||
-      s === "مرفوض" ||
-      s === "rejected "
+      s === "مرفوض"
     ) {
       return "rejected";
     }
@@ -106,15 +116,18 @@ export default function LeavesList() {
     const total = leaves.length;
 
     const pending = leaves.filter(
-      (leave) => getStatusKey(leave.status) === "pending"
+      (leave) =>
+        getStatusKey(leave.status) === "pending"
     ).length;
 
     const approved = leaves.filter(
-      (leave) => getStatusKey(leave.status) === "approved"
+      (leave) =>
+        getStatusKey(leave.status) === "approved"
     ).length;
 
     const rejected = leaves.filter(
-      (leave) => getStatusKey(leave.status) === "rejected"
+      (leave) =>
+        getStatusKey(leave.status) === "rejected"
     ).length;
 
     return {
@@ -151,12 +164,15 @@ export default function LeavesList() {
         String(leave.name || "")
           .toLowerCase()
           .includes(searchValue) ||
+
         String(leave.type || "")
           .toLowerCase()
           .includes(searchValue) ||
+
         String(leave.from_date || "")
           .toLowerCase()
           .includes(searchValue) ||
+
         String(leave.to_date || "")
           .toLowerCase()
           .includes(searchValue);
@@ -225,7 +241,98 @@ export default function LeavesList() {
       setSelectedLeave(null);
     } catch (error) {
       console.error(error);
-      alert(`فشل ${actionText} طلب الإجازة`);
+
+      alert(
+        error.response?.data?.message ||
+          `فشل ${actionText} طلب الإجازة`
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // =========================================================
+  // OPEN EDIT
+  // =========================================================
+
+  const openEditLeave = (leave) => {
+    setEditingLeave(leave);
+
+    setEditForm({
+      type: leave.type || "",
+
+      from_date: leave.from_date
+        ? String(leave.from_date).slice(0, 10)
+        : "",
+
+      to_date: leave.to_date
+        ? String(leave.to_date).slice(0, 10)
+        : "",
+
+      notes: leave.notes || "",
+    });
+  };
+
+  // =========================================================
+  // UPDATE LEAVE
+  // =========================================================
+
+  const updateLeave = async () => {
+    if (
+      !editForm.type ||
+      !editForm.from_date ||
+      !editForm.to_date
+    ) {
+      alert("يرجى تعبئة جميع الحقول المطلوبة");
+      return;
+    }
+
+    if (
+      new Date(editForm.to_date) <
+      new Date(editForm.from_date)
+    ) {
+      alert(
+        "تاريخ نهاية الإجازة يجب أن يكون بعد أو يساوي تاريخ البداية"
+      );
+
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const res = await API.put(
+        `/leaves/edit/${editingLeave.leave_id}`,
+        {
+          type: editForm.type,
+          from_date: editForm.from_date,
+          to_date: editForm.to_date,
+          notes: editForm.notes,
+        }
+      );
+
+      setLeaves((prev) =>
+        prev.map((leave) =>
+          leave.leave_id ===
+          editingLeave.leave_id
+            ? {
+                ...leave,
+                ...res.data,
+              }
+            : leave
+        )
+      );
+
+      setEditingLeave(null);
+
+      alert("تم تعديل الإجازة بنجاح");
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        error.response?.data?.message ||
+          "فشل تعديل الإجازة"
+      );
     } finally {
       setSaving(false);
     }
@@ -246,6 +353,8 @@ export default function LeavesList() {
       "نوع الإجازة": leave.type,
       "من تاريخ": leave.from_date,
       "إلى تاريخ": leave.to_date,
+      "عدد الأيام": leave.days,
+      الملاحظات: leave.notes || "",
       الحالة: getStatusInfo(leave.status).text,
     }));
 
@@ -327,6 +436,7 @@ export default function LeavesList() {
         }}
       >
         <div style={styles.logoArea}>
+
           <div style={styles.logoIcon}>
             HR
           </div>
@@ -340,6 +450,7 @@ export default function LeavesList() {
               نظام الموارد البشرية
             </div>
           </div>
+
         </div>
 
         <div style={styles.sidebarDivider} />
@@ -357,6 +468,7 @@ export default function LeavesList() {
           <span style={styles.menuIcon}>
             ⌂
           </span>
+
           لوحة التحكم
         </button>
 
@@ -369,6 +481,7 @@ export default function LeavesList() {
           <span style={styles.menuIcon}>
             👨‍💼
           </span>
+
           الموظفين
         </button>
 
@@ -384,6 +497,7 @@ export default function LeavesList() {
           <span style={styles.menuIcon}>
             📅
           </span>
+
           الإجازات
         </button>
 
@@ -396,6 +510,7 @@ export default function LeavesList() {
           <span style={styles.menuIcon}>
             📊
           </span>
+
           التقييمات
         </button>
 
@@ -408,10 +523,12 @@ export default function LeavesList() {
           <span style={styles.menuIcon}>
             ✓
           </span>
+
           المهام
         </button>
 
         <div style={styles.sidebarBottom}>
+
           <button
             style={styles.menuItem}
             onClick={() => {
@@ -423,8 +540,10 @@ export default function LeavesList() {
             <span style={styles.menuIcon}>
               🚪
             </span>
+
             تسجيل الخروج
           </button>
+
         </div>
       </aside>
 
@@ -434,9 +553,7 @@ export default function LeavesList() {
 
       <main style={styles.main}>
 
-        {/* ===================================================
-            HEADER
-        =================================================== */}
+        {/* HEADER */}
 
         <header style={styles.header}>
 
@@ -452,6 +569,7 @@ export default function LeavesList() {
             </button>
 
             <div>
+
               <div style={styles.breadcrumb}>
                 لوحة التحكم / الإجازات
               </div>
@@ -463,6 +581,7 @@ export default function LeavesList() {
               <p style={styles.pageDescription}>
                 إدارة ومتابعة طلبات إجازات الموظفين
               </p>
+
             </div>
 
           </div>
@@ -516,6 +635,7 @@ export default function LeavesList() {
             </div>
 
             <div>
+
               <div style={styles.statLabel}>
                 إجمالي الإجازات
               </div>
@@ -523,6 +643,7 @@ export default function LeavesList() {
               <div style={styles.statNumber}>
                 {statistics.total}
               </div>
+
             </div>
           </div>
 
@@ -546,6 +667,7 @@ export default function LeavesList() {
             </div>
 
             <div>
+
               <div style={styles.statLabel}>
                 قيد الانتظار
               </div>
@@ -558,6 +680,7 @@ export default function LeavesList() {
               >
                 {statistics.pending}
               </div>
+
             </div>
           </div>
 
@@ -581,6 +704,7 @@ export default function LeavesList() {
             </div>
 
             <div>
+
               <div style={styles.statLabel}>
                 الإجازات المقبولة
               </div>
@@ -593,6 +717,7 @@ export default function LeavesList() {
               >
                 {statistics.approved}
               </div>
+
             </div>
           </div>
 
@@ -616,6 +741,7 @@ export default function LeavesList() {
             </div>
 
             <div>
+
               <div style={styles.statLabel}>
                 الإجازات المرفوضة
               </div>
@@ -628,6 +754,7 @@ export default function LeavesList() {
               >
                 {statistics.rejected}
               </div>
+
             </div>
           </div>
 
@@ -722,7 +849,7 @@ export default function LeavesList() {
         </section>
 
         {/* ===================================================
-            TABLE CONTAINER
+            TABLE
         =================================================== */}
 
         <section style={styles.tableContainer}>
@@ -730,6 +857,7 @@ export default function LeavesList() {
           <div style={styles.tableHeader}>
 
             <div>
+
               <h2 style={styles.sectionTitle}>
                 قائمة الإجازات
               </h2>
@@ -737,6 +865,7 @@ export default function LeavesList() {
               <span style={styles.resultsCount}>
                 عرض {filteredLeaves.length} طلب إجازة
               </span>
+
             </div>
 
             <button
@@ -749,9 +878,7 @@ export default function LeavesList() {
 
           </div>
 
-          {/* =================================================
-              LOADING
-          ================================================= */}
+          {/* LOADING */}
 
           {loading ? (
 
@@ -769,9 +896,7 @@ export default function LeavesList() {
 
           ) : filteredLeaves.length === 0 ? (
 
-            /* =================================================
-               EMPTY
-            ================================================= */
+            /* EMPTY */
 
             <div style={styles.emptyState}>
 
@@ -793,6 +918,7 @@ export default function LeavesList() {
           ) : (
 
             <>
+
               {/* =============================================
                   DESKTOP TABLE
               ============================================= */}
@@ -841,6 +967,7 @@ export default function LeavesList() {
                       );
 
                     return (
+
                       <div
                         key={leave.leave_id}
                         style={styles.tableRow}
@@ -863,7 +990,8 @@ export default function LeavesList() {
                                 styles.employeeName
                               }
                             >
-                              {leave.name || "غير محدد"}
+                              {leave.name ||
+                                "غير محدد"}
                             </div>
 
                             <div
@@ -881,6 +1009,7 @@ export default function LeavesList() {
                         {/* TYPE */}
 
                         <div>
+
                           <span
                             style={
                               styles.leaveTypeBadge
@@ -888,6 +1017,7 @@ export default function LeavesList() {
                           >
                             {leave.type || "—"}
                           </span>
+
                         </div>
 
                         {/* FROM */}
@@ -944,6 +1074,9 @@ export default function LeavesList() {
                           "pending" ? (
 
                             <>
+
+                              {/* قبول */}
+
                               <button
                                 style={
                                   styles.acceptButton
@@ -960,6 +1093,8 @@ export default function LeavesList() {
                                 ✓
                               </button>
 
+                              {/* رفض */}
+
                               <button
                                 style={
                                   styles.rejectButton
@@ -975,6 +1110,24 @@ export default function LeavesList() {
                               >
                                 ✕
                               </button>
+
+                              {/* تعديل */}
+
+                              <button
+                                style={
+                                  styles.editButton
+                                }
+                                title="تعديل الإجازة"
+                                onClick={() =>
+                                  openEditLeave(
+                                    leave
+                                  )
+                                }
+                                disabled={saving}
+                              >
+                                ✏️
+                              </button>
+
                             </>
 
                           ) : (
@@ -1024,6 +1177,7 @@ export default function LeavesList() {
                       );
 
                     return (
+
                       <div
                         key={leave.leave_id}
                         style={
@@ -1090,6 +1244,7 @@ export default function LeavesList() {
                                 status.border,
                             }}
                           >
+
                             <span
                               style={{
                                 ...styles.statusDot,
@@ -1099,6 +1254,7 @@ export default function LeavesList() {
                             />
 
                             {status.text}
+
                           </span>
 
                         </div>
@@ -1145,6 +1301,16 @@ export default function LeavesList() {
                             </span>
                           </div>
 
+                          <div>
+                            <small>
+                              عدد الأيام
+                            </small>
+
+                            <span>
+                              {leave.days || "—"}
+                            </span>
+                          </div>
+
                         </div>
 
                         {/* ACTIONS */}
@@ -1159,6 +1325,7 @@ export default function LeavesList() {
                           "pending" ? (
 
                             <>
+
                               <button
                                 style={
                                   styles.mobileAcceptButton
@@ -1188,6 +1355,21 @@ export default function LeavesList() {
                               >
                                 ✕ رفض
                               </button>
+
+                              <button
+                                style={
+                                  styles.mobileEditButton
+                                }
+                                onClick={() =>
+                                  openEditLeave(
+                                    leave
+                                  )
+                                }
+                                disabled={saving}
+                              >
+                                ✏️ تعديل
+                              </button>
+
                             </>
 
                           ) : (
@@ -1215,6 +1397,7 @@ export default function LeavesList() {
                 )}
 
               </div>
+
             </>
           )}
 
@@ -1227,6 +1410,7 @@ export default function LeavesList() {
       ===================================================== */}
 
       {selectedLeave && (
+
         <div style={styles.modalOverlay}>
 
           <div style={styles.modal}>
@@ -1265,6 +1449,7 @@ export default function LeavesList() {
 
                 <div style={styles.detailItem}>
                   <span>الموظف</span>
+
                   <strong>
                     {selectedLeave.name ||
                       "—"}
@@ -1273,6 +1458,7 @@ export default function LeavesList() {
 
                 <div style={styles.detailItem}>
                   <span>نوع الإجازة</span>
+
                   <strong>
                     {selectedLeave.type ||
                       "—"}
@@ -1281,6 +1467,7 @@ export default function LeavesList() {
 
                 <div style={styles.detailItem}>
                   <span>من تاريخ</span>
+
                   <strong>
                     {formatDate(
                       selectedLeave.from_date
@@ -1290,10 +1477,29 @@ export default function LeavesList() {
 
                 <div style={styles.detailItem}>
                   <span>إلى تاريخ</span>
+
                   <strong>
                     {formatDate(
                       selectedLeave.to_date
                     )}
+                  </strong>
+                </div>
+
+                <div style={styles.detailItem}>
+                  <span>عدد الأيام</span>
+
+                  <strong>
+                    {selectedLeave.days ||
+                      "—"}
+                  </strong>
+                </div>
+
+                <div style={styles.detailItem}>
+                  <span>الملاحظات</span>
+
+                  <strong>
+                    {selectedLeave.notes ||
+                      "لا توجد ملاحظات"}
                   </strong>
                 </div>
 
@@ -1344,16 +1550,219 @@ export default function LeavesList() {
       )}
 
       {/* =====================================================
+          EDIT LEAVE MODAL
+      ===================================================== */}
+
+      {editingLeave && (
+
+        <div style={styles.modalOverlay}>
+
+          <div style={styles.modal}>
+
+            <div style={styles.modalHeader}>
+
+              <div>
+
+                <h2 style={styles.modalTitle}>
+                  ✏️ تعديل طلب الإجازة
+                </h2>
+
+                <p style={styles.modalSubtitle}>
+                  تعديل طلب الإجازة للموظف{" "}
+                  <strong>
+                    {editingLeave.name}
+                  </strong>
+                </p>
+
+              </div>
+
+              <button
+                style={styles.closeButton}
+                onClick={() =>
+                  setEditingLeave(null)
+                }
+                disabled={saving}
+              >
+                ✕
+              </button>
+
+            </div>
+
+            <div style={styles.modalBody}>
+
+              {/* TYPE */}
+
+              <div style={styles.formGroup}>
+
+                <label style={styles.formLabel}>
+                  نوع الإجازة
+                </label>
+
+                <input
+                  type="text"
+                  value={editForm.type}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      type: e.target.value,
+                    })
+                  }
+                  style={styles.formInput}
+                  placeholder="مثال: إجازة سنوية"
+                />
+
+              </div>
+
+              {/* DATES */}
+
+              <div style={styles.editDateGrid}>
+
+                <div style={styles.formGroup}>
+
+                  <label style={styles.formLabel}>
+                    من تاريخ
+                  </label>
+
+                  <input
+                    type="date"
+                    value={
+                      editForm.from_date
+                    }
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        from_date:
+                          e.target.value,
+                      })
+                    }
+                    style={styles.formInput}
+                  />
+
+                </div>
+
+                <div style={styles.formGroup}>
+
+                  <label style={styles.formLabel}>
+                    إلى تاريخ
+                  </label>
+
+                  <input
+                    type="date"
+                    value={
+                      editForm.to_date
+                    }
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        to_date:
+                          e.target.value,
+                      })
+                    }
+                    style={styles.formInput}
+                  />
+
+                </div>
+
+              </div>
+
+              {/* DAYS */}
+
+              {editForm.from_date &&
+                editForm.to_date &&
+                new Date(editForm.to_date) >=
+                  new Date(
+                    editForm.from_date
+                  ) && (
+
+                  <div style={styles.daysPreview}>
+                    عدد أيام الإجازة بعد التعديل:{" "}
+                    <strong>
+                      {Math.ceil(
+                        (
+                          new Date(
+                            editForm.to_date
+                          ).getTime() -
+                          new Date(
+                            editForm.from_date
+                          ).getTime()
+                        ) /
+                          (1000 *
+                            60 *
+                            60 *
+                            24)
+                      ) + 1}
+                    </strong>{" "}
+                    يوم
+                  </div>
+                )}
+
+              {/* NOTES */}
+
+              <div style={styles.formGroup}>
+
+                <label style={styles.formLabel}>
+                  الملاحظات
+                </label>
+
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      notes: e.target.value,
+                    })
+                  }
+                  style={styles.formTextarea}
+                  placeholder="أدخل الملاحظات..."
+                  rows={4}
+                />
+
+              </div>
+
+            </div>
+
+            <div style={styles.modalFooter}>
+
+              <button
+                style={styles.cancelButton}
+                onClick={() =>
+                  setEditingLeave(null)
+                }
+                disabled={saving}
+              >
+                إلغاء
+              </button>
+
+              <button
+                style={styles.primaryButton}
+                onClick={updateLeave}
+                disabled={saving}
+              >
+                {saving
+                  ? "جاري الحفظ..."
+                  : "💾 حفظ التعديلات"}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* =====================================================
           MOBILE OVERLAY
       ===================================================== */}
 
       {mobileMenu && (
+
         <div
           style={styles.mobileOverlay}
           onClick={() =>
             setMobileMenu(false)
           }
         />
+
       )}
 
     </div>
@@ -1365,6 +1774,7 @@ export default function LeavesList() {
 ========================================================= */
 
 const styles = {
+
   app: {
     minHeight: "100vh",
     background:
@@ -1887,6 +2297,19 @@ const styles = {
     fontWeight: "700",
   },
 
+  editButton: {
+    width: "32px",
+    height: "32px",
+    borderRadius: "8px",
+    border:
+      "1px solid rgba(245,158,11,0.2)",
+    background:
+      "rgba(245,158,11,0.1)",
+    color: "#fbbf24",
+    cursor: "pointer",
+    fontWeight: "700",
+  },
+
   viewButton: {
     width: "32px",
     height: "32px",
@@ -1964,6 +2387,20 @@ const styles = {
     fontWeight: "600",
   },
 
+  mobileEditButton: {
+    flex: 1,
+    background:
+      "rgba(245,158,11,0.12)",
+    color: "#fbbf24",
+    border:
+      "1px solid rgba(245,158,11,0.2)",
+    padding: "9px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontWeight: "600",
+  },
+
   mobileViewButton: {
     flex: 1,
     background:
@@ -1976,8 +2413,6 @@ const styles = {
     cursor: "pointer",
     fontFamily: "inherit",
   },
-
-  mobileInfoItem: {},
 
   /* ================= EMPTY ================= */
 
@@ -2106,6 +2541,71 @@ const styles = {
     fontFamily: "inherit",
   },
 
+  /* ================= EDIT FORM ================= */
+
+  formGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "7px",
+    marginBottom: "16px",
+  },
+
+  formLabel: {
+    color: "#cbd5e1",
+    fontSize: "12px",
+    fontWeight: "700",
+  },
+
+  formInput: {
+    width: "100%",
+    boxSizing: "border-box",
+    background:
+      "rgba(255,255,255,0.04)",
+    border:
+      "1px solid rgba(255,255,255,0.1)",
+    color: "#fff",
+    padding: "11px 12px",
+    borderRadius: "9px",
+    outline: "none",
+    fontFamily: "inherit",
+    fontSize: "12px",
+  },
+
+  formTextarea: {
+    width: "100%",
+    boxSizing: "border-box",
+    background:
+      "rgba(255,255,255,0.04)",
+    border:
+      "1px solid rgba(255,255,255,0.1)",
+    color: "#fff",
+    padding: "11px 12px",
+    borderRadius: "9px",
+    outline: "none",
+    fontFamily: "inherit",
+    fontSize: "12px",
+    resize: "vertical",
+  },
+
+  editDateGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "1fr 1fr",
+    gap: "12px",
+  },
+
+  daysPreview: {
+    background:
+      "rgba(99,102,241,0.1)",
+    border:
+      "1px solid rgba(99,102,241,0.2)",
+    color: "#a5b4fc",
+    padding: "11px 13px",
+    borderRadius: "9px",
+    marginBottom: "16px",
+    fontSize: "12px",
+  },
+
   mobileOverlay: {
     display: "none",
   },
@@ -2140,7 +2640,8 @@ if (typeof document !== "undefined") {
         opacity: 0.9;
       }
 
-      input::placeholder {
+      input::placeholder,
+      textarea::placeholder {
         color: #64748b;
       }
 
@@ -2149,8 +2650,8 @@ if (typeof document !== "undefined") {
         color: #fff;
       }
 
-      @media (max-width: 1100px) {
-        .leaves-responsive {}
+      input[type="date"] {
+        color-scheme: dark;
       }
 
       @media (max-width: 900px) {
@@ -2165,9 +2666,56 @@ if (typeof document !== "undefined") {
           overflow-x: hidden;
         }
 
+        /* Sidebar */
+
+        aside {
+          transform: translateX(100%);
+        }
+
+        /* Main */
+
+        main {
+          margin-right: 0 !important;
+          width: 100% !important;
+          padding: 20px !important;
+        }
+
+        /* Mobile menu */
+
+        button {
+          -webkit-tap-highlight-color: transparent;
+        }
+
       }
 
       @media (max-width: 700px) {
+
+        header {
+          align-items: flex-start !important;
+          flex-direction: column !important;
+        }
+
+        .leaves-responsive {}
+
+      }
+
+      @media (max-width: 600px) {
+
+        /* Stats */
+
+        section {
+          max-width: 100%;
+        }
+
+        /* Table */
+
+        [style*="grid-template-columns: 1.7fr"] {
+          display: none !important;
+        }
+
+      }
+
+      @media (max-width: 500px) {
 
         .leaves-responsive {}
 
