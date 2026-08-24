@@ -66,7 +66,7 @@ export default function Home() {
               onClick={() => nav("/login")}
             >
               تسجيل الدخول
-              <span>←</span>
+
             </button>
           )}
         </div>
@@ -122,12 +122,6 @@ export default function Home() {
                 </button>
               )}
 
-              <button
-                style={styles.secondaryHeroButton}
-                onClick={() => nav("/employees")}
-              >
-                استكشف النظام
-              </button>
 
             </div>
 
