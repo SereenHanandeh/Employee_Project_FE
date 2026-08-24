@@ -465,571 +465,257 @@ export default function LeaveForm() {
   // UI
   // =============================
 
-  return (
-    <div
-      className="leave-page"
-      dir="rtl"
-    >
-      <div className="leave-container">
+ return (
+  <div className="leave-page" dir="rtl">
+    <div className="leave-container">
 
-        {/* ============================= */}
-        {/* HEADER */}
-        {/* ============================= */}
+      {/* HEADER */}
+      <div className="leave-header">
+        <h1>طلب إجازة</h1>
+      </div>
 
-        <div className="leave-header">
+      <div className="leave-card">
 
-          <button
-            type="button"
-            className="back-button"
-            onClick={() => nav(-1)}
-            disabled={saving}
-          >
-            <FaArrowRight />
-          </button>
+        {/* بيانات الموظف */}
+        <div className="simple-section">
+          <h2>بيانات الموظف</h2>
 
-          <div className="header-icon">
-            <FaCalendarAlt />
-          </div>
-
-          <div>
-            <h1>
-              طلب إجازة
-            </h1>
-
-            <p>
-              قم بتعبئة بيانات الإجازة
-              وإرسال الطلب
-            </p>
-          </div>
-
-        </div>
-
-        {/* ============================= */}
-        {/* FORM CARD */}
-        {/* ============================= */}
-
-        <div className="leave-card">
-
-          {/* ============================= */}
-          {/* EMPLOYEE */}
-          {/* ============================= */}
-
-          <div className="form-section">
-
-            <div className="section-title">
-
-              <div className="section-icon">
-                <FaUser />
-              </div>
-
-              <div>
-                <h2>
-                  بيانات الموظف
-                </h2>
-
-                <span>
-                  الموظف الذي سيقدم طلب
-                  الإجازة
-                </span>
-              </div>
-
-            </div>
-
-            {/* ============================= */}
-            {/* ADMIN */}
-            {/* ============================= */}
-
-            {isAdmin ? (
-
-              <div className="form-group">
-
-                <label>
-                  اسم الموظف
-                  <span>*</span>
-                </label>
-
-                <div className="input-wrapper">
-
-                  <FaUser />
-
-                  <select
-                    value={employeeId}
-                    onChange={(e) =>
-                      setEmployeeId(
-                        e.target.value
-                      )
-                    }
-                    disabled={saving}
-                  >
-
-                    <option value="">
-                      اختر الموظف
-                    </option>
-
-                    {employees.map(
-                      (emp) => (
-                        <option
-                          key={
-                            emp.employee_id ||
-                            emp.id
-                          }
-                          value={
-                            emp.employee_id ||
-                            emp.id
-                          }
-                        >
-                          {emp.name}
-                        </option>
-                      )
-                    )}
-
-                  </select>
-
-                </div>
-
-              </div>
-
-            ) : (
-
-              /* ============================= */
-              /* EMPLOYEE */
-              /* ============================= */
-
-              <div className="employee-display">
-
-                <div className="employee-avatar">
-                  <FaUser />
-                </div>
-
-                <div>
-
-                  <span>
-                    الموظف
-                  </span>
-
-                  <strong>
-                    {me?.name ||
-                      "الموظف"}
-                  </strong>
-
-                </div>
-
-              </div>
-
-            )}
-
-          </div>
-
-          {/* ============================= */}
-          {/* LEAVE INFORMATION */}
-          {/* ============================= */}
-
-          <div className="form-section">
-
-            <div className="section-title">
-
-              <div className="section-icon blue">
-                <FaCalendarAlt />
-              </div>
-
-              <div>
-
-                <h2>
-                  تفاصيل الإجازة
-                </h2>
-
-                <span>
-                  حدد نوع الإجازة ومدتها
-                </span>
-
-              </div>
-
-            </div>
-
-            {/* ============================= */}
-            {/* TYPE */}
-            {/* ============================= */}
-
+          {isAdmin ? (
             <div className="form-group">
-
               <label>
-                نوع الإجازة
-                <span>*</span>
+                الموظف <span>*</span>
               </label>
 
               <div className="input-wrapper">
-
-                <FaCalendarAlt />
+                <FaUser />
 
                 <select
-                  value={type}
-                  onChange={(e) =>
-                    setType(
-                      e.target.value
-                    )
-                  }
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
                   disabled={saving}
                 >
+                  <option value="">اختر الموظف</option>
 
-                  <option value="سنوية">
-                    إجازة سنوية
-                  </option>
-
-                  <option value="مرضية">
-                    إجازة مرضية
-                  </option>
-
-                  <option value="طارئة">
-                    إجازة طارئة
-                  </option>
-
-                  <option value="بدون راتب">
-                    إجازة بدون راتب
-                  </option>
-
-                  <option value="استثنائية">
-                    إجازة استثنائية
-                  </option>
-
+                  {employees.map((emp) => (
+                    <option
+                      key={emp.employee_id || emp.id}
+                      value={emp.employee_id || emp.id}
+                    >
+                      {emp.name}
+                    </option>
+                  ))}
                 </select>
-
               </div>
-
             </div>
-
-            {/* ============================= */}
-            {/* DATES */}
-            {/* ============================= */}
-
-            <div className="date-grid">
-
-              <div className="form-group">
-
-                <label>
-                  من تاريخ
-                  <span>*</span>
-                </label>
-
-                <input
-                  type="date"
-                  value={from}
-                  onChange={(e) => {
-                    const value =
-                      e.target.value;
-
-                    setFrom(value);
-
-                    if (
-                      to &&
-                      new Date(to) <
-                        new Date(value)
-                    ) {
-                      setTo("");
-                    }
-                  }}
-                  disabled={saving}
-                />
-
-              </div>
-
-              <div className="form-group">
-
-                <label>
-                  إلى تاريخ
-                  <span>*</span>
-                </label>
-
-                <input
-                  type="date"
-                  value={to}
-                  min={from || undefined}
-                  onChange={(e) =>
-                    setTo(
-                      e.target.value
-                    )
-                  }
-                  disabled={
-                    saving || !from
-                  }
-                />
-
-              </div>
-
-            </div>
-
-            {/* ============================= */}
-            {/* DAYS */}
-            {/* ============================= */}
-
-            {days > 0 && (
-
-              <div className="days-result">
-
-                <FaCalendarAlt />
-
-                <div>
-
-                  <span>
-                    مدة الإجازة
-                  </span>
-
-                  <strong>
-                    {days}{" "}
-
-                    {days === 1
-                      ? "يوم"
-                      : "أيام"}
-                  </strong>
-
-                </div>
-
-              </div>
-
-            )}
-
-          </div>
-
-          {/* ============================= */}
-          {/* ATTACHMENT */}
-          {/* ============================= */}
-
-          <div className="form-section">
-
-            <div className="section-title">
-
-              <div className="section-icon purple">
-                <FaFileAlt />
-              </div>
+          ) : (
+            <div className="employee-display">
+              <FaUser />
 
               <div>
-
-                <h2>
-                  المرفق
-                </h2>
-
-                <span>
-                  يمكنك إرفاق صورة أو تقرير
-                  أو مستند للإجازة
-                </span>
-
+                <span>الموظف</span>
+                <strong>{me?.name || "الموظف"}</strong>
               </div>
-
             </div>
+          )}
+        </div>
 
-            {/* ============================= */}
-            {/* NO FILE */}
-            {/* ============================= */}
+        {/* تفاصيل الإجازة */}
+        <div className="simple-section">
+          <h2>تفاصيل الإجازة</h2>
 
-            {!file ? (
+          {/* نوع الإجازة */}
+          <div className="form-group">
+            <label>
+              نوع الإجازة <span>*</span>
+            </label>
 
-              <label
-                className="upload-box"
-                htmlFor="leave-file"
+            <div className="input-wrapper">
+              <FaCalendarAlt />
+
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                disabled={saving}
               >
+                <option value="سنوية">إجازة سنوية</option>
+                <option value="مرضية">إجازة مرضية</option>
+                <option value="طارئة">إجازة طارئة</option>
+                <option value="بدون راتب">إجازة بدون راتب</option>
+                <option value="استثنائية">إجازة استثنائية</option>
+              </select>
+            </div>
+          </div>
 
-                <input
-                  id="leave-file"
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-                  onChange={
-                    handleFileChange
-                  }
-                  hidden
-                  disabled={saving}
-                />
+          {/* التواريخ */}
+          <div className="date-grid">
 
-                <div className="upload-icon">
-                  <FaCloudUploadAlt />
-                </div>
-
-                <h3>
-                  اضغط لاختيار ملف
-                </h3>
-
-                <p>
-                  JPG أو PNG أو PDF
-                </p>
-
-                <small>
-                  الحد الأقصى لحجم الملف
-                  5MB
-                </small>
-
+            <div className="form-group">
+              <label>
+                من تاريخ <span>*</span>
               </label>
 
-            ) : (
+              <input
+                type="date"
+                value={from}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFrom(value);
 
-              /* ============================= */
-              /* FILE PREVIEW */
-              /* ============================= */
-
-              <div className="file-preview">
-
-                {/* IMAGE */}
-
-                {preview ? (
-
-                  <div className="image-preview">
-
-                    <img
-                      src={preview}
-                      alt="معاينة المرفق"
-                    />
-
-                  </div>
-
-                ) : (
-
-                  /* PDF */
-
-                  <div className="pdf-preview">
-
-                    <FaFileAlt />
-
-                    <span>
-                      PDF
-                    </span>
-
-                  </div>
-
-                )}
-
-                {/* FILE DETAILS */}
-
-                <div className="file-details">
-
-                  <strong
-                    title={file.name}
-                  >
-                    {file.name}
-                  </strong>
-
-                  <span>
-                    {(
-                      file.size /
-                      (1024 * 1024)
-                    ).toFixed(2)}{" "}
-                    MB
-                  </span>
-
-                </div>
-
-                {/* REMOVE */}
-
-                <button
-                  type="button"
-                  className="remove-file"
-                  onClick={
-                    removeFile
+                  if (to && new Date(to) < new Date(value)) {
+                    setTo("");
                   }
-                  disabled={saving}
-                  title="إزالة الملف"
-                >
-                  <FaTimes />
-                </button>
-
-              </div>
-
-            )}
-
-          </div>
-
-          {/* ============================= */}
-          {/* NOTES */}
-          {/* ============================= */}
-
-          <div className="form-section">
-
-            <div className="section-title">
-
-              <div className="section-icon orange">
-                <FaNotesMedical />
-              </div>
-
-              <div>
-
-                <h2>
-                  ملاحظات
-                </h2>
-
-                <span>
-                  أضف أي معلومات إضافية
-                  إن وجدت
-                </span>
-
-              </div>
-
+                }}
+                disabled={saving}
+              />
             </div>
 
             <div className="form-group">
+              <label>
+                إلى تاريخ <span>*</span>
+              </label>
 
-              <textarea
-                placeholder="اكتب ملاحظاتك هنا..."
-                value={notes}
-                onChange={(e) =>
-                  setNotes(
-                    e.target.value
-                  )
-                }
-                maxLength={500}
-                disabled={saving}
+              <input
+                type="date"
+                value={to}
+                min={from || undefined}
+                onChange={(e) => setTo(e.target.value)}
+                disabled={saving || !from}
               />
-
-              <div className="characters-count">
-                {notes.length}/500
-              </div>
-
             </div>
 
           </div>
 
-          {/* ============================= */}
-          {/* ACTIONS */}
-          {/* ============================= */}
+          {/* مدة الإجازة */}
+          {days > 0 && (
+            <div className="days-result">
+              مدة الإجازة:
+              <strong>
+                {days} {days === 1 ? "يوم" : "أيام"}
+              </strong>
+            </div>
+          )}
+        </div>
 
-          <div className="form-actions">
+        {/* المرفق */}
+        <div className="simple-section">
+          <h2>المرفق</h2>
 
-            <button
-              type="button"
-              className="cancel-button"
-              onClick={() => nav(-1)}
-              disabled={saving}
+          {!file ? (
+            <label
+              className="upload-box"
+              htmlFor="leave-file"
             >
-              إلغاء
-            </button>
+              <input
+                id="leave-file"
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                onChange={handleFileChange}
+                hidden
+                disabled={saving}
+              />
 
-            <button
-              type="button"
-              className="save-button"
-              onClick={saveLeave}
-              disabled={saving}
-            >
+              <FaCloudUploadAlt />
 
-              {saving ? (
+              <strong>اضغط لاختيار الملف</strong>
 
-                <>
-                  <span className="button-spinner"></span>
+              <span>
+                JPG PNG PDF - 5MB
+              </span>
+            </label>
+          ) : (
+            <div className="file-preview">
 
-                  جاري الإرسال...
-                </>
-
+              {preview ? (
+                <div className="image-preview">
+                  <img
+                    src={preview}
+                    alt="معاينة المرفق"
+                  />
+                </div>
               ) : (
-
-                <>
-                  <FaSave />
-
-                  إرسال طلب الإجازة
-                </>
-
+                <div className="pdf-preview">
+                  <FaFileAlt />
+                  <span>PDF</span>
+                </div>
               )}
 
-            </button>
+              <div className="file-details">
+                <strong title={file.name}>
+                  {file.name}
+                </strong>
 
+                <span>
+                  {(file.size / (1024 * 1024)).toFixed(2)} MB
+                </span>
+              </div>
+
+              <button
+                type="button"
+                className="remove-file"
+                onClick={removeFile}
+                disabled={saving}
+                title="إزالة الملف"
+              >
+                <FaTimes />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* الملاحظات */}
+        <div className="simple-section">
+          <h2>الملاحظات</h2>
+
+          <div className="form-group">
+            <textarea
+              placeholder="اكتب ملاحظاتك هنا..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              maxLength={500}
+              disabled={saving}
+            />
+
+            <div className="characters-count">
+              {notes.length}/500
+            </div>
           </div>
+        </div>
+
+        {/* ACTIONS */}
+        <div className="form-actions">
+
+          <button
+            type="button"
+            className="cancel-button"
+            onClick={() => nav(-1)}
+            disabled={saving}
+          >
+            إلغاء
+          </button>
+
+          <button
+            type="button"
+            className="save-button"
+            onClick={saveLeave}
+            disabled={saving}
+          >
+            {saving ? (
+              <>
+                <span className="button-spinner"></span>
+                جاري الإرسال...
+              </>
+            ) : (
+              <>
+                <FaSave />
+                إرسال طلب الإجازة
+              </>
+            )}
+          </button>
 
         </div>
 
       </div>
     </div>
-  );
+  </div>
+);
 }
