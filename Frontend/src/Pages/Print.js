@@ -195,7 +195,7 @@ export default function Print() {
           </button>
 
           <button
-            onClick={() => nav("/dashboard")}
+            onClick={() => nav("/admin-dashboard")}
             style={styles.backButton}
           >
             ⬅ الرجوع

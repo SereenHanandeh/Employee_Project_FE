@@ -21,7 +21,7 @@ export default function AddEmployee() {
       });
 
       alert("تم إضافة الموظف");
-      nav("/dashboard");
+      nav("/admin-dashboard");
     } catch (err) {
       console.log(err);
       alert("خطأ");

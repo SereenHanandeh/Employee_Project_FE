@@ -44,9 +44,9 @@ export default function DashboardLayout() {
 
           <button
             className={`menu-item ${
-              isActive("/dashboard") ? "active" : ""
+              isActive("/admin-dashboard") ? "active" : ""
             }`}
-            onClick={() => nav("/dashboard")}
+            onClick={() => nav("/admin-dashboard")}
           >
             <span>🏠</span>
             <span>لوحة التحكم</span>
