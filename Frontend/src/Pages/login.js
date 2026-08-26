@@ -91,7 +91,7 @@ export default function Login() {
 
       // التوجيه حسب الصلاحية
       if (user.role === "admin") {
-        nav("/dashboard");
+        nav("/admin-dashboard");
       } else {
         nav("/employee");
       }
