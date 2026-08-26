@@ -52,10 +52,18 @@ export default function Dashboard() {
       });
 
       // آخر 5 إجازات
-      setLeaves(allLeaves.slice(-5).reverse());
+      setLeaves(
+        [...allLeaves]
+          .reverse()
+          .slice(0, 5)
+      );
 
       // آخر 5 تقييمات
-      setEvaluations(evaluations.slice(-5).reverse());
+      setEvaluations(
+        [...evaluations]
+          .reverse()
+          .slice(0, 5)
+      );
 
       // المهام غير المكتملة
       const pendingTasks = allTasks.filter(
@@ -64,19 +72,20 @@ export default function Dashboard() {
           task.status !== "مكتملة"
       );
 
-      setTasks(pendingTasks.slice(0, 5));
+      setTasks(
+        pendingTasks.slice(0, 5)
+      );
+
     } catch (error) {
       console.error("Dashboard Error:", error);
-      alert("فشل تحميل بيانات لوحة التحكم");
+
+      alert(
+        error?.response?.data?.message ||
+          "فشل تحميل بيانات لوحة التحكم"
+      );
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    nav("/");
   };
 
   const statCards = [
@@ -113,277 +122,212 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
 
-      {/* ================= SIDEBAR ================= */}
+      {/* ================= HEADER ================= */}
 
-      <aside className="sidebar">
+      <header className="top-header">
 
-        <div className="sidebar-logo">
-          <div className="logo-icon">
-            HR
-          </div>
+        <div className="header-title">
 
-          <div>
-            <h2>HR System</h2>
-            <span>إدارة الموظفين</span>
-          </div>
+          <span className="header-label">
+            لوحة الإدارة
+          </span>
+
+          <h1>
+            لوحة التحكم
+          </h1>
+
+          <p>
+            أهلاً بك 👋 إليك ملخص نظام إدارة الموظفين
+          </p>
+
         </div>
 
-        <div className="sidebar-menu">
-
-          <div className="menu-title">
-            الرئيسية
-          </div>
+        <div className="header-actions">
 
           <button
-            className="menu-item active"
-            onClick={() => nav("/dashboard")}
-          >
-            <span>🏠</span>
-            <span>لوحة التحكم</span>
-          </button>
-
-          <div className="menu-title">
-            إدارة الموظفين
-          </div>
-
-          <button
-            className="menu-item"
-            onClick={() => nav("/employees")}
-          >
-            <span>👨‍💼</span>
-            <span>الموظفين</span>
-          </button>
-
-          <button
-            className="menu-item"
-            onClick={() => nav("/add-employee")}
-          >
-            <span>➕</span>
-            <span>إضافة موظف</span>
-          </button>
-
-          <div className="menu-title">
-            الإدارة
-          </div>
-
-          <button
-            className="menu-item"
+            className="notification-button"
             onClick={() => nav("/leaves-list")}
+            title="الإجازات"
           >
-            <span>🏖️</span>
-            <span>الإجازات</span>
+            🔔
           </button>
 
-          <button
-            className="menu-item"
-            onClick={() => nav("/history")}
-          >
-            <span>📊</span>
-            <span>التقييمات</span>
-          </button>
+          <div className="admin-profile">
 
-          <button
-            className="menu-item"
-            onClick={() => nav("/tasks")}
-          >
-            <span>📋</span>
-            <span>المهام</span>
-          </button>
-
-          <button
-            className="menu-item"
-            onClick={() => nav("/add-task")}
-          >
-            <span>➕</span>
-            <span>إضافة مهمة</span>
-          </button>
-
-        </div>
-
-        <div className="sidebar-bottom">
-
-          <button
-            className="menu-item logout"
-            onClick={handleLogout}
-          >
-            <span>🚪</span>
-            <span>تسجيل الخروج</span>
-          </button>
-
-        </div>
-
-      </aside>
-
-      {/* ================= MAIN ================= */}
-
-      <main className="main-content">
-
-        {/* ================= HEADER ================= */}
-
-        <header className="top-header">
-
-          <div className="mobile-logo">
-            <div className="logo-icon">
-              HR
+            <div className="avatar">
+              A
             </div>
-
-            <span>HR System</span>
-          </div>
-
-          <div className="header-title">
-            <h1>لوحة التحكم</h1>
-            <p>
-              أهلاً بك 👋 إليك ملخص النظام اليوم
-            </p>
-          </div>
-
-          <div className="header-actions">
-
-            <button
-              className="notification-button"
-              onClick={() => nav("/leaves-list")}
-            >
-              🔔
-              <span className="notification-dot"></span>
-            </button>
-
-            <div className="admin-profile">
-
-              <div className="avatar">
-                A
-              </div>
-
-              <div>
-                <strong>Admin</strong>
-                <span>مدير النظام</span>
-              </div>
-
-            </div>
-
-          </div>
-
-        </header>
-
-        {/* ================= CONTENT ================= */}
-
-        <div className="content">
-
-          {/* ================= WELCOME ================= */}
-
-          <section className="welcome-card">
 
             <div>
-              <span className="welcome-label">
-                لوحة الإدارة
-              </span>
+              <strong>
+                Admin
+              </strong>
 
+              <span>
+                مدير النظام
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </header>
+
+      {/* ================= CONTENT ================= */}
+
+      <div className="content">
+
+        {/* ================= WELCOME ================= */}
+
+        <section className="welcome-card">
+
+          <div className="welcome-content">
+
+            <span className="welcome-label">
+              مرحباً بك
+            </span>
+
+            <h2>
+              نظام إدارة الموظفين 👋
+            </h2>
+
+            <p>
+              يمكنك من هنا متابعة الموظفين والإجازات
+              والتقييمات والمهام بسهولة.
+            </p>
+
+          </div>
+
+          <div className="welcome-icon">
+            📈
+          </div>
+
+        </section>
+
+        {/* ================= STATS ================= */}
+
+        <section className="stats-section">
+
+          <div className="section-header">
+
+            <div>
               <h2>
-                مرحباً بك في نظام إدارة الموظفين 👋
+                نظرة عامة
               </h2>
 
               <p>
-                يمكنك من هنا متابعة الموظفين والإجازات
-                والتقييمات والمهام بسهولة.
+                إحصائيات النظام
               </p>
             </div>
 
-            <div className="welcome-icon">
-              📈
-            </div>
+          </div>
 
-          </section>
+          <div className="stats-grid">
 
-          {/* ================= STATS ================= */}
+            {statCards.map((card) => (
 
-          <section className="stats-section">
+              <div
+                key={card.title}
+                className={`stat-card ${card.color}`}
+                onClick={() => nav(card.path)}
+              >
 
-            <div className="section-header">
+                <div className="stat-top">
+
+                  <div className="stat-icon">
+                    {card.icon}
+                  </div>
+
+                  <span className="stat-arrow">
+                    ←
+                  </span>
+
+                </div>
+
+                <div className="stat-number">
+                  {loading
+                    ? "..."
+                    : card.value}
+                </div>
+
+                <div className="stat-title">
+                  {card.title}
+                </div>
+
+                <div className="stat-link">
+                  عرض التفاصيل
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        </section>
+
+        {/* ================= THREE COLUMNS ================= */}
+
+        <div className="dashboard-grid">
+
+          {/* ================= LEAVES ================= */}
+
+          <section className="dashboard-card">
+
+            <div className="card-header">
+
               <div>
-                <h2>نظرة عامة</h2>
-                <p>إحصائيات النظام</p>
+                <h2>
+                  آخر الإجازات
+                </h2>
+
+                <span>
+                  أحدث طلبات الإجازات
+                </span>
               </div>
-            </div>
 
-            <div className="stats-grid">
-
-              {statCards.map((card) => (
-
-                <div
-                  key={card.title}
-                  className={`stat-card ${card.color}`}
-                  onClick={() => nav(card.path)}
-                >
-
-                  <div className="stat-top">
-
-                    <div className="stat-icon">
-                      {card.icon}
-                    </div>
-
-                    <span className="stat-arrow">
-                      ←
-                    </span>
-
-                  </div>
-
-                  <div className="stat-number">
-                    {loading ? "..." : card.value}
-                  </div>
-
-                  <div className="stat-title">
-                    {card.title}
-                  </div>
-
-                  <div className="stat-link">
-                    عرض التفاصيل
-                  </div>
-
-                </div>
-
-              ))}
+              <button
+                onClick={() =>
+                  nav("/leaves-list")
+                }
+              >
+                عرض الكل
+              </button>
 
             </div>
 
-          </section>
+            <div className="list">
 
-          {/* ================= THREE COLUMNS ================= */}
+              {leaves.length === 0 ? (
 
-          <div className="dashboard-grid">
-
-            {/* ================= LEAVES ================= */}
-
-            <section className="dashboard-card">
-
-              <div className="card-header">
-
-                <div>
-                  <h2>آخر الإجازات</h2>
-                  <span>أحدث طلبات الإجازات</span>
+                <div className="empty">
+                  لا توجد إجازات حالياً
                 </div>
 
-                <button
-                  onClick={() => nav("/leaves-list")}
-                >
-                  عرض الكل
-                </button>
+              ) : (
 
-              </div>
+                leaves.map((leave, index) => {
 
-              <div className="list">
+                  const status =
+                    leave.status;
 
-                {leaves.length === 0 ? (
+                  const isApproved =
+                    status === "approved" ||
+                    status === "مقبولة";
 
-                  <div className="empty">
-                    لا توجد إجازات حالياً
-                  </div>
+                  const isRejected =
+                    status === "rejected" ||
+                    status === "مرفوضة";
 
-                ) : (
-
-                  leaves.map((leave, index) => (
-
+                  return (
                     <div
                       className="list-item"
-                      key={leave.id || index}
+                      key={
+                        leave.id ||
+                        leave.leave_id ||
+                        index
+                      }
                     >
 
                       <div className="item-avatar leave-avatar">
@@ -409,70 +353,76 @@ export default function Dashboard() {
 
                       <span
                         className={`status ${
-                          leave.status === "approved" ||
-                          leave.status === "مقبولة"
+                          isApproved
                             ? "approved"
-                            : leave.status === "rejected" ||
-                              leave.status === "مرفوضة"
+                            : isRejected
                             ? "rejected"
                             : "pending"
                         }`}
                       >
-                        {leave.status === "approved"
+                        {isApproved
                           ? "مقبولة"
-                          : leave.status === "rejected"
-                          ? "مرفوضة"
-                          : leave.status === "مقبولة"
-                          ? "مقبولة"
-                          : leave.status === "مرفوضة"
+                          : isRejected
                           ? "مرفوضة"
                           : "قيد الانتظار"}
                       </span>
 
                     </div>
+                  );
+                })
 
-                  ))
+              )}
 
-                )}
+            </div>
 
+          </section>
+
+          {/* ================= EVALUATIONS ================= */}
+
+          <section className="dashboard-card">
+
+            <div className="card-header">
+
+              <div>
+                <h2>
+                  آخر التقييمات
+                </h2>
+
+                <span>
+                  أحدث تقييمات الموظفين
+                </span>
               </div>
 
-            </section>
+              <button
+                onClick={() =>
+                  nav("/history")
+                }
+              >
+                عرض الكل
+              </button>
 
-            {/* ================= EVALUATIONS ================= */}
+            </div>
 
-            <section className="dashboard-card">
+            <div className="list">
 
-              <div className="card-header">
+              {evaluations.length === 0 ? (
 
-                <div>
-                  <h2>آخر التقييمات</h2>
-                  <span>أحدث تقييمات الموظفين</span>
+                <div className="empty">
+                  لا توجد تقييمات حالياً
                 </div>
 
-                <button
-                  onClick={() => nav("/history")}
-                >
-                  عرض الكل
-                </button>
+              ) : (
 
-              </div>
-
-              <div className="list">
-
-                {evaluations.length === 0 ? (
-
-                  <div className="empty">
-                    لا توجد تقييمات حالياً
-                  </div>
-
-                ) : (
-
-                  evaluations.map((evaluation, index) => (
+                evaluations.map(
+                  (evaluation, index) => (
 
                     <div
                       className="list-item"
-                      key={evaluation.id || index}
+                      key={
+                        evaluation.id ||
+                        evaluation.evaluation_id ||
+                        index
+                      }
                     >
 
                       <div className="item-avatar evaluation-avatar">
@@ -505,93 +455,105 @@ export default function Dashboard() {
 
                     </div>
 
-                  ))
+                  )
+                )
 
-                )}
+              )}
 
+            </div>
+
+          </section>
+
+          {/* ================= TASKS ================= */}
+
+          <section className="dashboard-card">
+
+            <div className="card-header">
+
+              <div>
+                <h2>
+                  المهام المعلقة
+                </h2>
+
+                <span>
+                  المهام التي تحتاج متابعة
+                </span>
               </div>
 
-            </section>
+              <button
+                onClick={() =>
+                  nav("/tasks")
+                }
+              >
+                عرض الكل
+              </button>
 
-            {/* ================= TASKS ================= */}
+            </div>
 
-            <section className="dashboard-card">
+            <div className="list">
 
-              <div className="card-header">
+              {tasks.length === 0 ? (
 
-                <div>
-                  <h2>المهام المعلقة</h2>
-                  <span>المهام التي تحتاج متابعة</span>
+                <div className="empty success">
+                  🎉 لا توجد مهام معلقة
                 </div>
 
-                <button
-                  onClick={() => nav("/tasks")}
-                >
-                  عرض الكل
-                </button>
+              ) : (
 
-              </div>
+                tasks.map((task, index) => (
 
-              <div className="list">
+                  <div
+                    className="task-item"
+                    key={
+                      task.task_id ||
+                      task.id ||
+                      index
+                    }
+                  >
 
-                {tasks.length === 0 ? (
+                    <div className="task-check">
+                      ○
+                    </div>
 
-                  <div className="empty success">
-                    🎉 لا توجد مهام معلقة
-                  </div>
+                    <div className="item-info">
 
-                ) : (
+                      <strong>
+                        {task.title ||
+                          task.name ||
+                          "مهمة بدون اسم"}
+                      </strong>
 
-                  tasks.map((task, index) => (
-
-                    <div
-                      className="task-item"
-                      key={task.id || index}
-                    >
-
-                      <div className="task-check">
-                        ○
-                      </div>
-
-                      <div className="item-info">
-
-                        <strong>
-                          {task.title ||
-                            task.name ||
-                            "مهمة بدون اسم"}
-                        </strong>
-
-                        <span>
-                          {task.employeeName ||
-                            task.employee?.name ||
-                            "غير محدد"}
-                        </span>
-
-                      </div>
-
-                      <span className="task-priority">
-                        {task.priority === "high"
-                          ? "عالية"
-                          : task.priority === "low"
-                          ? "منخفضة"
-                          : "متوسطة"}
+                      <span>
+                        {task.employeeName ||
+                          task.employee?.name ||
+                          "غير محدد"}
                       </span>
 
                     </div>
 
-                  ))
+                    <span className="task-priority">
 
-                )}
+                      {task.priority === "high"
+                        ? "عالية"
+                        : task.priority === "low"
+                        ? "منخفضة"
+                        : "متوسطة"}
 
-              </div>
+                    </span>
 
-            </section>
+                  </div>
 
-          </div>
+                ))
+
+              )}
+
+            </div>
+
+          </section>
 
         </div>
 
-      </main>
+      </div>
 
     </div>
   );

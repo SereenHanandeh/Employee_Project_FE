@@ -17,7 +17,6 @@ export default function Employees() {
   const [filterDept, setFilterDept] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  const [mobileMenu, setMobileMenu] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -292,364 +291,272 @@ export default function Employees() {
     ),
   ];
 
-  // ================= SIDEBAR =================
 
-  const goTo = (path) => {
-    setMobileMenu(false);
-    nav(path);
-  };
 
   // ================= RENDER =================
 
   return (
     <div style={styles.app}>
-      {/* ================= SIDEBAR ================= */}
-
-      <aside
-        style={{
-          ...styles.sidebar,
-          ...(mobileMenu
-            ? styles.sidebarMobileOpen
-            : {}),
-        }}
-      >
-        <div style={styles.logoArea}>
-          <div style={styles.logoIcon}>HR</div>
-
-          <div>
-            <div style={styles.logoTitle}>
-              إدارة الموظفين
-            </div>
-
-            <div style={styles.logoSubtitle}>
-              نظام الموارد البشرية
-            </div>
-          </div>
-        </div>
-
-        <div style={styles.sidebarDivider} />
-
-        <div style={styles.menuTitle}>
-          القائمة الرئيسية
-        </div>
-
-        <button
-          style={styles.menuItem}
-          onClick={() => goTo("/admin-dashboard")}
-        >
-          <span style={styles.menuIcon}>⌂</span>
-          لوحة التحكم
-        </button>
-
-        <button
-          style={{
-            ...styles.menuItem,
-            ...styles.menuItemActive,
-          }}
-          onClick={() => goTo("/employees")}
-        >
-          <span style={styles.menuIcon}>👨‍💼</span>
-          الموظفين
-        </button>
-
-        <button
-          style={styles.menuItem}
-          onClick={() => goTo("/leaves-list")}
-        >
-          <span style={styles.menuIcon}>📅</span>
-          الإجازات
-        </button>
-
-        <button
-          style={styles.menuItem}
-          onClick={() => goTo("/history")}
-        >
-          <span style={styles.menuIcon}>📊</span>
-          التقييمات
-        </button>
-
-        <button
-          style={styles.menuItem}
-          onClick={() => goTo("/tasks")}
-        >
-          <span style={styles.menuIcon}>✓</span>
-          المهام
-        </button>
-
-        <div style={styles.sidebarBottom}>
-          <button
-            style={styles.menuItem}
-            onClick={() => {
-              localStorage.removeItem("token");
-              localStorage.removeItem("user");
-              nav("/");
-            }}
-          >
-            <span style={styles.menuIcon}>🚪</span>
-            تسجيل الخروج
-          </button>
-        </div>
-      </aside>
 
       {/* ================= MAIN ================= */}
 
-      <main style={styles.main}>
-        {/* ================= HEADER ================= */}
+    <main style={styles.main}>
 
-        <header style={styles.header}>
-          <div style={styles.headerRight}>
-            <button
-              style={styles.mobileMenuButton}
-              onClick={() =>
-                setMobileMenu(!mobileMenu)
-              }
-            >
-              ☰
-            </button>
+      {/* HEADER */}
+      <header style={styles.header}>
+        <div style={styles.headerRight}>
 
-            <div>
-              <div style={styles.breadcrumb}>
-                لوحة التحكم / الموظفين
-              </div>
-
-              <h1 style={styles.pageTitle}>
-                إدارة الموظفين
-              </h1>
-
-              <p style={styles.pageDescription}>
-                إدارة ومتابعة بيانات الموظفين في النظام
-              </p>
+          <div>
+            <div style={styles.breadcrumb}>
+              لوحة التحكم / الموظفين
             </div>
+
+            <h1 style={styles.pageTitle}>
+              إدارة الموظفين
+            </h1>
+
+            <p style={styles.pageDescription}>
+              إدارة ومتابعة بيانات الموظفين في النظام
+            </p>
           </div>
 
-          <div style={styles.headerActions}>
-            <button
-              style={styles.backButton}
-              onClick={() => nav(-1)}
-            >
-              ← رجوع
-            </button>
+        </div>
 
-            <button
-              style={styles.primaryButton}
-              onClick={() =>
-                nav("/add-employee")
-              }
-            >
-              <span>＋</span>
-              إضافة موظف
-            </button>
-          </div>
-        </header>
+        <div style={styles.headerActions}>
+
+          <button
+            style={styles.backButton}
+            onClick={() => nav(-1)}
+          >
+            ← رجوع
+          </button>
+
+          <button
+            style={styles.primaryButton}
+            onClick={() => nav("/add-employee")}
+          >
+            <span>＋</span>
+            إضافة موظف
+          </button>
+
+        </div>
+      </header>
 
         {/* ================= STATISTICS ================= */}
 
-        <section style={styles.statsGrid}>
+      <section style={styles.statsGrid}>
+
+        {/* إجمالي */}
+        <div
+          style={{
+            ...styles.statCard,
+            borderTop: "3px solid #6366f1",
+          }}
+        >
           <div
             style={{
-              ...styles.statCard,
-              borderTop: "3px solid #6366f1",
+              ...styles.statIcon,
+              background: "rgba(99,102,241,0.10)",
             }}
           >
-            <div
-              style={{
-                ...styles.statIcon,
-                background:
-                  "rgba(99,102,241,0.15)",
-              }}
-            >
-              👥
-            </div>
-
-            <div>
-              <div style={styles.statLabel}>
-                إجمالي الموظفين
-              </div>
-
-              <div style={styles.statNumber}>
-                {statistics.total}
-              </div>
-            </div>
+            👥
           </div>
 
+          <div>
+            <div style={styles.statLabel}>
+              إجمالي الموظفين
+            </div>
+
+            <div style={styles.statNumber}>
+              {statistics.total}
+            </div>
+          </div>
+        </div>
+
+        {/* النشطون */}
+        <div
+          style={{
+            ...styles.statCard,
+            borderTop: "3px solid #22c55e",
+          }}
+        >
           <div
             style={{
-              ...styles.statCard,
-              borderTop: "3px solid #22c55e",
+              ...styles.statIcon,
+              background: "rgba(34,197,94,0.10)",
             }}
           >
-            <div
-              style={{
-                ...styles.statIcon,
-                background:
-                  "rgba(34,197,94,0.15)",
-              }}
-            >
-              ✓
-            </div>
-
-            <div>
-              <div style={styles.statLabel}>
-                الموظفون النشطون
-              </div>
-
-              <div
-                style={{
-                  ...styles.statNumber,
-                  color: "#4ade80",
-                }}
-              >
-                {statistics.active}
-              </div>
-            </div>
+            ✓
           </div>
 
+          <div>
+            <div style={styles.statLabel}>
+              الموظفون النشطون
+            </div>
+
+            <div
+              style={{
+                ...styles.statNumber,
+                color: "#16a34a",
+              }}
+            >
+              {statistics.active}
+            </div>
+          </div>
+        </div>
+
+        {/* المحذوفون */}
+        <div
+          style={{
+            ...styles.statCard,
+            borderTop: "3px solid #ef4444",
+          }}
+        >
           <div
             style={{
-              ...styles.statCard,
-              borderTop: "3px solid #ef4444",
+              ...styles.statIcon,
+              background: "rgba(239,68,68,0.10)",
             }}
           >
-            <div
-              style={{
-                ...styles.statIcon,
-                background:
-                  "rgba(239,68,68,0.15)",
-              }}
-            >
-              🗑️
-            </div>
-
-            <div>
-              <div style={styles.statLabel}>
-                المحذوفون
-              </div>
-
-              <div
-                style={{
-                  ...styles.statNumber,
-                  color: "#f87171",
-                }}
-              >
-                {statistics.deleted}
-              </div>
-            </div>
+            🗑️
           </div>
 
+          <div>
+            <div style={styles.statLabel}>
+              المحذوفون
+            </div>
+
+            <div
+              style={{
+                ...styles.statNumber,
+                color: "#dc2626",
+              }}
+            >
+              {statistics.deleted}
+            </div>
+          </div>
+        </div>
+
+        {/* الأقسام */}
+        <div
+          style={{
+            ...styles.statCard,
+            borderTop: "3px solid #0ea5e9",
+          }}
+        >
           <div
             style={{
-              ...styles.statCard,
-              borderTop: "3px solid #38bdf8",
+              ...styles.statIcon,
+              background: "rgba(14,165,233,0.10)",
             }}
           >
+            🏢
+          </div>
+
+          <div>
+            <div style={styles.statLabel}>
+              الأقسام
+            </div>
+
             <div
               style={{
-                ...styles.statIcon,
-                background:
-                  "rgba(56,189,248,0.15)",
+                ...styles.statNumber,
+                color: "#0284c7",
               }}
             >
-              🏢
-            </div>
-
-            <div>
-              <div style={styles.statLabel}>
-                الأقسام
-              </div>
-
-              <div
-                style={{
-                  ...styles.statNumber,
-                  color: "#38bdf8",
-                }}
-              >
-                {statistics.departments}
-              </div>
+              {statistics.departments}
             </div>
           </div>
-        </section>
+        </div>
+
+      </section>
 
         {/* ================= TOOLBAR ================= */}
 
         <section style={styles.toolbar}>
-          <div style={styles.searchWrapper}>
-            <span style={styles.searchIcon}>
-              🔍
-            </span>
 
-            <input
-              type="text"
-              placeholder="ابحث بالاسم أو البريد أو المنصب..."
-              style={styles.searchInput}
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-            />
-          </div>
+        <div style={styles.searchWrapper}>
 
-          <div style={styles.filters}>
-            <select
-              style={styles.select}
-              value={filterDept}
-              onChange={(e) =>
-                setFilterDept(e.target.value)
-              }
-            >
-              <option value="">
-                كل الأقسام
+          <span style={styles.searchIcon}>
+            🔍
+          </span>
+
+          <input
+            type="text"
+            placeholder="ابحث بالاسم أو البريد أو المنصب..."
+            style={styles.searchInput}
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+          />
+
+        </div>
+
+        <div style={styles.filters}>
+
+          <select
+            style={styles.select}
+            value={filterDept}
+            onChange={(e) =>
+              setFilterDept(e.target.value)
+            }
+          >
+            <option value="">
+              كل الأقسام
+            </option>
+
+            {departments.map((dept) => (
+              <option key={dept} value={dept}>
+                {dept}
               </option>
+            ))}
+          </select>
 
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
+          <select
+            style={styles.select}
+            value={filterStatus}
+            onChange={(e) =>
+              setFilterStatus(e.target.value)
+            }
+          >
+            <option value="">
+              الموظفون النشطون
+            </option>
 
-            <select
-              style={styles.select}
-              value={filterStatus}
-              onChange={(e) =>
-                setFilterStatus(e.target.value)
-              }
-            >
-              <option value="">
-                الموظفون النشطون
-              </option>
+            <option value="نشط">
+              نشط
+            </option>
 
-              <option value="نشط">
-                نشط
-              </option>
+            <option value="محذوف">
+              محذوف
+            </option>
+          </select>
 
-              <option value="محذوف">
-                محذوف
-              </option>
-            </select>
+          <button
+            style={styles.trashButton}
+            onClick={() => setShowTrash(true)}
+          >
+            🗑️ السلة
 
-            <button
-              style={styles.trashButton}
-              onClick={() =>
-                setShowTrash(true)
-              }
-            >
-              🗑️ السلة
-              {statistics.deleted > 0 && (
-                <span style={styles.counter}>
-                  {statistics.deleted}
-                </span>
-              )}
-            </button>
+            {statistics.deleted > 0 && (
+              <span style={styles.counter}>
+                {statistics.deleted}
+              </span>
+            )}
+          </button>
 
-            <button
-              style={styles.excelButton}
-              onClick={exportToExcel}
-            >
-              📥 Excel
-            </button>
-          </div>
-        </section>
+          <button
+            style={styles.excelButton}
+            onClick={exportToExcel}
+          >
+            📥 Excel
+          </button>
 
+        </div>
+
+      </section>
+      
         {/* ================= TABLE ================= */}
 
         <section style={styles.tableContainer}>
@@ -1313,16 +1220,6 @@ export default function Employees() {
         </div>
       )}
 
-      {/* MOBILE OVERLAY */}
-
-      {mobileMenu && (
-        <div
-          style={styles.mobileOverlay}
-          onClick={() =>
-            setMobileMenu(false)
-          }
-        />
-      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import API from "../api/api";
 import { useNavigate } from "react-router-dom";
+import API from "../api/api";
+
+import "./History.css";
 
 export default function History() {
   const nav = useNavigate();
@@ -13,10 +15,10 @@ export default function History() {
   const [sortOrder, setSortOrder] = useState("newest");
 
   const [deleteId, setDeleteId] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // =====================================================
-  // FETCH
+  // FETCH EVALUATIONS
   // =====================================================
 
   useEffect(() => {
@@ -29,10 +31,14 @@ export default function History() {
 
       const res = await API.get("/evaluations");
 
-      setData(res.data || []);
+      setData(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error(err);
-      alert("فشل تحميل التقييمات");
+      console.error("Fetch Evaluations Error:", err);
+
+      alert(
+        err?.response?.data?.message ||
+          "فشل تحميل التقييمات"
+      );
     } finally {
       setLoading(false);
     }
@@ -42,17 +48,9 @@ export default function History() {
   // NAVIGATION
   // =====================================================
 
-  const goToDashboard = () => nav("/dashboard");
-
-  const goToEmployees = () => nav("/employees");
-
-  const goToEvaluations = () => nav("/history");
-
-  const goToTasks = () => nav("/tasks");
-
-  const goToLeaves = () => nav("/leaves-list");
-
-  const goToAddEvaluation = () => nav("/step1");
+  const goToAddEvaluation = () => {
+    nav("/step1");
+  };
 
   const viewReport = (id) => {
     nav("/print", {
@@ -67,17 +65,29 @@ export default function History() {
   // =====================================================
 
   const deleteOne = async (id) => {
+    if (!id) return;
+
     try {
+      setDeleting(true);
+
       await API.delete(`/evaluations/${id}`);
 
       setData((prev) =>
-        prev.filter((e) => e.evaluation_id !== id)
+        prev.filter(
+          (item) => item.evaluation_id !== id
+        )
       );
 
       setDeleteId(null);
     } catch (err) {
-      console.error(err);
-      alert("فشل حذف التقييم");
+      console.error("Delete Evaluation Error:", err);
+
+      alert(
+        err?.response?.data?.message ||
+          "فشل حذف التقييم"
+      );
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -88,49 +98,63 @@ export default function History() {
   const gradeStyle = (grade) => {
     if (!grade) {
       return {
-        background: "rgba(148,163,184,0.12)",
+        background: "rgba(148, 163, 184, 0.12)",
         color: "#94a3b8",
+        border:
+          "1px solid rgba(148, 163, 184, 0.18)",
       };
     }
 
-    const value = String(grade);
+    const value = String(grade)
+      .replace("ً", "")
+      .replace("أ", "ا")
+      .replace("إ", "ا")
+      .trim();
 
     if (value.includes("ممتاز")) {
       return {
-        background: "rgba(34,197,94,0.15)",
-        color: "#4ade80",
-        border: "1px solid rgba(34,197,94,0.25)",
+        background: "rgba(34, 197, 94, 0.12)",
+        color: "#16a34a",
+        border:
+          "1px solid rgba(34, 197, 94, 0.22)",
       };
     }
 
-    if (value.includes("جيد جدا")) {
+    if (
+      value.includes("جيد جدا") ||
+      value.includes("جيد جدًا")
+    ) {
       return {
-        background: "rgba(59,130,246,0.15)",
-        color: "#60a5fa",
-        border: "1px solid rgba(59,130,246,0.25)",
+        background: "rgba(59, 130, 246, 0.12)",
+        color: "#2563eb",
+        border:
+          "1px solid rgba(59, 130, 246, 0.22)",
       };
     }
 
     if (value.includes("جيد")) {
       return {
-        background: "rgba(245,158,11,0.15)",
-        color: "#fbbf24",
-        border: "1px solid rgba(245,158,11,0.25)",
+        background: "rgba(245, 158, 11, 0.12)",
+        color: "#d97706",
+        border:
+          "1px solid rgba(245, 158, 11, 0.22)",
       };
     }
 
     if (value.includes("مقبول")) {
       return {
-        background: "rgba(249,115,22,0.15)",
-        color: "#fb923c",
-        border: "1px solid rgba(249,115,22,0.25)",
+        background: "rgba(249, 115, 22, 0.12)",
+        color: "#ea580c",
+        border:
+          "1px solid rgba(249, 115, 22, 0.22)",
       };
     }
 
     return {
-      background: "rgba(239,68,68,0.15)",
-      color: "#f87171",
-      border: "1px solid rgba(239,68,68,0.25)",
+      background: "rgba(239, 68, 68, 0.12)",
+      color: "#dc2626",
+      border:
+        "1px solid rgba(239, 68, 68, 0.22)",
     };
   };
 
@@ -139,14 +163,14 @@ export default function History() {
   // =====================================================
 
   const scoreColor = (total) => {
-    const score = Number(total);
+    const score = Number(total || 0);
 
-    if (score >= 90) return "#4ade80";
-    if (score >= 80) return "#60a5fa";
-    if (score >= 70) return "#fbbf24";
-    if (score >= 60) return "#fb923c";
+    if (score >= 90) return "#16a34a";
+    if (score >= 80) return "#2563eb";
+    if (score >= 70) return "#d97706";
+    if (score >= 60) return "#ea580c";
 
-    return "#f87171";
+    return "#dc2626";
   };
 
   // =====================================================
@@ -156,8 +180,10 @@ export default function History() {
   const filteredData = useMemo(() => {
     let result = [...data];
 
+    // SEARCH
     if (search.trim()) {
-      const searchValue = search.trim().toLowerCase();
+      const searchValue =
+        search.trim().toLowerCase();
 
       result = result.filter((item) =>
         String(item.name || "")
@@ -166,12 +192,28 @@ export default function History() {
       );
     }
 
+    // GRADE FILTER
     if (gradeFilter !== "الكل") {
-      result = result.filter((item) =>
-        String(item.grade || "").includes(gradeFilter)
-      );
+      result = result.filter((item) => {
+        const grade = String(
+          item.grade || ""
+        )
+          .replace("ً", "")
+          .replace("أ", "ا")
+          .replace("إ", "ا")
+          .trim();
+
+        const filter = String(gradeFilter)
+          .replace("ً", "")
+          .replace("أ", "ا")
+          .replace("إ", "ا")
+          .trim();
+
+        return grade.includes(filter);
+      });
     }
 
+    // SORT
     result.sort((a, b) => {
       if (sortOrder === "newest") {
         return (
@@ -188,18 +230,29 @@ export default function History() {
       }
 
       if (sortOrder === "highest") {
-        return Number(b.total || 0) - Number(a.total || 0);
+        return (
+          Number(b.total || 0) -
+          Number(a.total || 0)
+        );
       }
 
       if (sortOrder === "lowest") {
-        return Number(a.total || 0) - Number(b.total || 0);
+        return (
+          Number(a.total || 0) -
+          Number(b.total || 0)
+        );
       }
 
       return 0;
     });
 
     return result;
-  }, [data, search, gradeFilter, sortOrder]);
+  }, [
+    data,
+    search,
+    gradeFilter,
+    sortOrder,
+  ]);
 
   // =====================================================
   // STATISTICS
@@ -212,7 +265,8 @@ export default function History() {
       total > 0
         ? Math.round(
             data.reduce(
-              (sum, item) => sum + Number(item.total || 0),
+              (sum, item) =>
+                sum + Number(item.total || 0),
               0
             ) / total
           )
@@ -222,15 +276,37 @@ export default function History() {
       String(item.grade || "").includes("ممتاز")
     ).length;
 
-    const veryGood = data.filter((item) =>
-      String(item.grade || "").includes("جيد جداً")
-    ).length;
+    const veryGood = data.filter((item) => {
+      const grade = String(
+        item.grade || ""
+      )
+        .replace("ً", "")
+        .replace("أ", "ا")
+        .replace("إ", "ا");
+
+      return grade.includes("جيد جدا");
+    }).length;
+
+    const good = data.filter((item) => {
+      const grade = String(
+        item.grade || ""
+      )
+        .replace("ً", "")
+        .replace("أ", "ا")
+        .replace("إ", "ا");
+
+      return (
+        grade.includes("جيد") &&
+        !grade.includes("جيد جدا")
+      );
+    }).length;
 
     return {
       total,
       average,
       excellent,
       veryGood,
+      good,
     };
   }, [data]);
 
@@ -241,11 +317,30 @@ export default function History() {
   const formatDate = (date) => {
     if (!date) return "-";
 
-    try {
-      return new Date(date).toLocaleDateString("ar-SA");
-    } catch {
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
       return "-";
     }
+
+    return parsedDate.toLocaleDateString(
+      "ar-SA",
+      {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }
+    );
+  };
+
+  // =====================================================
+  // RESET FILTERS
+  // =====================================================
+
+  const resetFilters = () => {
+    setSearch("");
+    setGradeFilter("الكل");
+    setSortOrder("newest");
   };
 
   // =====================================================
@@ -254,9 +349,10 @@ export default function History() {
 
   if (loading) {
     return (
-      <div style={styles.loadingPage}>
-        <div style={styles.spinner}></div>
-        <p style={styles.loadingText}>
+      <div className="history-loading">
+        <div className="history-spinner"></div>
+
+        <p>
           جاري تحميل سجل التقييمات...
         </p>
       </div>
@@ -268,869 +364,601 @@ export default function History() {
   // =====================================================
 
   return (
-    <div style={styles.app}>
+    <div className="history-page">
 
       {/* =================================================
-          MOBILE OVERLAY
+          PAGE HEADER
       ================================================= */}
 
-      {sidebarOpen && (
-        <div
-          style={styles.mobileOverlay}
-          onClick={() => setSidebarOpen(false)}
-        />
+      <div className="history-page-header">
+
+        <div className="history-heading">
+
+          <div className="history-breadcrumb">
+            لوحة التحكم
+            <span>/</span>
+            التقييمات
+          </div>
+
+          <h1>
+            سجل التقييمات
+          </h1>
+
+          <p>
+            إدارة ومتابعة جميع تقييمات الموظفين
+          </p>
+
+        </div>
+
+        <button
+          className="history-add-btn"
+          onClick={goToAddEvaluation}
+        >
+          <span>+</span>
+          إضافة تقييم جديد
+        </button>
+
+      </div>
+
+      {/* =================================================
+          STATISTICS
+      ================================================= */}
+
+      <div className="history-stats">
+
+        {/* TOTAL */}
+
+        <div className="history-stat-card">
+
+          <div className="history-stat-icon blue">
+            📊
+          </div>
+
+          <div className="history-stat-content">
+
+            <span>
+              إجمالي التقييمات
+            </span>
+
+            <strong>
+              {statistics.total}
+            </strong>
+
+            <small>
+              جميع التقييمات
+            </small>
+
+          </div>
+
+        </div>
+
+        {/* AVERAGE */}
+
+        <div className="history-stat-card">
+
+          <div className="history-stat-icon purple">
+            %
+          </div>
+
+          <div className="history-stat-content">
+
+            <span>
+              متوسط التقييم
+            </span>
+
+            <strong>
+              {statistics.average}%
+            </strong>
+
+            <small>
+              متوسط النتائج
+            </small>
+
+          </div>
+
+        </div>
+
+        {/* EXCELLENT */}
+
+        <div className="history-stat-card">
+
+          <div className="history-stat-icon green">
+            ★
+          </div>
+
+          <div className="history-stat-content">
+
+            <span>
+              تقييم ممتاز
+            </span>
+
+            <strong>
+              {statistics.excellent}
+            </strong>
+
+            <small>
+              أداء ممتاز
+            </small>
+
+          </div>
+
+        </div>
+
+        {/* VERY GOOD */}
+
+        <div className="history-stat-card">
+
+          <div className="history-stat-icon orange">
+            ✓
+          </div>
+
+          <div className="history-stat-content">
+
+            <span>
+              جيد جدًا
+            </span>
+
+            <strong>
+              {statistics.veryGood}
+            </strong>
+
+            <small>
+              أداء جيد جدًا
+            </small>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* =================================================
+          FILTERS
+      ================================================= */}
+
+      <div className="history-filter-card">
+
+        {/* SEARCH */}
+
+        <div className="history-search">
+
+          <span className="history-search-icon">
+            🔍
+          </span>
+
+          <input
+            type="text"
+            placeholder="ابحث باسم الموظف..."
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+          />
+
+          {search && (
+            <button
+              className="history-clear-search"
+              onClick={() => setSearch("")}
+              type="button"
+            >
+              ×
+            </button>
+          )}
+
+        </div>
+
+        {/* GRADE */}
+
+        <select
+          value={gradeFilter}
+          onChange={(e) =>
+            setGradeFilter(e.target.value)
+          }
+          className="history-select"
+        >
+          <option value="الكل">
+            كل التقديرات
+          </option>
+
+          <option value="ممتاز">
+            ممتاز
+          </option>
+
+          <option value="جيد جدا">
+            جيد جدًا
+          </option>
+
+          <option value="جيد">
+            جيد
+          </option>
+
+          <option value="مقبول">
+            مقبول
+          </option>
+        </select>
+
+        {/* SORT */}
+
+        <select
+          value={sortOrder}
+          onChange={(e) =>
+            setSortOrder(e.target.value)
+          }
+          className="history-select"
+        >
+          <option value="newest">
+            الأحدث أولاً
+          </option>
+
+          <option value="oldest">
+            الأقدم أولاً
+          </option>
+
+          <option value="highest">
+            أعلى تقييم
+          </option>
+
+          <option value="lowest">
+            أقل تقييم
+          </option>
+        </select>
+
+      </div>
+
+      {/* =================================================
+          RESULT INFO
+      ================================================= */}
+
+      {data.length > 0 && (
+        <div className="history-result-info">
+
+          <span>
+            عرض{" "}
+            <strong>
+              {filteredData.length}
+            </strong>{" "}
+            من{" "}
+            <strong>
+              {data.length}
+            </strong>{" "}
+            تقييم
+          </span>
+
+          {(search ||
+            gradeFilter !== "الكل") && (
+            <button
+              onClick={resetFilters}
+              type="button"
+            >
+              إعادة ضبط الفلاتر
+            </button>
+          )}
+
+        </div>
       )}
 
       {/* =================================================
-          SIDEBAR
+          EMPTY - NO DATA
       ================================================= */}
 
-      <aside
-        style={{
-          ...styles.sidebar,
-          ...(sidebarOpen ? styles.sidebarMobileOpen : {}),
-        }}
-      >
+      {data.length === 0 ? (
 
-        {/* LOGO */}
+        <div className="history-empty">
 
-        <div style={styles.logoArea}>
-          <div style={styles.logoIcon}>HR</div>
-
-          <div>
-            <div style={styles.logoTitle}>
-              HR System
-            </div>
-
-            <div style={styles.logoSubtitle}>
-              نظام إدارة الموظفين
-            </div>
+          <div className="history-empty-icon">
+            📊
           </div>
 
-          <button
-            style={styles.closeSidebar}
-            onClick={() => setSidebarOpen(false)}
-          >
-            ✕
-          </button>
-        </div>
+          <h2>
+            لا توجد تقييمات حتى الآن
+          </h2>
 
-        {/* USER */}
-
-        <div style={styles.userCard}>
-          <div style={styles.userAvatar}>
-            A
-          </div>
-
-          <div style={styles.userInfo}>
-            <strong>المدير</strong>
-            <span>مدير النظام</span>
-          </div>
-
-          <span style={styles.onlineDot}></span>
-        </div>
-
-        {/* MENU */}
-
-        <div style={styles.menuLabel}>
-          القائمة الرئيسية
-        </div>
-
-        <nav style={styles.nav}>
+          <p>
+            ابدأ بإضافة أول تقييم للموظفين
+            وسيظهر هنا.
+          </p>
 
           <button
-            style={styles.navItem}
-            onClick={goToDashboard}
+            onClick={goToAddEvaluation}
+            type="button"
           >
-            <span style={styles.navIcon}>⌂</span>
-            <span>لوحة التحكم</span>
-          </button>
-
-          <button
-            style={styles.navItem}
-            onClick={goToEmployees}
-          >
-            <span style={styles.navIcon}>👥</span>
-            <span>الموظفين</span>
-          </button>
-
-          <button
-            style={{
-              ...styles.navItem,
-              ...styles.navItemActive,
-            }}
-            onClick={goToEvaluations}
-          >
-            <span style={styles.navIcon}>📊</span>
-            <span>التقييمات</span>
-            <span style={styles.activeIndicator}></span>
-          </button>
-
-          <button
-            style={styles.navItem}
-            onClick={goToTasks}
-          >
-            <span style={styles.navIcon}>✓</span>
-            <span>المهام</span>
-          </button>
-
-          <button
-            style={styles.navItem}
-            onClick={goToLeaves}
-          >
-            <span style={styles.navIcon}>📅</span>
-            <span>الإجازات</span>
-          </button>
-
-        </nav>
-
-        {/* SIDEBAR FOOTER */}
-
-        <div style={styles.sidebarFooter}>
-
-          <button
-            style={styles.navItem}
-            onClick={() => alert("الإعدادات قريباً")}
-          >
-            <span style={styles.navIcon}>⚙</span>
-            <span>الإعدادات</span>
-          </button>
-
-          <button
-            style={styles.logoutBtn}
-            onClick={() => {
-              localStorage.removeItem("token");
-              nav("/");
-            }}
-          >
-            <span>⇥</span>
-            تسجيل الخروج
+            + إضافة أول تقييم
           </button>
 
         </div>
 
-      </aside>
+      ) : filteredData.length === 0 ? (
 
-      {/* =================================================
-          MAIN
-      ================================================= */}
+        /* =================================================
+           EMPTY - FILTER
+        ================================================= */
 
-      <main style={styles.main}>
+        <div className="history-empty">
 
-        {/* =================================================
-            HEADER
-        ================================================= */}
-
-        <header style={styles.header}>
-
-          <div style={styles.headerRight}>
-
-            <button
-              style={styles.menuButton}
-              onClick={() => setSidebarOpen(true)}
-            >
-              ☰
-            </button>
-
-            <div>
-
-              <div style={styles.breadcrumb}>
-                لوحة التحكم / التقييمات
-              </div>
-
-              <h1 style={styles.title}>
-                سجل التقييمات
-              </h1>
-
-              <p style={styles.subtitle}>
-                إدارة ومتابعة جميع تقييمات الموظفين
-              </p>
-
-            </div>
-
+          <div className="history-empty-icon">
+            🔎
           </div>
 
-          <div style={styles.headerLeft}>
+          <h2>
+            لا توجد نتائج
+          </h2>
 
-            <div style={styles.notification}>
-              🔔
-              <span style={styles.notificationDot}></span>
-            </div>
+          <p>
+            لم نجد أي تقييم يطابق
+            البحث أو الفلترة الحالية.
+          </p>
 
-            <div style={styles.headerUser}>
-              <div style={styles.smallAvatar}>
-                A
-              </div>
+          <button
+            className="secondary"
+            onClick={resetFilters}
+            type="button"
+          >
+            إعادة ضبط البحث
+          </button>
 
-              <div>
-                <strong>المدير</strong>
-                <span>مدير النظام</span>
-              </div>
-            </div>
+        </div>
 
-          </div>
+      ) : (
 
-        </header>
+        /* =================================================
+           EVALUATION CARDS
+        ================================================= */
 
-        {/* =================================================
-            CONTENT
-        ================================================= */}
+        <div className="history-grid">
 
-        <section style={styles.content}>
+          {filteredData.map((e) => {
 
-          {/* =================================================
-              TOP ACTION
-          ================================================= */}
+            const rawScore =
+              Number(e.total || 0);
 
-          <div style={styles.pageActions}>
+            const score = Math.min(
+              Math.max(rawScore, 0),
+              100
+            );
 
-            <div>
-              <span style={styles.sectionLabel}>
-                التقييمات
-              </span>
-
-              <h2 style={styles.sectionTitle}>
-                جميع التقييمات
-              </h2>
-            </div>
-
-            <button
-              style={styles.addBtn}
-              onClick={goToAddEvaluation}
-            >
-              <span style={styles.addIcon}>+</span>
-              إضافة تقييم جديد
-            </button>
-
-          </div>
-
-          {/* =================================================
-              STATISTICS
-          ================================================= */}
-
-          <div style={styles.statsGrid}>
-
-            <div style={styles.statCard}>
-
+            return (
               <div
-                style={{
-                  ...styles.statIcon,
-                  background:
-                    "rgba(59,130,246,0.13)",
-                  color: "#60a5fa",
-                }}
+                key={e.evaluation_id}
+                className="history-card"
               >
-                📊
-              </div>
 
-              <div>
-                <span style={styles.statLabel}>
-                  إجمالي التقييمات
-                </span>
+                {/* CARD HEADER */}
 
-                <strong style={styles.statValue}>
-                  {statistics.total}
-                </strong>
+                <div className="history-card-header">
 
-                <span style={styles.statHint}>
-                  جميع التقييمات
-                </span>
-              </div>
+                  <div className="history-employee">
 
-            </div>
+                    <div className="history-avatar">
+                      {String(
+                        e.name || "?"
+                      )
+                        .trim()
+                        .charAt(0)}
+                    </div>
 
-            <div style={styles.statCard}>
+                    <div className="history-name-area">
 
-              <div
-                style={{
-                  ...styles.statIcon,
-                  background:
-                    "rgba(168,85,247,0.13)",
-                  color: "#c084fc",
-                }}
-              >
-                %
-              </div>
+                      <h3>
+                        {e.name ||
+                          "موظف غير معروف"}
+                      </h3>
 
-              <div>
-                <span style={styles.statLabel}>
-                  متوسط التقييم
-                </span>
-
-                <strong style={styles.statValue}>
-                  {statistics.average}%
-                </strong>
-
-                <span style={styles.statHint}>
-                  متوسط النتائج
-                </span>
-              </div>
-
-            </div>
-
-            <div style={styles.statCard}>
-
-              <div
-                style={{
-                  ...styles.statIcon,
-                  background:
-                    "rgba(34,197,94,0.13)",
-                  color: "#4ade80",
-                }}
-              >
-                ★
-              </div>
-
-              <div>
-                <span style={styles.statLabel}>
-                  تقييم ممتاز
-                </span>
-
-                <strong style={styles.statValue}>
-                  {statistics.excellent}
-                </strong>
-
-                <span style={styles.statHint}>
-                  أداء ممتاز
-                </span>
-              </div>
-
-            </div>
-
-            <div style={styles.statCard}>
-
-              <div
-                style={{
-                  ...styles.statIcon,
-                  background:
-                    "rgba(59,130,246,0.13)",
-                  color: "#60a5fa",
-                }}
-              >
-                ✓
-              </div>
-
-              <div>
-                <span style={styles.statLabel}>
-                جيد جدا
-                </span>
-
-                <strong style={styles.statValue}>
-                  {statistics.veryGood}
-                </strong>
-
-                <span style={styles.statHint}>
-                  أداء جيد جدا
-                </span>
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* =================================================
-              FILTER
-          ================================================= */}
-
-          <div style={styles.filterCard}>
-
-            <div style={styles.searchWrapper}>
-
-              <span style={styles.searchIcon}>
-                🔍
-              </span>
-
-              <input
-                type="text"
-                placeholder="ابحث باسم الموظف..."
-                value={search}
-                onChange={(e) =>
-                  setSearch(e.target.value)
-                }
-                style={styles.searchInput}
-              />
-
-              {search && (
-                <button
-                  style={styles.clearSearch}
-                  onClick={() => setSearch("")}
-                >
-                  ✕
-                </button>
-              )}
-
-            </div>
-
-            <select
-              value={gradeFilter}
-              onChange={(e) =>
-                setGradeFilter(e.target.value)
-              }
-              style={styles.select}
-            >
-              <option value="الكل">
-                كل التقديرات
-              </option>
-
-              <option value="ممتاز">
-                ممتاز
-              </option>
-
-              <option value="جيد جدا">
-                جيد جدا
-              </option>
-
-              <option value="جيد">
-                جيد
-              </option>
-
-              <option value="مقبول">
-                مقبول
-              </option>
-            </select>
-
-            <select
-              value={sortOrder}
-              onChange={(e) =>
-                setSortOrder(e.target.value)
-              }
-              style={styles.select}
-            >
-              <option value="newest">
-                الأحدث أولاً
-              </option>
-
-              <option value="oldest">
-                الأقدم أولاً
-              </option>
-
-              <option value="highest">
-                أعلى تقييم
-              </option>
-
-              <option value="lowest">
-                أقل تقييم
-              </option>
-            </select>
-
-          </div>
-
-          {/* =================================================
-              RESULT COUNT
-          ================================================= */}
-
-          {data.length > 0 && (
-            <div style={styles.resultInfo}>
-
-              <span>
-                عرض{" "}
-                <strong>
-                  {filteredData.length}
-                </strong>{" "}
-                من{" "}
-                <strong>
-                  {data.length}
-                </strong>{" "}
-                تقييم
-              </span>
-
-              {(search ||
-                gradeFilter !== "الكل") && (
-                <button
-                  style={styles.resetFilter}
-                  onClick={() => {
-                    setSearch("");
-                    setGradeFilter("الكل");
-                  }}
-                >
-                  إعادة ضبط
-                </button>
-              )}
-
-            </div>
-          )}
-
-          {/* =================================================
-              EMPTY
-          ================================================= */}
-
-          {data.length === 0 ? (
-
-            <div style={styles.emptyCard}>
-
-              <div style={styles.emptyIcon}>
-                📊
-              </div>
-
-              <h2 style={styles.emptyTitle}>
-                لا توجد تقييمات حتى الآن
-              </h2>
-
-              <p style={styles.emptyText}>
-                ابدأ بإضافة أول تقييم للموظفين
-                وسيظهر هنا.
-              </p>
-
-              <button
-                style={styles.emptyBtn}
-                onClick={goToAddEvaluation}
-              >
-                + إضافة أول تقييم
-              </button>
-
-            </div>
-
-          ) : filteredData.length === 0 ? (
-
-            <div style={styles.emptyCard}>
-
-              <div style={styles.emptyIcon}>
-                🔎
-              </div>
-
-              <h2 style={styles.emptyTitle}>
-                لا توجد نتائج
-              </h2>
-
-              <p style={styles.emptyText}>
-                لم نجد أي تقييم يطابق البحث
-                أو الفلترة الحالية.
-              </p>
-
-              <button
-                style={styles.resetBtn}
-                onClick={() => {
-                  setSearch("");
-                  setGradeFilter("الكل");
-                  setSortOrder("newest");
-                }}
-              >
-                إعادة ضبط البحث
-              </button>
-
-            </div>
-
-          ) : (
-
-            /* =================================================
-               CARDS
-            ================================================= */
-
-            <div style={styles.grid}>
-
-              {filteredData.map((e) => {
-
-                const score = Math.min(
-                  Math.max(
-                    Number(e.total || 0),
-                    0
-                  ),
-                  100
-                );
-
-                return (
-                  <div
-                    key={e.evaluation_id}
-                    style={styles.card}
-                    onMouseEnter={(event) => {
-                      event.currentTarget.style.transform =
-                        "translateY(-5px)";
-
-                      event.currentTarget.style.borderColor =
-                        "rgba(96,165,250,0.35)";
-
-                      event.currentTarget.style.boxShadow =
-                        "0 20px 45px rgba(0,0,0,0.35)";
-                    }}
-                    onMouseLeave={(event) => {
-                      event.currentTarget.style.transform =
-                        "translateY(0)";
-
-                      event.currentTarget.style.borderColor =
-                        "rgba(255,255,255,0.07)";
-
-                      event.currentTarget.style.boxShadow =
-                        "0 12px 30px rgba(0,0,0,0.22)";
-                    }}
-                  >
-
-                    {/* CARD HEADER */}
-
-                    <div style={styles.cardHeader}>
-
-                      <div style={styles.employeeInfo}>
-
-                        <div style={styles.avatar}>
-                          {String(e.name || "?")
-                            .trim()
-                            .charAt(0)}
-                        </div>
-
-                        <div style={styles.nameArea}>
-
-                          <h3 style={styles.name}>
-                            {e.name ||
-                              "موظف غير معروف"}
-                          </h3>
-
-                          <span
-                            style={
-                              styles.evaluationNumber
-                            }
-                          >
-                            تقييم #
-                            {e.evaluation_id}
-                          </span>
-
-                        </div>
-
-                      </div>
-
-                      <span
-                        style={{
-                          ...styles.grade,
-                          ...gradeStyle(e.grade),
-                        }}
-                      >
-                        {e.grade || "-"}
+                      <span>
+                        تقييم #
+                        {e.evaluation_id}
                       </span>
 
                     </div>
 
-                    <div style={styles.divider}></div>
+                  </div>
 
-                    {/* SCORE */}
+                  <span
+                    className="history-grade"
+                    style={gradeStyle(e.grade)}
+                  >
+                    {e.grade || "-"}
+                  </span>
 
-                    <div style={styles.scoreBox}>
+                </div>
 
-                      <div style={styles.scoreNumber}>
+                <div className="history-divider"></div>
 
-                        <span
-                          style={
-                            styles.scoreLabel
-                          }
-                        >
-                          النتيجة النهائية
-                        </span>
+                {/* SCORE */}
 
-                        <div
-                          style={
-                            styles.scoreValue
-                          }
-                        >
-                          <span
-                            style={{
-                              color:
-                                scoreColor(
-                                  e.total
-                                ),
-                            }}
-                          >
-                            {e.total || 0}
-                          </span>
+                <div className="history-score">
 
-                          <small>%</small>
-                        </div>
+                  <div className="history-score-number">
 
-                      </div>
+                    <span>
+                      النتيجة النهائية
+                    </span>
+
+                    <strong
+                      style={{
+                        color:
+                          scoreColor(
+                            e.total
+                          ),
+                      }}
+                    >
+                      {e.total || 0}
+                      <small>%</small>
+                    </strong>
+
+                  </div>
+
+                  <div className="history-progress-area">
+
+                    <div className="history-progress">
 
                       <div
-                        style={
-                          styles.progressWrapper
-                        }
-                      >
-
-                        <div
-                          style={
-                            styles.progressBackground
-                          }
-                        >
-
-                          <div
-                            style={{
-                              ...styles.progress,
-                              width: `${score}%`,
-                              background:
-                                scoreColor(
-                                  e.total
-                                ),
-                            }}
-                          />
-
-                        </div>
-
-                      </div>
+                        style={{
+                          width: `${score}%`,
+                          background:
+                            scoreColor(
+                              e.total
+                            ),
+                        }}
+                      />
 
                     </div>
 
-                    {/* INFO */}
+                    <span>
+                      {score}%
+                    </span>
 
-                    <div style={styles.infoList}>
+                  </div>
 
-                      <div
-                        style={styles.infoRow}
-                      >
+                </div>
 
-                        <div
-                          style={
-                            styles.infoIcon
-                          }
-                        >
-                          📅
-                        </div>
+                {/* INFORMATION */}
 
-                        <div>
-                          <span
-                            style={
-                              styles.infoLabel
-                            }
-                          >
-                            فترة التقييم
-                          </span>
+                <div className="history-info">
 
-                          <span
-                            style={
-                              styles.infoValue
-                            }
-                          >
-                            {e.from_date || "-"}
-                            {" "}
-                            <span
-                              style={
-                                styles.arrow
-                              }
-                            >
-                              ←
-                            </span>
-                            {" "}
-                            {e.to_date || "-"}
-                          </span>
-                        </div>
+                  {/* PERIOD */}
 
-                      </div>
+                  <div className="history-info-row">
 
-                      <div
-                        style={styles.infoRow}
-                      >
-
-                        <div
-                          style={
-                            styles.infoIcon
-                          }
-                        >
-                          🕒
-                        </div>
-
-                        <div>
-                          <span
-                            style={
-                              styles.infoLabel
-                            }
-                          >
-                            تاريخ الإنشاء
-                          </span>
-
-                          <span
-                            style={
-                              styles.infoValue
-                            }
-                          >
-                            {formatDate(
-                              e.created_at
-                            )}
-                          </span>
-                        </div>
-
-                      </div>
-
+                    <div className="history-info-icon">
+                      📅
                     </div>
 
-                    {/* ACTIONS */}
+                    <div>
 
-                    <div style={styles.actions}>
+                      <span>
+                        فترة التقييم
+                      </span>
 
-                      <button
-                        style={styles.viewBtn}
-                        onClick={() =>
-                          viewReport(
-                            e.evaluation_id
-                          )
-                        }
-                      >
-                        📄 عرض التقرير
-                      </button>
-
-                      <button
-                        style={
-                          styles.deleteBtn
-                        }
-                        onClick={() =>
-                          setDeleteId(
-                            e.evaluation_id
-                          )
-                        }
-                      >
-                        🗑 حذف
-                      </button>
+                      <strong>
+                        {e.from_date || "-"}
+                        <b> ← </b>
+                        {e.to_date || "-"}
+                      </strong>
 
                     </div>
 
                   </div>
-                );
-              })}
 
-            </div>
+                  {/* CREATED */}
 
-          )}
+                  <div className="history-info-row">
 
-        </section>
+                    <div className="history-info-icon">
+                      🕒
+                    </div>
 
-      </main>
+                    <div>
+
+                      <span>
+                        تاريخ الإنشاء
+                      </span>
+
+                      <strong>
+                        {formatDate(
+                          e.created_at
+                        )}
+                      </strong>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                {/* ACTIONS */}
+
+                <div className="history-actions">
+
+                  <button
+                    className="history-view-btn"
+                    onClick={() =>
+                      viewReport(
+                        e.evaluation_id
+                      )
+                    }
+                    type="button"
+                  >
+                    📄 عرض التقرير
+                  </button>
+
+                  <button
+                    className="history-delete-btn"
+                    onClick={() =>
+                      setDeleteId(
+                        e.evaluation_id
+                      )
+                    }
+                    type="button"
+                  >
+                    🗑 حذف
+                  </button>
+
+                </div>
+
+              </div>
+            );
+          })}
+
+        </div>
+      )}
 
       {/* =================================================
           DELETE MODAL
       ================================================= */}
 
       {deleteId !== null && (
+        <div
+          className="history-modal-overlay"
+          onMouseDown={(e) => {
+            if (
+              e.target === e.currentTarget &&
+              !deleting
+            ) {
+              setDeleteId(null);
+            }
+          }}
+        >
 
-        <div style={styles.modalOverlay}>
+          <div className="history-modal">
 
-          <div style={styles.modal}>
-
-            <div style={styles.modalIcon}>
+            <div className="history-modal-icon">
               ⚠️
             </div>
 
-            <h2 style={styles.modalTitle}>
+            <h2>
               حذف التقييم
             </h2>
 
-            <p style={styles.modalText}>
+            <p>
               هل أنت متأكد من حذف هذا التقييم؟
               <br />
               لا يمكن التراجع عن هذه العملية.
             </p>
 
-            <div style={styles.modalActions}>
+            <div className="history-modal-actions">
 
               <button
-                style={styles.cancelBtn}
+                className="history-cancel-btn"
                 onClick={() =>
                   setDeleteId(null)
                 }
+                disabled={deleting}
+                type="button"
               >
                 إلغاء
               </button>
 
               <button
-                style={
-                  styles.confirmDeleteBtn
-                }
+                className="history-confirm-delete"
                 onClick={() =>
                   deleteOne(deleteId)
                 }
+                disabled={deleting}
+                type="button"
               >
-                نعم، حذف
+                {deleting
+                  ? "جاري الحذف..."
+                  : "نعم، حذف"}
               </button>
 
             </div>
@@ -1138,944 +966,8 @@ export default function History() {
           </div>
 
         </div>
-
       )}
 
     </div>
   );
 }
-
-/* =========================================================
-   STYLES
-========================================================= */
-
-const styles = {
-
-  /* APP */
-
-  app: {
-    minHeight: "100vh",
-    direction: "rtl",
-    background:
-      "radial-gradient(circle at top right, rgba(59,130,246,0.10), transparent 30%), linear-gradient(135deg,#080f1d,#0f172a 55%,#111827)",
-    color: "#fff",
-    fontFamily: "Cairo, Arial, sans-serif",
-  },
-
-  /* SIDEBAR */
-
-  sidebar: {
-    position: "fixed",
-    top: 0,
-    right: 0,
-    width: "270px",
-    height: "100vh",
-    background:
-      "linear-gradient(180deg,#111827,#0b1220)",
-    borderLeft:
-      "1px solid rgba(255,255,255,0.07)",
-    padding: "22px 15px",
-    boxSizing: "border-box",
-    zIndex: 1000,
-    display: "flex",
-    flexDirection: "column",
-    boxShadow:
-      "-10px 0 35px rgba(0,0,0,0.18)",
-  },
-
-  sidebarMobileOpen: {
-    transform: "translateX(0)",
-  },
-
-  logoArea: {
-    display: "flex",
-    alignItems: "center",
-    gap: "11px",
-    padding: "5px 8px 22px",
-    borderBottom:
-      "1px solid rgba(255,255,255,0.06)",
-  },
-
-  logoIcon: {
-    width: "43px",
-    height: "43px",
-    borderRadius: "13px",
-    background:
-      "linear-gradient(135deg,#2563eb,#4f46e5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "13px",
-    fontWeight: "900",
-    boxShadow:
-      "0 8px 20px rgba(37,99,235,0.28)",
-  },
-
-  logoTitle: {
-    fontSize: "16px",
-    fontWeight: "800",
-  },
-
-  logoSubtitle: {
-    fontSize: "9px",
-    color: "#64748b",
-    marginTop: "2px",
-  },
-
-  closeSidebar: {
-    display: "none",
-    marginRight: "auto",
-    background: "transparent",
-    border: "none",
-    color: "#94a3b8",
-    fontSize: "18px",
-    cursor: "pointer",
-  },
-
-  userCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    margin: "18px 4px",
-    padding: "12px",
-    borderRadius: "13px",
-    background:
-      "rgba(255,255,255,0.035)",
-    border:
-      "1px solid rgba(255,255,255,0.06)",
-  },
-
-  userAvatar: {
-    width: "38px",
-    height: "38px",
-    borderRadius: "11px",
-    background:
-      "linear-gradient(135deg,#334155,#475569)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "800",
-  },
-
-  userInfo: {
-    display: "flex",
-    flexDirection: "column",
-    flex: 1,
-  },
-
-  userInfoStrong: {
-    fontSize: "12px",
-  },
-
-  onlineDot: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    background: "#22c55e",
-    boxShadow:
-      "0 0 8px rgba(34,197,94,0.6)",
-  },
-
-  menuLabel: {
-    color: "#475569",
-    fontSize: "10px",
-    fontWeight: "700",
-    padding: "8px 12px",
-    marginBottom: "5px",
-  },
-
-  nav: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-  },
-
-  navItem: {
-    position: "relative",
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    padding: "12px 13px",
-    borderRadius: "11px",
-    border: "1px solid transparent",
-    background: "transparent",
-    color: "#94a3b8",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontSize: "12px",
-    fontWeight: "600",
-    textAlign: "right",
-    transition: "all 0.2s ease",
-  },
-
-  navItemActive: {
-    background:
-      "linear-gradient(90deg,rgba(59,130,246,0.18),rgba(59,130,246,0.06))",
-    border:
-      "1px solid rgba(59,130,246,0.15)",
-    color: "#60a5fa",
-  },
-
-  navIcon: {
-    width: "22px",
-    textAlign: "center",
-    fontSize: "16px",
-  },
-
-  activeIndicator: {
-    position: "absolute",
-    right: 0,
-    width: "3px",
-    height: "22px",
-    borderRadius: "5px 0 0 5px",
-    background: "#3b82f6",
-  },
-
-  sidebarFooter: {
-    marginTop: "auto",
-    paddingTop: "15px",
-    borderTop:
-      "1px solid rgba(255,255,255,0.06)",
-  },
-
-  logoutBtn: {
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    marginTop: "8px",
-    padding: "11px",
-    borderRadius: "10px",
-    border:
-      "1px solid rgba(239,68,68,0.15)",
-    background:
-      "rgba(239,68,68,0.07)",
-    color: "#f87171",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontWeight: "600",
-  },
-
-  /* MAIN */
-
-  main: {
-    marginRight: "270px",
-    minHeight: "100vh",
-  },
-
-  /* HEADER */
-
-  header: {
-    minHeight: "86px",
-    padding: "18px 32px",
-    boxSizing: "border-box",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "20px",
-    borderBottom:
-      "1px solid rgba(255,255,255,0.06)",
-    background:
-      "rgba(8,15,29,0.72)",
-    backdropFilter: "blur(16px)",
-    position: "sticky",
-    top: 0,
-    zIndex: 50,
-  },
-
-  headerRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: "15px",
-  },
-
-  menuButton: {
-    display: "none",
-    width: "40px",
-    height: "40px",
-    borderRadius: "10px",
-    border:
-      "1px solid rgba(255,255,255,0.08)",
-    background:
-      "rgba(255,255,255,0.05)",
-    color: "#fff",
-    cursor: "pointer",
-    fontSize: "18px",
-  },
-
-  breadcrumb: {
-    color: "#475569",
-    fontSize: "10px",
-    marginBottom: "3px",
-  },
-
-  title: {
-    margin: 0,
-    fontSize: "25px",
-    fontWeight: "800",
-  },
-
-  subtitle: {
-    margin: "3px 0 0",
-    color: "#64748b",
-    fontSize: "11px",
-  },
-
-  headerLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "18px",
-  },
-
-  notification: {
-    position: "relative",
-    width: "39px",
-    height: "39px",
-    borderRadius: "11px",
-    background:
-      "rgba(255,255,255,0.045)",
-    border:
-      "1px solid rgba(255,255,255,0.07)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "16px",
-  },
-
-  notificationDot: {
-    position: "absolute",
-    top: "8px",
-    right: "8px",
-    width: "6px",
-    height: "6px",
-    borderRadius: "50%",
-    background: "#ef4444",
-  },
-
-  headerUser: {
-    display: "flex",
-    alignItems: "center",
-    gap: "9px",
-  },
-
-  smallAvatar: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "10px",
-    background:
-      "linear-gradient(135deg,#2563eb,#6366f1)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "800",
-  },
-
-  /* CONTENT */
-
-  content: {
-    padding: "30px 32px 50px",
-    maxWidth: "1500px",
-    margin: "0 auto",
-    boxSizing: "border-box",
-  },
-
-  pageActions: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "20px",
-    marginBottom: "22px",
-  },
-
-  sectionLabel: {
-    color: "#64748b",
-    fontSize: "10px",
-  },
-
-  sectionTitle: {
-    margin: "3px 0 0",
-    fontSize: "20px",
-    fontWeight: "800",
-  },
-
-  addBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    background:
-      "linear-gradient(135deg,#2563eb,#4f46e5)",
-    border: "none",
-    padding: "11px 18px",
-    borderRadius: "11px",
-    color: "#fff",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontWeight: "700",
-    boxShadow:
-      "0 8px 22px rgba(37,99,235,0.25)",
-  },
-
-  addIcon: {
-    fontSize: "19px",
-    lineHeight: 1,
-  },
-
-  /* STATS */
-
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(4,minmax(0,1fr))",
-    gap: "15px",
-    marginBottom: "18px",
-  },
-
-  statCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: "13px",
-    minWidth: 0,
-    padding: "17px",
-    borderRadius: "15px",
-    background:
-      "linear-gradient(145deg,rgba(255,255,255,0.055),rgba(255,255,255,0.025))",
-    border:
-      "1px solid rgba(255,255,255,0.065)",
-    boxShadow:
-      "0 8px 25px rgba(0,0,0,0.13)",
-  },
-
-  statIcon: {
-    width: "45px",
-    height: "45px",
-    flexShrink: 0,
-    borderRadius: "13px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "19px",
-    fontWeight: "800",
-  },
-
-  statLabel: {
-    display: "block",
-    color: "#94a3b8",
-    fontSize: "10px",
-  },
-
-  statValue: {
-    display: "block",
-    marginTop: "3px",
-    fontSize: "23px",
-    fontWeight: "800",
-  },
-
-  statHint: {
-    display: "block",
-    marginTop: "2px",
-    color: "#475569",
-    fontSize: "9px",
-  },
-
-  /* FILTER */
-
-  filterCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    padding: "13px",
-    borderRadius: "14px",
-    background:
-      "rgba(255,255,255,0.035)",
-    border:
-      "1px solid rgba(255,255,255,0.065)",
-    marginBottom: "12px",
-  },
-
-  searchWrapper: {
-    flex: 1,
-    minWidth: "220px",
-    position: "relative",
-  },
-
-  searchIcon: {
-    position: "absolute",
-    right: "13px",
-    top: "50%",
-    transform: "translateY(-50%)",
-    color: "#64748b",
-    fontSize: "14px",
-  },
-
-  searchInput: {
-    width: "100%",
-    boxSizing: "border-box",
-    background:
-      "rgba(15,23,42,0.8)",
-    border:
-      "1px solid rgba(148,163,184,0.12)",
-    color: "#fff",
-    padding: "11px 38px 11px 35px",
-    borderRadius: "10px",
-    outline: "none",
-    fontFamily: "inherit",
-    fontSize: "11px",
-  },
-
-  clearSearch: {
-    position: "absolute",
-    left: "10px",
-    top: "50%",
-    transform: "translateY(-50%)",
-    border: "none",
-    background: "transparent",
-    color: "#64748b",
-    cursor: "pointer",
-  },
-
-  select: {
-    minWidth: "160px",
-    background: "#111827",
-    border:
-      "1px solid rgba(148,163,184,0.13)",
-    color: "#cbd5e1",
-    padding: "10px 12px",
-    borderRadius: "10px",
-    outline: "none",
-    fontFamily: "inherit",
-    fontSize: "11px",
-    cursor: "pointer",
-  },
-
-  resultInfo: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    color: "#64748b",
-    fontSize: "10px",
-    margin: "13px 3px",
-  },
-
-  resetFilter: {
-    background: "transparent",
-    border: "none",
-    color: "#60a5fa",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontSize: "10px",
-  },
-
-  /* GRID */
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fill,minmax(320px,1fr))",
-    gap: "17px",
-  },
-
-  /* CARD */
-
-  card: {
-    background:
-      "linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))",
-    border:
-      "1px solid rgba(255,255,255,0.07)",
-    borderRadius: "17px",
-    padding: "19px",
-    backdropFilter: "blur(14px)",
-    boxShadow:
-      "0 12px 30px rgba(0,0,0,0.22)",
-    transition: "all 0.25s ease",
-  },
-
-  cardHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "10px",
-  },
-
-  employeeInfo: {
-    display: "flex",
-    alignItems: "center",
-    gap: "11px",
-    minWidth: 0,
-  },
-
-  avatar: {
-    width: "43px",
-    height: "43px",
-    borderRadius: "12px",
-    flexShrink: 0,
-    background:
-      "linear-gradient(135deg,#2563eb,#6366f1)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "800",
-    fontSize: "16px",
-    boxShadow:
-      "0 7px 18px rgba(37,99,235,0.23)",
-  },
-
-  nameArea: {
-    minWidth: 0,
-  },
-
-  name: {
-    margin: 0,
-    fontSize: "15px",
-    fontWeight: "700",
-    maxWidth: "175px",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-
-  evaluationNumber: {
-    display: "block",
-    marginTop: "3px",
-    color: "#64748b",
-    fontSize: "9px",
-  },
-
-  grade: {
-    padding: "5px 9px",
-    borderRadius: "18px",
-    fontSize: "10px",
-    fontWeight: "700",
-    whiteSpace: "nowrap",
-  },
-
-  divider: {
-    height: "1px",
-    background:
-      "rgba(255,255,255,0.06)",
-    margin: "17px 0",
-  },
-
-  /* SCORE */
-
-  scoreBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: "18px",
-    marginBottom: "19px",
-  },
-
-  scoreNumber: {
-    minWidth: "75px",
-  },
-
-  scoreLabel: {
-    display: "block",
-    color: "#64748b",
-    fontSize: "9px",
-  },
-
-  scoreValue: {
-    marginTop: "3px",
-    fontSize: "27px",
-    lineHeight: 1,
-    fontWeight: "900",
-  },
-
-  scoreValueSmall: {
-    fontSize: "12px",
-  },
-
-  progressWrapper: {
-    flex: 1,
-  },
-
-  progressBackground: {
-    width: "100%",
-    height: "7px",
-    background:
-      "rgba(148,163,184,0.10)",
-    borderRadius: "20px",
-    overflow: "hidden",
-  },
-
-  progress: {
-    height: "100%",
-    borderRadius: "20px",
-    transition: "width 0.5s ease",
-  },
-
-  /* INFO */
-
-  infoList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-
-  infoRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-
-  infoIcon: {
-    width: "32px",
-    height: "32px",
-    flexShrink: 0,
-    borderRadius: "9px",
-    background:
-      "rgba(148,163,184,0.06)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "13px",
-  },
-
-  infoLabel: {
-    display: "block",
-    color: "#475569",
-    fontSize: "9px",
-    marginBottom: "2px",
-  },
-
-  infoValue: {
-    display: "block",
-    color: "#cbd5e1",
-    fontSize: "10px",
-    fontWeight: "600",
-  },
-
-  arrow: {
-    color: "#475569",
-  },
-
-  /* ACTIONS */
-
-  actions: {
-    display: "flex",
-    gap: "8px",
-    marginTop: "18px",
-  },
-
-  viewBtn: {
-    flex: 1,
-    padding: "9px",
-    borderRadius: "9px",
-    border:
-      "1px solid rgba(59,130,246,0.20)",
-    background:
-      "rgba(59,130,246,0.10)",
-    color: "#60a5fa",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontSize: "10px",
-    fontWeight: "700",
-    transition: "all 0.2s ease",
-  },
-
-  deleteBtn: {
-    width: "75px",
-    padding: "9px",
-    borderRadius: "9px",
-    border:
-      "1px solid rgba(239,68,68,0.18)",
-    background:
-      "rgba(239,68,68,0.08)",
-    color: "#f87171",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontSize: "10px",
-    fontWeight: "700",
-    transition: "all 0.2s ease",
-  },
-
-  /* EMPTY */
-
-  emptyCard: {
-    minHeight: "320px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    textAlign: "center",
-    background:
-      "rgba(255,255,255,0.03)",
-    border:
-      "1px dashed rgba(148,163,184,0.16)",
-    borderRadius: "18px",
-    padding: "30px",
-  },
-
-  emptyIcon: {
-    width: "65px",
-    height: "65px",
-    borderRadius: "18px",
-    background:
-      "rgba(59,130,246,0.09)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "28px",
-    marginBottom: "14px",
-  },
-
-  emptyTitle: {
-    margin: "0 0 7px",
-    fontSize: "18px",
-  },
-
-  emptyText: {
-    margin: "0 0 18px",
-    color: "#64748b",
-    fontSize: "11px",
-  },
-
-  emptyBtn: {
-    background:
-      "linear-gradient(135deg,#2563eb,#4f46e5)",
-    border: "none",
-    color: "#fff",
-    padding: "10px 18px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontWeight: "700",
-  },
-
-  resetBtn: {
-    background:
-      "rgba(148,163,184,0.08)",
-    border:
-      "1px solid rgba(148,163,184,0.15)",
-    color: "#cbd5e1",
-    padding: "9px 17px",
-    borderRadius: "9px",
-    cursor: "pointer",
-    fontFamily: "inherit",
-  },
-
-  /* MODAL */
-
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 9999,
-    background:
-      "rgba(2,6,23,0.75)",
-    backdropFilter: "blur(7px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "20px",
-  },
-
-  modal: {
-    width: "100%",
-    maxWidth: "400px",
-    background:
-      "linear-gradient(145deg,#172033,#0f172a)",
-    border:
-      "1px solid rgba(255,255,255,0.09)",
-    borderRadius: "19px",
-    padding: "28px",
-    textAlign: "center",
-    boxShadow:
-      "0 30px 80px rgba(0,0,0,0.5)",
-  },
-
-  modalIcon: {
-    width: "60px",
-    height: "60px",
-    margin: "0 auto 14px",
-    borderRadius: "17px",
-    background:
-      "rgba(239,68,68,0.11)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "27px",
-  },
-
-  modalTitle: {
-    margin: "0 0 8px",
-    fontSize: "19px",
-  },
-
-  modalText: {
-    margin: 0,
-    color: "#94a3b8",
-    fontSize: "11px",
-    lineHeight: 1.8,
-  },
-
-  modalActions: {
-    display: "flex",
-    gap: "9px",
-    marginTop: "23px",
-  },
-
-  cancelBtn: {
-    flex: 1,
-    padding: "10px",
-    borderRadius: "9px",
-    border:
-      "1px solid rgba(148,163,184,0.15)",
-    background:
-      "rgba(148,163,184,0.07)",
-    color: "#cbd5e1",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontWeight: "600",
-  },
-
-  confirmDeleteBtn: {
-    flex: 1,
-    padding: "10px",
-    borderRadius: "9px",
-    border: "none",
-    background:
-      "linear-gradient(135deg,#dc2626,#ef4444)",
-    color: "#fff",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontWeight: "700",
-  },
-
-  /* LOADING */
-
-  loadingPage: {
-    minHeight: "100vh",
-    background:
-      "linear-gradient(135deg,#080f1d,#0f172a)",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    direction: "rtl",
-    fontFamily: "Cairo, Arial, sans-serif",
-    color: "#fff",
-  },
-
-  spinner: {
-    width: "40px",
-    height: "40px",
-    border:
-      "3px solid rgba(255,255,255,0.08)",
-    borderTop:
-      "3px solid #3b82f6",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-  },
-
-  loadingText: {
-    marginTop: "14px",
-    color: "#94a3b8",
-    fontSize: "12px",
-  },
-
-  mobileOverlay: {
-    display: "none",
-  },
-};
