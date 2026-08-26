@@ -3,7 +3,7 @@ import API from "../api/api";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
-import "./LeavesList.css";
+import "./LeaveList.css";
 
 export default function LeavesList() {
   const nav = useNavigate();
