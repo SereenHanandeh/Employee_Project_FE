@@ -469,14 +469,6 @@ export default function LeavesList() {
         <div className="header-actions">
 
           <button
-            className="back-button"
-            onClick={() => nav(-1)}
-          >
-            <span>←</span>
-            رجوع
-          </button>
-
-          <button
             className="primary-button"
             onClick={() => nav("/leave")}
           >
