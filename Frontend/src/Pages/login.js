@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
@@ -76,20 +77,15 @@ export default function Login() {
 
       const { token, user } = res.data;
 
-      // حفظ التوكن
       localStorage.setItem("token", token);
-
-      // حفظ بيانات المستخدم
       localStorage.setItem("user", JSON.stringify(user));
 
-      // Remember Me
       if (remember) {
         localStorage.setItem("rememberEmail", email.trim());
       } else {
         localStorage.removeItem("rememberEmail");
       }
 
-      // التوجيه حسب الصلاحية
       if (user.role === "admin") {
         nav("/admin-dashboard");
       } else {
@@ -121,11 +117,12 @@ export default function Login() {
     <div style={styles.wrapper}>
 
       {/* =========================
-          BACKGROUND EFFECTS
+          BACKGROUND
       ========================= */}
 
-      <div style={styles.glowOne} />
-      <div style={styles.glowTwo} />
+      <div style={styles.backgroundCircleOne} />
+      <div style={styles.backgroundCircleTwo} />
+      <div style={styles.backgroundCircleThree} />
 
       {/* =========================
           BACK TO HOME
@@ -145,7 +142,9 @@ export default function Login() {
 
       <div style={styles.card}>
 
-        {/* Logo */}
+        {/* =========================
+            LOGO
+        ========================= */}
 
         <div style={styles.logoWrapper}>
           <div style={styles.logo}>
@@ -153,7 +152,9 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Title */}
+        {/* =========================
+            TITLE
+        ========================= */}
 
         <h1 style={styles.title}>
           أهلاً بعودتك 👋
@@ -169,6 +170,7 @@ export default function Login() {
 
         <div style={styles.securityBadge}>
           <FaShieldAlt />
+
           <span>
             تسجيل دخول آمن ومحمي
           </span>
@@ -295,6 +297,7 @@ export default function Login() {
 
         {error && (
           <div style={styles.errorBox}>
+
             <span style={styles.errorIcon}>
               !
             </span>
@@ -302,6 +305,7 @@ export default function Login() {
             <span>
               {error}
             </span>
+
           </div>
         )}
 
@@ -328,10 +332,10 @@ export default function Login() {
           ) : (
             <>
               تسجيل الدخول
+
               <FaArrowRight
                 style={{
-                  transform:
-                    "rotate(180deg)",
+                  transform: "rotate(180deg)",
                 }}
               />
             </>
@@ -350,6 +354,7 @@ export default function Login() {
           </div>
 
           <div>
+
             <div style={styles.footerTitle}>
               نظام إدارة الموظفين
             </div>
@@ -357,6 +362,7 @@ export default function Login() {
             <div style={styles.footerText}>
               إدارة الموظفين والأداء والإجازات بسهولة
             </div>
+
           </div>
 
         </div>
@@ -368,7 +374,7 @@ export default function Login() {
       ========================= */}
 
       <div style={styles.copyright}>
-        © 2026 نظام إدارة الموظفين
+        © 2026 نظام إدارة الموظفين — جميع الحقوق محفوظة
       </div>
 
     </div>
@@ -380,6 +386,11 @@ export default function Login() {
 ===================================================== */
 
 const styles = {
+
+  /* =========================
+     PAGE
+  ========================= */
+
   wrapper: {
     minHeight: "100vh",
     width: "100%",
@@ -391,11 +402,10 @@ const styles = {
     alignItems: "center",
 
     padding: "30px 20px",
-
     boxSizing: "border-box",
 
     background:
-      "radial-gradient(circle at top right, rgba(99,102,241,0.25), transparent 35%), radial-gradient(circle at bottom left, rgba(59,130,246,0.18), transparent 35%), linear-gradient(135deg, #020617 0%, #0f172a 50%, #111827 100%)",
+      "linear-gradient(135deg, #f8fbff 0%, #eef5ff 50%, #f8faff 100%)",
 
     fontFamily:
       "Cairo, Tahoma, Arial, sans-serif",
@@ -404,41 +414,56 @@ const styles = {
   },
 
   /* =========================
-     GLOW
+     BACKGROUND CIRCLES
   ========================= */
 
-  glowOne: {
+  backgroundCircleOne: {
     position: "absolute",
-    width: "350px",
-    height: "350px",
-
+    width: "420px",
+    height: "420px",
     borderRadius: "50%",
 
     background:
-      "rgba(99,102,241,0.12)",
+      "rgba(99,102,241,0.09)",
 
     filter: "blur(80px)",
 
-    top: "-120px",
-    right: "-100px",
+    top: "-180px",
+    right: "-120px",
 
     pointerEvents: "none",
   },
 
-  glowTwo: {
+  backgroundCircleTwo: {
     position: "absolute",
-    width: "300px",
-    height: "300px",
-
+    width: "350px",
+    height: "350px",
     borderRadius: "50%",
 
     background:
-      "rgba(59,130,246,0.10)",
+      "rgba(59,130,246,0.08)",
 
     filter: "blur(80px)",
 
-    bottom: "-100px",
+    bottom: "-130px",
     left: "-100px",
+
+    pointerEvents: "none",
+  },
+
+  backgroundCircleThree: {
+    position: "absolute",
+    width: "220px",
+    height: "220px",
+    borderRadius: "50%",
+
+    background:
+      "rgba(139,92,246,0.05)",
+
+    filter: "blur(70px)",
+
+    top: "40%",
+    left: "45%",
 
     pointerEvents: "none",
   },
@@ -455,26 +480,31 @@ const styles = {
 
     display: "flex",
     alignItems: "center",
+
     gap: "8px",
 
-    padding: "10px 15px",
+    padding: "10px 16px",
 
-    borderRadius: "10px",
+    borderRadius: "11px",
 
     border:
-      "1px solid rgba(255,255,255,0.10)",
+      "1px solid #dbe5f2",
 
     background:
-      "rgba(255,255,255,0.05)",
+      "rgba(255,255,255,0.85)",
 
-    backdropFilter: "blur(10px)",
-
-    color: "#cbd5e1",
+    color: "#475569",
 
     cursor: "pointer",
 
     fontFamily: "inherit",
-    fontWeight: "600",
+
+    fontWeight: "700",
+
+    fontSize: "12px",
+
+    boxShadow:
+      "0 6px 20px rgba(15,23,42,0.06)",
 
     transition: "0.2s",
 
@@ -496,15 +526,13 @@ const styles = {
     borderRadius: "24px",
 
     background:
-      "linear-gradient(145deg, rgba(15,23,42,0.92), rgba(15,23,42,0.78))",
+      "rgba(255,255,255,0.96)",
 
     border:
-      "1px solid rgba(255,255,255,0.10)",
-
-    backdropFilter: "blur(25px)",
+      "1px solid #e5edf7",
 
     boxShadow:
-      "0 30px 80px rgba(0,0,0,0.45), 0 0 0 1px rgba(99,102,241,0.04)",
+      "0 25px 70px rgba(30,64,175,0.12)",
 
     position: "relative",
 
@@ -518,7 +546,6 @@ const styles = {
   logoWrapper: {
     display: "flex",
     justifyContent: "center",
-
     marginBottom: "20px",
   },
 
@@ -541,10 +568,7 @@ const styles = {
     fontWeight: "900",
 
     boxShadow:
-      "0 15px 35px rgba(99,102,241,0.35)",
-
-    border:
-      "1px solid rgba(255,255,255,0.15)",
+      "0 12px 30px rgba(99,102,241,0.25)",
   },
 
   /* =========================
@@ -556,7 +580,7 @@ const styles = {
 
     textAlign: "center",
 
-    color: "#f8fafc",
+    color: "#172033",
 
     fontSize: "25px",
 
@@ -569,7 +593,7 @@ const styles = {
     margin:
       "8px 0 20px",
 
-    color: "#94a3b8",
+    color: "#64748b",
 
     fontSize: "13px",
 
@@ -597,15 +621,16 @@ const styles = {
     borderRadius: "20px",
 
     background:
-      "rgba(34,197,94,0.08)",
+      "#ecfdf5",
 
     border:
-      "1px solid rgba(34,197,94,0.15)",
+      "1px solid #bbf7d0",
 
-    color: "#4ade80",
+    color: "#15803d",
 
     fontSize: "10px",
-    fontWeight: "600",
+
+    fontWeight: "700",
   },
 
   /* =========================
@@ -619,11 +644,11 @@ const styles = {
   label: {
     display: "block",
 
-    color: "#cbd5e1",
+    color: "#334155",
 
     fontSize: "12px",
 
-    fontWeight: "600",
+    fontWeight: "700",
 
     marginBottom: "7px",
 
@@ -632,35 +657,37 @@ const styles = {
 
   inputBox: {
     display: "flex",
+
     alignItems: "center",
 
     gap: "10px",
 
-    height: "48px",
+    height: "50px",
 
     boxSizing: "border-box",
 
-    padding:
-      "0 13px",
+    padding: "0 13px",
 
     borderRadius: "12px",
 
-    background:
-      "rgba(255,255,255,0.045)",
+    background: "#f8fafc",
 
     border:
-      "1px solid rgba(255,255,255,0.09)",
+      "1px solid #dbe4ef",
 
     transition: "0.2s",
   },
 
   inputError: {
     border:
-      "1px solid rgba(239,68,68,0.5)",
+      "1px solid #f87171",
+
+    background:
+      "#fffafa",
   },
 
   icon: {
-    color: "#818cf8",
+    color: "#6366f1",
 
     fontSize: "15px",
 
@@ -673,11 +700,12 @@ const styles = {
     width: "100%",
 
     border: "none",
+
     outline: "none",
 
     background: "transparent",
 
-    color: "#f8fafc",
+    color: "#172033",
 
     fontSize: "13px",
 
@@ -693,11 +721,12 @@ const styles = {
 
     background: "transparent",
 
-    color: "#64748b",
+    color: "#94a3b8",
 
     cursor: "pointer",
 
     display: "flex",
+
     alignItems: "center",
 
     padding: "4px",
@@ -712,8 +741,7 @@ const styles = {
   options: {
     display: "flex",
 
-    justifyContent:
-      "flex-start",
+    justifyContent: "flex-start",
 
     alignItems: "center",
 
@@ -728,7 +756,7 @@ const styles = {
 
     gap: "7px",
 
-    color: "#94a3b8",
+    color: "#64748b",
 
     fontSize: "12px",
 
@@ -750,6 +778,7 @@ const styles = {
 
   errorBox: {
     display: "flex",
+
     alignItems: "center",
 
     gap: "9px",
@@ -761,12 +790,12 @@ const styles = {
     borderRadius: "10px",
 
     background:
-      "rgba(239,68,68,0.08)",
+      "#fff1f2",
 
     border:
-      "1px solid rgba(239,68,68,0.18)",
+      "1px solid #fecdd3",
 
-    color: "#f87171",
+    color: "#dc2626",
 
     fontSize: "11px",
 
@@ -782,11 +811,13 @@ const styles = {
     borderRadius: "50%",
 
     display: "flex",
+
     alignItems: "center",
+
     justifyContent: "center",
 
     background:
-      "rgba(239,68,68,0.15)",
+      "#fee2e2",
 
     fontWeight: "800",
   },
@@ -801,7 +832,9 @@ const styles = {
     height: "50px",
 
     display: "flex",
+
     alignItems: "center",
+
     justifyContent: "center",
 
     gap: "10px",
@@ -824,7 +857,7 @@ const styles = {
     cursor: "pointer",
 
     boxShadow:
-      "0 10px 25px rgba(99,102,241,0.25)",
+      "0 10px 25px rgba(99,102,241,0.22)",
 
     transition: "0.2s",
   },
@@ -837,8 +870,13 @@ const styles = {
     boxShadow: "none",
   },
 
+  /* =========================
+     SPINNER
+  ========================= */
+
   spinner: {
     width: "16px",
+
     height: "16px",
 
     border:
@@ -869,29 +907,32 @@ const styles = {
     paddingTop: "18px",
 
     borderTop:
-      "1px solid rgba(255,255,255,0.06)",
+      "1px solid #edf2f7",
   },
 
   footerIcon: {
     width: "35px",
+
     height: "35px",
 
     borderRadius: "9px",
 
     display: "flex",
+
     alignItems: "center",
+
     justifyContent: "center",
 
     background:
-      "rgba(99,102,241,0.12)",
+      "#eef2ff",
 
-    color: "#818cf8",
+    color: "#6366f1",
 
     fontSize: "14px",
   },
 
   footerTitle: {
-    color: "#cbd5e1",
+    color: "#334155",
 
     fontSize: "11px",
 
@@ -899,7 +940,7 @@ const styles = {
   },
 
   footerText: {
-    color: "#64748b",
+    color: "#94a3b8",
 
     fontSize: "9px",
 
@@ -916,11 +957,12 @@ const styles = {
     bottom: "15px",
 
     left: 0,
+
     right: 0,
 
     textAlign: "center",
 
-    color: "#475569",
+    color: "#94a3b8",
 
     fontSize: "10px",
 
@@ -952,11 +994,15 @@ if (typeof document !== "undefined") {
       }
 
       input::placeholder {
-        color: #475569;
+        color: #94a3b8;
+      }
+
+      button {
+        transition: all 0.2s ease;
       }
 
       button:hover:not(:disabled) {
-        opacity: 0.92;
+        transform: translateY(-2px);
       }
 
       @media (max-width: 600px) {

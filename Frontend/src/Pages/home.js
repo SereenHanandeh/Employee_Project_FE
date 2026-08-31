@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -18,17 +19,30 @@ export default function Home() {
   };
 
   return (
-    <div style={styles.page}>
+    <div className="home-page" style={styles.page}>
       {/* ================= BACKGROUND ================= */}
 
-      <div style={styles.backgroundGlow1}></div>
-      <div style={styles.backgroundGlow2}></div>
+      <div
+        className="home-glow home-glow-one"
+        style={styles.backgroundGlow1}
+      />
+
+      <div
+        className="home-glow home-glow-two"
+        style={styles.backgroundGlow2}
+      />
 
       {/* ================= NAVBAR ================= */}
 
-      <header style={styles.navbar}>
+      <header
+        className="home-navbar"
+        style={styles.navbar}
+      >
         <div style={styles.logoArea}>
-          <div style={styles.logo}>
+          <div
+            className="home-logo"
+            style={styles.logo}
+          >
             HR
           </div>
 
@@ -43,17 +57,25 @@ export default function Home() {
           </div>
         </div>
 
-        <div style={styles.navActions}>
+        <div
+          className="home-nav-actions"
+          style={styles.navActions}
+        >
           {isLoggedIn ? (
             <>
               <button
+                className="nav-dashboard-btn"
                 style={styles.dashboardButton}
-                onClick={() => nav("/admin-dashboard")}
+                onClick={() =>
+                  nav("/admin-dashboard")
+                }
               >
+                <span>▦</span>
                 لوحة التحكم
               </button>
 
               <button
+                className="nav-logout-btn"
                 style={styles.logoutButton}
                 onClick={handleLogout}
               >
@@ -62,32 +84,48 @@ export default function Home() {
             </>
           ) : (
             <button
+              className="nav-login-btn"
               style={styles.loginButton}
               onClick={() => nav("/login")}
             >
               تسجيل الدخول
-
+              <span>←</span>
             </button>
           )}
         </div>
       </header>
 
-      {/* ================= HERO ================= */}
+      {/* ================= MAIN ================= */}
 
-      <main style={styles.main}>
+      <main
+        className="home-main"
+        style={styles.main}
+      >
+        {/* ================= HERO ================= */}
 
-        <section style={styles.hero}>
+        <section
+          className="home-hero"
+          style={styles.hero}
+        >
+          {/* TEXT */}
 
-          {/* LEFT / TEXT */}
+          <div
+            className="home-hero-content"
+            style={styles.heroContent}
+          >
+            <div
+              className="home-badge"
+              style={styles.badge}
+            >
+              <span style={styles.badgeDot} />
 
-          <div style={styles.heroContent}>
-
-            <div style={styles.badge}>
-              <span style={styles.badgeDot}></span>
               نظام إدارة الموارد البشرية
             </div>
 
-            <h1 style={styles.heroTitle}>
+            <h1
+              className="home-title"
+              style={styles.heroTitle}
+            >
               إدارة موظفيك
               <br />
 
@@ -96,40 +134,60 @@ export default function Home() {
               </span>
             </h1>
 
-            <p style={styles.heroDescription}>
+            <p
+              className="home-description"
+              style={styles.heroDescription}
+            >
               منصة متكاملة تساعدك على إدارة الموظفين،
               متابعة الأداء، تنظيم الإجازات والمهام،
               وإجراء التقييمات بكل سهولة واحترافية.
             </p>
 
-            <div style={styles.heroButtons}>
+            {/* BUTTONS */}
 
+            <div
+              className="home-hero-buttons"
+              style={styles.heroButtons}
+            >
               {isLoggedIn ? (
                 <button
+                  className="hero-primary-btn"
                   style={styles.primaryHeroButton}
-                  onClick={() => nav("/admin-dashboard")}
+                  onClick={() =>
+                    nav("/admin-dashboard")
+                  }
                 >
                   <span>الدخول إلى لوحة التحكم</span>
-                  <span style={styles.arrow}>←</span>
+
+                  <span style={styles.arrow}>
+                    ←
+                  </span>
                 </button>
               ) : (
                 <button
+                  className="hero-primary-btn"
                   style={styles.primaryHeroButton}
                   onClick={() => nav("/login")}
                 >
                   <span>ابدأ الآن</span>
-                  <span style={styles.arrow}>←</span>
+
+                  <span style={styles.arrow}>
+                    ←
+                  </span>
                 </button>
               )}
-
-
             </div>
 
-            {/* ================= FEATURES ================= */}
+            {/* FEATURES */}
 
-            <div style={styles.features}>
-
-              <div style={styles.feature}>
+            <div
+              className="home-features"
+              style={styles.features}
+            >
+              <div
+                className="home-feature"
+                style={styles.feature}
+              >
                 <div style={styles.featureIcon}>
                   👨‍💼
                 </div>
@@ -145,7 +203,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <div style={styles.feature}>
+              <div
+                className="home-feature"
+                style={styles.feature}
+              >
                 <div style={styles.featureIcon}>
                   📅
                 </div>
@@ -161,7 +222,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <div style={styles.feature}>
+              <div
+                className="home-feature"
+                style={styles.feature}
+              >
                 <div style={styles.featureIcon}>
                   📊
                 </div>
@@ -176,29 +240,39 @@ export default function Home() {
                   </span>
                 </div>
               </div>
-
             </div>
-
           </div>
 
-          {/* ================= VISUAL CARD ================= */}
+          {/* ================= VISUAL ================= */}
 
-          <div style={styles.heroVisual}>
+          <div
+            className="home-visual"
+            style={styles.heroVisual}
+          >
+            <div
+              className="home-glow-circle"
+              style={styles.glowCircle}
+            />
 
-            <div style={styles.glowCircle}></div>
+            {/* Dashboard */}
 
-            <div style={styles.dashboardCard}>
-
-              {/* Card Header */}
+            <div
+              className="home-dashboard"
+              style={styles.dashboardCard}
+            >
+              {/* Header */}
 
               <div style={styles.dashboardHeader}>
-
                 <div>
-                  <div style={styles.dashboardSmallTitle}>
+                  <div
+                    style={styles.dashboardSmallTitle}
+                  >
                     لوحة الإدارة
                   </div>
 
-                  <div style={styles.dashboardTitle}>
+                  <div
+                    style={styles.dashboardTitle}
+                  >
                     نظرة عامة
                   </div>
                 </div>
@@ -206,15 +280,19 @@ export default function Home() {
                 <div style={styles.dashboardIcon}>
                   HR
                 </div>
-
               </div>
 
               {/* Statistics */}
 
               <div style={styles.miniStats}>
-
                 <div style={styles.miniStat}>
-                  <div style={styles.miniIconBlue}>
+                  <div
+                    style={{
+                      ...styles.miniIconBlue,
+                      background:
+                        "linear-gradient(135deg,#eff6ff,#dbeafe)",
+                    }}
+                  >
                     👥
                   </div>
 
@@ -230,7 +308,13 @@ export default function Home() {
                 </div>
 
                 <div style={styles.miniStat}>
-                  <div style={styles.miniIconGreen}>
+                  <div
+                    style={{
+                      ...styles.miniIconGreen,
+                      background:
+                        "linear-gradient(135deg,#ecfdf5,#d1fae5)",
+                    }}
+                  >
                     ✓
                   </div>
 
@@ -244,82 +328,78 @@ export default function Home() {
                     </strong>
                   </div>
                 </div>
-
               </div>
 
               {/* Chart */}
 
               <div style={styles.chartCard}>
-
                 <div style={styles.chartHeader}>
                   <span>
                     أداء الموظفين
                   </span>
 
-                  <span style={styles.chartPercentage}>
+                  <span
+                    style={styles.chartPercentage}
+                  >
                     +18.5%
                   </span>
                 </div>
 
                 <div style={styles.chart}>
-
                   <div
                     style={{
                       ...styles.bar,
                       height: "35%",
                     }}
-                  ></div>
+                  />
 
                   <div
                     style={{
                       ...styles.bar,
                       height: "55%",
                     }}
-                  ></div>
+                  />
 
                   <div
                     style={{
                       ...styles.bar,
                       height: "45%",
                     }}
-                  ></div>
+                  />
 
                   <div
                     style={{
                       ...styles.bar,
                       height: "70%",
                     }}
-                  ></div>
+                  />
 
                   <div
                     style={{
                       ...styles.bar,
                       height: "62%",
                     }}
-                  ></div>
+                  />
 
                   <div
                     style={{
                       ...styles.bar,
                       height: "88%",
                     }}
-                  ></div>
+                  />
 
                   <div
                     style={{
                       ...styles.bar,
                       height: "78%",
                     }}
-                  ></div>
-
+                  />
                 </div>
-
               </div>
 
               {/* Leave */}
 
               <div style={styles.leaveSummary}>
-
                 <div style={styles.leaveIcon}>
                   📅
                 </div>
@@ -337,15 +417,15 @@ export default function Home() {
                 <div style={styles.leaveCount}>
                   12
                 </div>
-
               </div>
-
             </div>
 
             {/* Floating Card */}
 
-            <div style={styles.floatingCard}>
-
+            <div
+              className="home-floating-card"
+              style={styles.floatingCard}
+            >
               <div style={styles.checkCircle}>
                 ✓
               </div>
@@ -359,18 +439,20 @@ export default function Home() {
                   تم تحديث التقييم
                 </span>
               </div>
-
             </div>
-
           </div>
-
         </section>
 
-        {/* ================= BOTTOM STATS ================= */}
+        {/* ================= BOTTOM ================= */}
 
-        <section style={styles.bottomSection}>
-
-          <div style={styles.bottomCard}>
+        <section
+          className="home-bottom"
+          style={styles.bottomSection}
+        >
+          <div
+            className="home-bottom-card"
+            style={styles.bottomCard}
+          >
             <span style={styles.bottomIcon}>
               👥
             </span>
@@ -386,7 +468,10 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={styles.bottomCard}>
+          <div
+            className="home-bottom-card"
+            style={styles.bottomCard}
+          >
             <span style={styles.bottomIcon}>
               📅
             </span>
@@ -402,7 +487,10 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={styles.bottomCard}>
+          <div
+            className="home-bottom-card"
+            style={styles.bottomCard}
+          >
             <span style={styles.bottomIcon}>
               ✓
             </span>
@@ -418,7 +506,10 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={styles.bottomCard}>
+          <div
+            className="home-bottom-card"
+            style={styles.bottomCard}
+          >
             <span style={styles.bottomIcon}>
               📈
             </span>
@@ -433,9 +524,7 @@ export default function Home() {
               </span>
             </div>
           </div>
-
         </section>
-
       </main>
 
       {/* ================= FOOTER ================= */}
@@ -443,28 +532,29 @@ export default function Home() {
       <footer style={styles.footer}>
         © 2026 نظام إدارة الموظفين — جميع الحقوق محفوظة
       </footer>
-
     </div>
   );
 }
 
 /* =========================================================
-   STYLES
+   LIGHT THEME
 ========================================================= */
 
 const styles = {
-
   page: {
     minHeight: "100vh",
     width: "100%",
     background:
-      "linear-gradient(135deg,#050816 0%,#0b1020 45%,#111827 100%)",
-    color: "#fff",
-    fontFamily: "Cairo, Tahoma, Arial, sans-serif",
+      "linear-gradient(135deg,#f8fbff 0%,#f5f8ff 45%,#eef4ff 100%)",
+    color: "#172033",
+    fontFamily:
+      "Cairo, Tahoma, Arial, sans-serif",
     direction: "rtl",
     position: "relative",
     overflow: "hidden",
   },
+
+  /* ================= BACKGROUND ================= */
 
   backgroundGlow1: {
     position: "absolute",
@@ -472,9 +562,9 @@ const styles = {
     height: "500px",
     borderRadius: "50%",
     background:
-      "rgba(99,102,241,0.13)",
+      "rgba(99,102,241,0.09)",
     filter: "blur(100px)",
-    top: "-180px",
+    top: "-200px",
     left: "-150px",
     pointerEvents: "none",
   },
@@ -485,10 +575,10 @@ const styles = {
     height: "450px",
     borderRadius: "50%",
     background:
-      "rgba(59,130,246,0.10)",
+      "rgba(59,130,246,0.08)",
     filter: "blur(100px)",
     bottom: "-200px",
-    right: "-120px",
+    right: "-150px",
     pointerEvents: "none",
   },
 
@@ -497,15 +587,15 @@ const styles = {
   navbar: {
     position: "relative",
     zIndex: 5,
-    height: "80px",
+    height: "82px",
     padding: "0 6%",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     borderBottom:
-      "1px solid rgba(255,255,255,0.06)",
+      "1px solid rgba(148,163,184,0.16)",
     background:
-      "rgba(5,8,22,0.45)",
+      "rgba(255,255,255,0.82)",
     backdropFilter: "blur(20px)",
     boxSizing: "border-box",
   },
@@ -517,28 +607,30 @@ const styles = {
   },
 
   logo: {
-    width: "45px",
-    height: "45px",
-    borderRadius: "13px",
+    width: "46px",
+    height: "46px",
+    borderRadius: "14px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontSize: "14px",
     fontWeight: "900",
+    color: "#ffffff",
     background:
-      "linear-gradient(135deg,#6366f1,#8b5cf6)",
+      "linear-gradient(135deg,#4f46e5,#3b82f6)",
     boxShadow:
-      "0 8px 30px rgba(99,102,241,0.35)",
+      "0 10px 25px rgba(79,70,229,0.22)",
   },
 
   logoTitle: {
     fontSize: "15px",
     fontWeight: "800",
+    color: "#172033",
   },
 
   logoSubtitle: {
     fontSize: "10px",
-    color: "#64748b",
+    color: "#7c8799",
     marginTop: "2px",
   },
 
@@ -549,40 +641,46 @@ const styles = {
   },
 
   loginButton: {
-    border: "1px solid rgba(255,255,255,0.12)",
-    background:
-      "rgba(255,255,255,0.06)",
-    color: "#fff",
+    border:
+      "1px solid #dbe3f0",
+    background: "#ffffff",
+    color: "#334155",
     padding: "10px 17px",
-    borderRadius: "10px",
+    borderRadius: "11px",
     cursor: "pointer",
     fontFamily: "inherit",
     fontWeight: "700",
     display: "flex",
     alignItems: "center",
     gap: "8px",
+    boxShadow:
+      "0 4px 14px rgba(15,23,42,0.05)",
   },
 
   dashboardButton: {
     border: "none",
     background:
-      "linear-gradient(135deg,#6366f1,#8b5cf6)",
-    color: "#fff",
+      "linear-gradient(135deg,#4f46e5,#3b82f6)",
+    color: "#ffffff",
     padding: "10px 17px",
-    borderRadius: "10px",
+    borderRadius: "11px",
     cursor: "pointer",
     fontFamily: "inherit",
     fontWeight: "700",
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+    boxShadow:
+      "0 8px 20px rgba(59,130,246,0.20)",
   },
 
   logoutButton: {
     border:
-      "1px solid rgba(239,68,68,0.25)",
-    background:
-      "rgba(239,68,68,0.08)",
-    color: "#f87171",
+      "1px solid #fecaca",
+    background: "#fff7f7",
+    color: "#dc2626",
     padding: "10px 15px",
-    borderRadius: "10px",
+    borderRadius: "11px",
     cursor: "pointer",
     fontFamily: "inherit",
     fontWeight: "600",
@@ -607,7 +705,7 @@ const styles = {
       "1fr 0.9fr",
     alignItems: "center",
     gap: "70px",
-    padding: "60px 0",
+    padding: "55px 0 45px",
   },
 
   heroContent: {
@@ -618,15 +716,15 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     gap: "8px",
-    padding: "7px 13px",
+    padding: "7px 14px",
     borderRadius: "30px",
     background:
-      "rgba(99,102,241,0.10)",
+      "linear-gradient(135deg,#eef2ff,#eff6ff)",
     border:
-      "1px solid rgba(99,102,241,0.20)",
-    color: "#a5b4fc",
+      "1px solid #dbe4ff",
+    color: "#4f46e5",
     fontSize: "11px",
-    fontWeight: "700",
+    fontWeight: "800",
     marginBottom: "22px",
   },
 
@@ -634,9 +732,9 @@ const styles = {
     width: "7px",
     height: "7px",
     borderRadius: "50%",
-    background: "#818cf8",
+    background: "#4f46e5",
     boxShadow:
-      "0 0 10px rgba(129,140,248,0.8)",
+      "0 0 0 4px rgba(79,70,229,0.10)",
   },
 
   heroTitle: {
@@ -645,18 +743,19 @@ const styles = {
     lineHeight: "1.25",
     fontWeight: "900",
     letterSpacing: "-1.5px",
+    color: "#172033",
   },
 
   gradientText: {
     background:
-      "linear-gradient(90deg,#818cf8,#38bdf8)",
+      "linear-gradient(90deg,#4f46e5,#2563eb,#0284c7)",
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
   },
 
   heroDescription: {
     maxWidth: "580px",
-    color: "#94a3b8",
+    color: "#64748b",
     fontSize: "15px",
     lineHeight: "2",
     marginTop: "22px",
@@ -672,15 +771,15 @@ const styles = {
   primaryHeroButton: {
     border: "none",
     background:
-      "linear-gradient(135deg,#6366f1,#8b5cf6)",
-    color: "#fff",
-    padding: "14px 22px",
+      "linear-gradient(135deg,#4f46e5,#3b82f6)",
+    color: "#ffffff",
+    padding: "14px 23px",
     borderRadius: "12px",
     cursor: "pointer",
     fontFamily: "inherit",
     fontWeight: "800",
     boxShadow:
-      "0 12px 30px rgba(99,102,241,0.30)",
+      "0 12px 28px rgba(59,130,246,0.22)",
     display: "flex",
     alignItems: "center",
     gap: "12px",
@@ -688,19 +787,6 @@ const styles = {
 
   arrow: {
     fontSize: "18px",
-  },
-
-  secondaryHeroButton: {
-    border:
-      "1px solid rgba(255,255,255,0.10)",
-    background:
-      "rgba(255,255,255,0.04)",
-    color: "#cbd5e1",
-    padding: "14px 22px",
-    borderRadius: "12px",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontWeight: "700",
   },
 
   /* ================= FEATURES ================= */
@@ -719,28 +805,29 @@ const styles = {
   },
 
   featureIcon: {
-    width: "38px",
-    height: "38px",
-    borderRadius: "10px",
+    width: "40px",
+    height: "40px",
+    borderRadius: "11px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background:
-      "rgba(255,255,255,0.06)",
+    background: "#ffffff",
     border:
-      "1px solid rgba(255,255,255,0.07)",
+      "1px solid #e2e8f0",
+    boxShadow:
+      "0 5px 15px rgba(15,23,42,0.05)",
   },
 
   featureTitle: {
     display: "block",
     fontSize: "11px",
-    color: "#e2e8f0",
+    color: "#334155",
   },
 
   featureText: {
     display: "block",
     fontSize: "9px",
-    color: "#64748b",
+    color: "#94a3b8",
     marginTop: "2px",
   },
 
@@ -756,28 +843,29 @@ const styles = {
 
   glowCircle: {
     position: "absolute",
-    width: "350px",
-    height: "350px",
+    width: "370px",
+    height: "370px",
     borderRadius: "50%",
     background:
-      "rgba(99,102,241,0.18)",
-    filter: "blur(80px)",
+      "rgba(99,102,241,0.11)",
+    filter: "blur(75px)",
   },
 
   dashboardCard: {
     position: "relative",
     zIndex: 2,
     width: "410px",
-    padding: "22px",
-    borderRadius: "22px",
+    padding: "23px",
+    borderRadius: "23px",
     background:
-      "linear-gradient(145deg,rgba(30,41,59,0.92),rgba(15,23,42,0.92))",
+      "rgba(255,255,255,0.96)",
     border:
-      "1px solid rgba(255,255,255,0.10)",
+      "1px solid #e2e8f0",
     boxShadow:
-      "0 30px 80px rgba(0,0,0,0.45)",
-    backdropFilter: "blur(25px)",
-    transform: "perspective(1000px) rotateY(-5deg) rotateX(2deg)",
+      "0 30px 70px rgba(30,64,175,0.13)",
+    backdropFilter: "blur(20px)",
+    transform:
+      "perspective(1000px) rotateY(-5deg) rotateX(2deg)",
   },
 
   dashboardHeader: {
@@ -788,7 +876,7 @@ const styles = {
   },
 
   dashboardSmallTitle: {
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "10px",
   },
 
@@ -796,6 +884,7 @@ const styles = {
     fontSize: "20px",
     fontWeight: "800",
     marginTop: "4px",
+    color: "#172033",
   },
 
   dashboardIcon: {
@@ -806,10 +895,15 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     background:
-      "linear-gradient(135deg,#6366f1,#8b5cf6)",
+      "linear-gradient(135deg,#4f46e5,#3b82f6)",
+    color: "#ffffff",
     fontSize: "11px",
     fontWeight: "900",
+    boxShadow:
+      "0 8px 20px rgba(59,130,246,0.20)",
   },
+
+  /* ================= MINI STATS ================= */
 
   miniStats: {
     display: "grid",
@@ -823,11 +917,10 @@ const styles = {
     alignItems: "center",
     gap: "10px",
     padding: "13px",
-    borderRadius: "12px",
-    background:
-      "rgba(255,255,255,0.035)",
+    borderRadius: "13px",
+    background: "#f8fafc",
     border:
-      "1px solid rgba(255,255,255,0.05)",
+      "1px solid #edf1f7",
   },
 
   miniIconBlue: {
@@ -837,8 +930,6 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background:
-      "rgba(59,130,246,0.12)",
   },
 
   miniIconGreen: {
@@ -848,14 +939,12 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background:
-      "rgba(34,197,94,0.12)",
-    color: "#4ade80",
+    color: "#16a34a",
   },
 
   miniLabel: {
     display: "block",
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "9px",
   },
 
@@ -863,27 +952,29 @@ const styles = {
     display: "block",
     fontSize: "17px",
     marginTop: "2px",
+    color: "#1e293b",
   },
+
+  /* ================= CHART ================= */
 
   chartCard: {
     padding: "15px",
-    borderRadius: "13px",
-    background:
-      "rgba(255,255,255,0.035)",
+    borderRadius: "14px",
+    background: "#f8fafc",
     border:
-      "1px solid rgba(255,255,255,0.05)",
+      "1px solid #edf1f7",
   },
 
   chartHeader: {
     display: "flex",
     justifyContent: "space-between",
-    color: "#94a3b8",
+    color: "#64748b",
     fontSize: "10px",
   },
 
   chartPercentage: {
-    color: "#4ade80",
-    fontWeight: "700",
+    color: "#16a34a",
+    fontWeight: "800",
   },
 
   chart: {
@@ -893,15 +984,19 @@ const styles = {
     justifyContent: "space-around",
     gap: "8px",
     marginTop: "15px",
+    padding:
+      "0 8px",
   },
 
   bar: {
     width: "28px",
-    borderRadius: "6px 6px 3px 3px",
+    borderRadius: "7px 7px 3px 3px",
     background:
-      "linear-gradient(to top,#6366f1,#38bdf8)",
-    opacity: 0.85,
+      "linear-gradient(to top,#6366f1,#60a5fa)",
+    opacity: 0.9,
   },
+
+  /* ================= LEAVE ================= */
 
   leaveSummary: {
     display: "flex",
@@ -909,9 +1004,10 @@ const styles = {
     gap: "10px",
     marginTop: "12px",
     padding: "12px",
-    borderRadius: "12px",
-    background:
-      "rgba(255,255,255,0.035)",
+    borderRadius: "13px",
+    background: "#fffbeb",
+    border:
+      "1px solid #fef3c7",
   },
 
   leaveIcon: {
@@ -921,49 +1017,44 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background:
-      "rgba(234,179,8,0.10)",
+    background: "#fef3c7",
   },
 
   leaveText: {
     flex: 1,
   },
 
-  leaveTextStrong: {
-    display: "block",
-  },
-
   leaveCount: {
     fontSize: "18px",
     fontWeight: "900",
-    color: "#facc15",
+    color: "#d97706",
   },
+
+  /* ================= FLOATING CARD ================= */
 
   floatingCard: {
     position: "absolute",
     zIndex: 3,
-    left: "-5px",
-    bottom: "45px",
+    left: "-8px",
+    bottom: "42px",
     display: "flex",
     alignItems: "center",
     gap: "10px",
     padding: "12px 15px",
-    borderRadius: "13px",
-    background:
-      "rgba(15,23,42,0.92)",
+    borderRadius: "14px",
+    background: "#ffffff",
     border:
-      "1px solid rgba(255,255,255,0.09)",
+      "1px solid #e2e8f0",
     boxShadow:
-      "0 15px 40px rgba(0,0,0,0.35)",
+      "0 15px 35px rgba(15,23,42,0.12)",
   },
 
   checkCircle: {
     width: "32px",
     height: "32px",
     borderRadius: "50%",
-    background:
-      "rgba(34,197,94,0.15)",
-    color: "#4ade80",
+    background: "#dcfce7",
+    color: "#16a34a",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -973,11 +1064,12 @@ const styles = {
   floatingTitle: {
     display: "block",
     fontSize: "11px",
+    color: "#1e293b",
   },
 
   floatingText: {
     display: "block",
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "8px",
     marginTop: "2px",
   },
@@ -988,7 +1080,7 @@ const styles = {
     display: "grid",
     gridTemplateColumns:
       "repeat(4,1fr)",
-    gap: "12px",
+    gap: "14px",
     paddingBottom: "40px",
   },
 
@@ -996,39 +1088,41 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    padding: "16px",
-    borderRadius: "14px",
-    background:
-      "rgba(15,23,42,0.65)",
+    padding: "17px",
+    borderRadius: "15px",
+    background: "#ffffff",
     border:
-      "1px solid rgba(255,255,255,0.06)",
-    transition: "0.2s",
+      "1px solid #e5eaf2",
+    boxShadow:
+      "0 8px 25px rgba(15,23,42,0.045)",
+    transition:
+      "all 0.25s ease",
   },
 
   bottomIcon: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "10px",
+    width: "41px",
+    height: "41px",
+    borderRadius: "11px",
     background:
-      "rgba(99,102,241,0.10)",
+      "linear-gradient(135deg,#eef2ff,#eff6ff)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  bottomCardStrong: {
-    display: "block",
-  },
+  /* ================= FOOTER ================= */
 
   footer: {
     position: "relative",
     zIndex: 2,
     textAlign: "center",
     padding: "18px",
-    color: "#475569",
+    color: "#94a3b8",
     fontSize: "10px",
     borderTop:
-      "1px solid rgba(255,255,255,0.05)",
+      "1px solid #e5eaf2",
+    background:
+      "rgba(255,255,255,0.55)",
   },
 };
 
@@ -1045,94 +1139,293 @@ if (typeof document !== "undefined") {
     style.id = styleId;
 
     style.innerHTML = `
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: #f8fbff;
+      }
+
       button {
-        transition: all 0.2s ease;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease,
+          border-color 0.2s ease;
       }
 
       button:hover {
         transform: translateY(-2px);
-        opacity: 0.95;
+      }
+
+      .nav-login-btn:hover {
+        border-color: #bfdbfe !important;
+        box-shadow:
+          0 8px 22px rgba(59,130,246,0.10) !important;
+      }
+
+      .nav-dashboard-btn:hover,
+      .hero-primary-btn:hover {
+        box-shadow:
+          0 14px 30px rgba(59,130,246,0.28) !important;
+      }
+
+      .nav-logout-btn:hover {
+        background: #fef2f2 !important;
+        border-color: #fca5a5 !important;
+      }
+
+      .home-bottom-card:hover {
+        transform: translateY(-4px);
+        box-shadow:
+          0 15px 35px rgba(15,23,42,0.09) !important;
+        border-color: #dbe4f0 !important;
+      }
+
+      .home-feature {
+        transition: transform 0.2s ease;
+      }
+
+      .home-feature:hover {
+        transform: translateY(-2px);
+      }
+
+      .home-floating-card {
+        animation:
+          floatingCard 4s ease-in-out infinite;
+      }
+
+      .home-dashboard {
+        animation:
+          dashboardFloat 5s ease-in-out infinite;
+      }
+
+      @keyframes floatingCard {
+        0%, 100% {
+          transform: translateY(0);
+        }
+
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+
+      @keyframes dashboardFloat {
+        0%, 100% {
+          transform:
+            perspective(1000px)
+            rotateY(-5deg)
+            rotateX(2deg)
+            translateY(0);
+        }
+
+        50% {
+          transform:
+            perspective(1000px)
+            rotateY(-5deg)
+            rotateX(2deg)
+            translateY(-6px);
+        }
       }
 
       @media (max-width: 1000px) {
-
-        .home-page {
-          width: 95%;
+        .home-main {
+          width: 92% !important;
         }
 
+        .home-hero {
+          gap: 35px !important;
+        }
+
+        .home-title {
+          font-size: 46px !important;
+        }
+
+        .home-dashboard {
+          width: 390px !important;
+        }
       }
 
       @media (max-width: 850px) {
-
         body {
           overflow-x: hidden;
         }
 
         .home-hero {
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr !important;
+          padding-top: 45px !important;
         }
 
-      }
-
-      @media (max-width: 700px) {
-
-        .home-navbar {
-          padding: 0 20px;
+        .home-hero-content {
+          max-width: 700px !important;
+          text-align: center;
+          margin: 0 auto;
         }
 
-        .home-main {
-          width: 92%;
-        }
-
-        .home-hero {
-          display: flex;
-          flex-direction: column;
-          padding-top: 35px;
-          gap: 30px;
-        }
-
-        .home-title {
-          font-size: 38px;
-        }
-
-        .home-dashboard {
-          width: 100%;
-          max-width: 390px;
-        }
-
-        .home-features {
-          gap: 15px;
-        }
-
-        .home-bottom {
-          grid-template-columns: 1fr 1fr;
-        }
-
-      }
-
-      @media (max-width: 500px) {
-
-        .home-title {
-          font-size: 32px;
+        .home-badge {
+          margin-left: auto;
+          margin-right: auto;
         }
 
         .home-description {
-          font-size: 13px;
+          margin-left: auto !important;
+          margin-right: auto !important;
         }
 
-        .home-dashboard {
-          transform: none;
+        .home-hero-buttons {
+          justify-content: center;
+        }
+
+        .home-features {
+          justify-content: center;
+        }
+
+        .home-visual {
+          min-height: 480px !important;
         }
 
         .home-bottom {
-          grid-template-columns: 1fr;
+          grid-template-columns:
+            repeat(2,1fr) !important;
+        }
+      }
+
+      @media (max-width: 700px) {
+        .home-navbar {
+          height: 72px !important;
+          padding: 0 20px !important;
+        }
+
+        .home-main {
+          width: 92% !important;
+        }
+
+        .logo-title {
+          font-size: 13px;
+        }
+
+        .home-logo {
+          width: 42px !important;
+          height: 42px !important;
         }
 
         .home-nav-actions button {
-          padding: 8px 10px;
-          font-size: 11px;
+          padding: 8px 10px !important;
+          font-size: 10px !important;
         }
 
+        .home-title {
+          font-size: 38px !important;
+          letter-spacing: -1px !important;
+        }
+
+        .home-description {
+          font-size: 13px !important;
+          line-height: 1.9 !important;
+        }
+
+        .home-hero {
+          padding-top: 35px !important;
+          gap: 15px !important;
+        }
+
+        .home-features {
+          gap: 18px !important;
+        }
+
+        .home-dashboard {
+          width: 100% !important;
+          max-width: 390px !important;
+        }
+
+        .home-floating-card {
+          left: 0 !important;
+          bottom: 30px !important;
+        }
+
+        .home-bottom {
+          grid-template-columns:
+            1fr 1fr !important;
+        }
+      }
+
+      @media (max-width: 500px) {
+        .home-navbar {
+          padding: 0 14px !important;
+        }
+
+        .logoSubtitle {
+          display: none;
+        }
+
+        .home-nav-actions {
+          gap: 6px !important;
+        }
+
+        .home-title {
+          font-size: 32px !important;
+        }
+
+        .home-description {
+          font-size: 12px !important;
+        }
+
+        .home-hero-buttons {
+          width: 100%;
+        }
+
+        .hero-primary-btn {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .home-features {
+          display: grid !important;
+          grid-template-columns: 1fr !important;
+          justify-items: start;
+          width: fit-content;
+          margin-left: auto !important;
+          margin-right: auto !important;
+        }
+
+        .home-visual {
+          min-height: 430px !important;
+        }
+
+        .home-dashboard {
+          width: 100% !important;
+          padding: 17px !important;
+          border-radius: 18px !important;
+          transform: none !important;
+        }
+
+        .home-dashboard:hover {
+          transform: none !important;
+        }
+
+        .home-floating-card {
+          position: relative !important;
+          left: auto !important;
+          bottom: auto !important;
+          margin-top: -25px;
+          align-self: flex-start;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .home-bottom {
+          grid-template-columns: 1fr !important;
+        }
+
+        .miniStats {
+          gap: 7px;
+        }
       }
     `;
 
