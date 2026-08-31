@@ -17,7 +17,6 @@ export default function LeavesList() {
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState(null);
   const [editingLeave, setEditingLeave] = useState(null);
 
@@ -28,9 +27,9 @@ export default function LeavesList() {
     notes: "",
   });
 
-  /* =========================
-     FETCH
-  ========================= */
+  // =========================
+  // FETCH
+  // =========================
 
   useEffect(() => {
     fetchLeaves();
@@ -55,16 +54,14 @@ export default function LeavesList() {
     }
   };
 
-  /* =========================
-     STATUS
-  ========================= */
+  // =========================
+  // STATUS
+  // =========================
 
   const getStatusKey = (status) => {
     if (!status) return "pending";
 
-    const value = String(status)
-      .toLowerCase()
-      .trim();
+    const value = String(status).toLowerCase().trim();
 
     if (
       value === "approved" ||
@@ -111,9 +108,9 @@ export default function LeavesList() {
     };
   };
 
-  /* =========================
-     EMPLOYEE
-  ========================= */
+  // =========================
+  // EMPLOYEE
+  // =========================
 
   const getEmployeeName = (leave) =>
     leave.name ||
@@ -121,9 +118,9 @@ export default function LeavesList() {
     leave.employee?.name ||
     "غير محدد";
 
-  /* =========================
-     STATISTICS
-  ========================= */
+  // =========================
+  // STATISTICS
+  // =========================
 
   const statistics = useMemo(() => {
     return {
@@ -146,9 +143,9 @@ export default function LeavesList() {
     };
   }, [leaves]);
 
-  /* =========================
-     TYPES
-  ========================= */
+  // =========================
+  // TYPES
+  // =========================
 
   const leaveTypes = useMemo(() => {
     return [
@@ -160,21 +157,16 @@ export default function LeavesList() {
     ];
   }, [leaves]);
 
-  /* =========================
-     FILTER
-  ========================= */
+  // =========================
+  // FILTER
+  // =========================
 
   const filteredLeaves = useMemo(() => {
-    const searchValue = search
-      .toLowerCase()
-      .trim();
+    const searchValue = search.toLowerCase().trim();
 
     return leaves.filter((leave) => {
-      const employeeName =
-        getEmployeeName(leave);
-
-      const statusKey =
-        getStatusKey(leave.status);
+      const employeeName = getEmployeeName(leave);
+      const statusKey = getStatusKey(leave.status);
 
       const matchesSearch =
         String(employeeName)
@@ -211,9 +203,9 @@ export default function LeavesList() {
     filterStatus,
   ]);
 
-  /* =========================
-     UPDATE STATUS
-  ========================= */
+  // =========================
+  // UPDATE STATUS
+  // =========================
 
   const updateStatus = async (id, status) => {
     const leave = leaves.find(
@@ -221,9 +213,7 @@ export default function LeavesList() {
     );
 
     const actionText =
-      status === "approved"
-        ? "قبول"
-        : "رفض";
+      status === "approved" ? "قبول" : "رفض";
 
     if (
       !window.confirm(
@@ -269,9 +259,9 @@ export default function LeavesList() {
     }
   };
 
-  /* =========================
-     EDIT
-  ========================= */
+  // =========================
+  // EDIT
+  // =========================
 
   const openEditLeave = (leave) => {
     setEditingLeave(leave);
@@ -297,9 +287,7 @@ export default function LeavesList() {
       !editForm.from_date ||
       !editForm.to_date
     ) {
-      alert(
-        "يرجى تعبئة جميع الحقول المطلوبة"
-      );
+      alert("يرجى تعبئة جميع الحقول المطلوبة");
       return;
     }
 
@@ -328,8 +316,7 @@ export default function LeavesList() {
 
       setLeaves((prev) =>
         prev.map((leave) =>
-          leave.leave_id ===
-          editingLeave.leave_id
+          leave.leave_id === editingLeave.leave_id
             ? {
                 ...leave,
                 ...(res.data || {}),
@@ -346,10 +333,7 @@ export default function LeavesList() {
 
       alert("تم تعديل الإجازة بنجاح");
     } catch (error) {
-      console.error(
-        "Update Leave Error:",
-        error
-      );
+      console.error("Update Leave Error:", error);
 
       alert(
         error.response?.data?.message ||
@@ -360,9 +344,9 @@ export default function LeavesList() {
     }
   };
 
-  /* =========================
-     EXCEL
-  ========================= */
+  // =========================
+  // EXCEL
+  // =========================
 
   const exportToExcel = () => {
     if (!filteredLeaves.length) {
@@ -370,37 +354,20 @@ export default function LeavesList() {
       return;
     }
 
-    const data = filteredLeaves.map(
-      (leave) => ({
-        الموظف: getEmployeeName(leave),
-
-        "نوع الإجازة":
-          leave.type || "",
-
-        "من تاريخ":
-          leave.from_date || "",
-
-        "إلى تاريخ":
-          leave.to_date || "",
-
-        "عدد الأيام":
-          leave.days || "",
-
-        الملاحظات:
-          leave.notes || "",
-
-        الحالة:
-          getStatusInfo(
-            leave.status
-          ).text,
-      })
-    );
+    const data = filteredLeaves.map((leave) => ({
+      الموظف: getEmployeeName(leave),
+      "نوع الإجازة": leave.type || "",
+      "من تاريخ": leave.from_date || "",
+      "إلى تاريخ": leave.to_date || "",
+      "عدد الأيام": leave.days || "",
+      الملاحظات: leave.notes || "",
+      الحالة: getStatusInfo(leave.status).text,
+    }));
 
     const worksheet =
       XLSX.utils.json_to_sheet(data);
 
-    const workbook =
-      XLSX.utils.book_new();
+    const workbook = XLSX.utils.book_new();
 
     XLSX.utils.book_append_sheet(
       workbook,
@@ -421,18 +388,9 @@ export default function LeavesList() {
     );
   };
 
-  /* =========================
-     NAVIGATION
-  ========================= */
-
-  const goTo = (path) => {
-    setMobileMenu(false);
-    nav(path);
-  };
-
-  /* =========================
-     DATE
-  ========================= */
+  // =========================
+  // DATE
+  // =========================
 
   const formatDate = (date) => {
     if (!date) return "—";
@@ -450,9 +408,9 @@ export default function LeavesList() {
     });
   };
 
-  /* =========================
-     DAYS
-  ========================= */
+  // =========================
+  // DAYS
+  // =========================
 
   const calculateDays = () => {
     if (
@@ -462,881 +420,659 @@ export default function LeavesList() {
       return 0;
     }
 
-    const start = new Date(
-      editForm.from_date
-    );
-
-    const end = new Date(
-      editForm.to_date
-    );
+    const start = new Date(editForm.from_date);
+    const end = new Date(editForm.to_date);
 
     if (end < start) return 0;
 
     return (
       Math.ceil(
-        (end.getTime() -
-          start.getTime()) /
+        (end.getTime() - start.getTime()) /
           (1000 * 60 * 60 * 24)
       ) + 1
     );
   };
 
-  /* =========================
-     RENDER
-  ========================= */
+  // =========================
+  // RENDER
+  // =========================
 
   return (
     <div className="leaves-page">
 
-      {/* MOBILE OVERLAY */}
-      {mobileMenu && (
-        <div
-          className="sidebar-overlay"
-          onClick={() =>
-            setMobileMenu(false)
-          }
-        />
-      )}
+      {/* ================= HEADER ================= */}
 
-      {/* ================= SIDEBAR ================= */}
+      <header className="top-header">
 
-      <aside
-        className={`sidebar ${
-          mobileMenu
-            ? "sidebar-open"
-            : ""
-        }`}
-      >
-        <div className="sidebar-logo">
-          <div className="logo-icon">
-            HR
-          </div>
+        <div className="header-right">
 
           <div>
-            <div className="logo-title">
-              إدارة الموظفين
+            <div className="breadcrumb">
+              <span>لوحة التحكم</span>
+              <b>/</b>
+              <span className="current">
+                الإجازات
+              </span>
             </div>
 
-            <div className="logo-subtitle">
-              نظام الموارد البشرية
+            <h1 className="page-title">
+              إدارة الإجازات
+            </h1>
+
+            <p className="page-description">
+              إدارة ومتابعة طلبات إجازات الموظفين
+            </p>
+          </div>
+
+        </div>
+
+        <div className="header-actions">
+
+          <button
+            className="back-button"
+            onClick={() => nav(-1)}
+          >
+            <span>←</span>
+            رجوع
+          </button>
+
+          <button
+            className="primary-button"
+            onClick={() => nav("/leave")}
+          >
+            <span>＋</span>
+            إضافة إجازة
+          </button>
+
+        </div>
+
+      </header>
+
+      <div className="content">
+
+        {/* ================= STATS ================= */}
+
+        <section className="stats-grid">
+
+          <div className="stat-card total">
+            <div className="stat-card-top">
+              <div className="stat-icon">
+                📅
+              </div>
+
+              <span className="stat-mini">
+                الكل
+              </span>
+            </div>
+
+            <div className="stat-label">
+              إجمالي الإجازات
+            </div>
+
+            <div className="stat-number">
+              {loading
+                ? "..."
+                : statistics.total}
             </div>
           </div>
-        </div>
 
-        <div className="sidebar-divider" />
+          <div className="stat-card pending">
+            <div className="stat-card-top">
+              <div className="stat-icon">
+                ◷
+              </div>
 
-        <div className="menu-title">
-          القائمة الرئيسية
-        </div>
+              <span className="stat-mini">
+                معلقة
+              </span>
+            </div>
 
-        <button
-          className="menu-item"
-          onClick={() =>
-            goTo("/admin-dashboard")
-          }
-        >
-          <span className="menu-icon">
-            🏠
-          </span>
-          <span>لوحة التحكم</span>
-        </button>
+            <div className="stat-label">
+              قيد الانتظار
+            </div>
 
-        <button
-          className="menu-item"
-          onClick={() =>
-            goTo("/employees")
-          }
-        >
-          <span className="menu-icon">
-            👨‍💼
-          </span>
-          <span>الموظفين</span>
-        </button>
+            <div className="stat-number">
+              {loading
+                ? "..."
+                : statistics.pending}
+            </div>
+          </div>
 
-        <button
-          className="menu-item active"
-          onClick={() =>
-            goTo("/leaves-list")
-          }
-        >
-          <span className="menu-icon">
-            📅
-          </span>
-          <span>الإجازات</span>
-        </button>
+          <div className="stat-card approved">
+            <div className="stat-card-top">
+              <div className="stat-icon">
+                ✓
+              </div>
 
-        <button
-          className="menu-item"
-          onClick={() =>
-            goTo("/history")
-          }
-        >
-          <span className="menu-icon">
-            📊
-          </span>
-          <span>التقييمات</span>
-        </button>
+              <span className="stat-mini">
+                مكتملة
+              </span>
+            </div>
 
-        <button
-          className="menu-item"
-          onClick={() =>
-            goTo("/tasks")
-          }
-        >
-          <span className="menu-icon">
-            ✓
-          </span>
-          <span>المهام</span>
-        </button>
+            <div className="stat-label">
+              الإجازات المقبولة
+            </div>
 
-        <button
-          className="menu-item"
-          onClick={() =>
-            goTo("/add-task")
-          }
-        >
-          <span className="menu-icon">
-            ＋
-          </span>
-          <span>إضافة مهمة</span>
-        </button>
+            <div className="stat-number">
+              {loading
+                ? "..."
+                : statistics.approved}
+            </div>
+          </div>
 
-        <div className="sidebar-bottom">
-          <button
-            className="menu-item logout"
-            onClick={() => {
-              localStorage.removeItem(
-                "token"
-              );
+          <div className="stat-card rejected">
+            <div className="stat-card-top">
+              <div className="stat-icon">
+                ×
+              </div>
 
-              localStorage.removeItem(
-                "user"
-              );
+              <span className="stat-mini">
+                مرفوضة
+              </span>
+            </div>
 
-              nav("/");
-            }}
-          >
-            <span className="menu-icon">
-              🚪
+            <div className="stat-label">
+              الإجازات المرفوضة
+            </div>
+
+            <div className="stat-number">
+              {loading
+                ? "..."
+                : statistics.rejected}
+            </div>
+          </div>
+
+        </section>
+
+        {/* ================= TOOLBAR ================= */}
+
+        <section className="toolbar">
+
+          <div className="search-wrapper">
+
+            <span className="search-icon">
+              ⌕
             </span>
 
-            <span>
-              تسجيل الخروج
-            </span>
-          </button>
-        </div>
-      </aside>
+            <input
+              className="search-input"
+              placeholder="ابحث باسم الموظف أو نوع الإجازة..."
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+            />
 
-      {/* ================= MAIN ================= */}
+            {search && (
+              <button
+                className="clear-search"
+                onClick={() => setSearch("")}
+              >
+                ×
+              </button>
+            )}
 
-      <main className="main-content">
+          </div>
 
-        {/* HEADER */}
+          <div className="filters">
 
-        <header className="top-header">
-
-          <div className="header-right">
-
-            <button
-              className="mobile-menu-button"
-              onClick={() =>
-                setMobileMenu(
-                  !mobileMenu
-                )
+            <select
+              className="select-filter"
+              value={filterType}
+              onChange={(e) =>
+                setFilterType(e.target.value)
               }
             >
-              ☰
+              <option value="">
+                كل أنواع الإجازات
+              </option>
+
+              {leaveTypes.map((type) => (
+                <option
+                  key={type}
+                  value={type}
+                >
+                  {type}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="select-filter"
+              value={filterStatus}
+              onChange={(e) =>
+                setFilterStatus(e.target.value)
+              }
+            >
+              <option value="">
+                كل الحالات
+              </option>
+
+              <option value="pending">
+                قيد الانتظار
+              </option>
+
+              <option value="approved">
+                مقبولة
+              </option>
+
+              <option value="rejected">
+                مرفوضة
+              </option>
+            </select>
+
+            <button
+              className="excel-button"
+              onClick={exportToExcel}
+            >
+              <span>↓</span>
+              Excel
             </button>
+
+          </div>
+
+        </section>
+
+        {/* ================= TABLE ================= */}
+
+        <section className="table-container">
+
+          <div className="table-header">
 
             <div>
-              <div className="breadcrumb">
-                <span>
-                  لوحة التحكم
+              <div className="section-title-row">
+
+                <h2 className="section-title">
+                  قائمة الإجازات
+                </h2>
+
+                <span className="count-badge">
+                  {filteredLeaves.length}
                 </span>
 
-                <b>/</b>
-
-                <span className="current">
-                  الإجازات
-                </span>
               </div>
 
-              <h1 className="page-title">
-                إدارة الإجازات
-              </h1>
-
-              <p className="page-description">
-                إدارة ومتابعة طلبات إجازات الموظفين
-              </p>
-            </div>
-          </div>
-
-          <div className="header-actions">
-
-            <button
-              className="back-button"
-              onClick={() =>
-                nav(-1)
-              }
-            >
-              <span>←</span>
-              رجوع
-            </button>
-
-            <button
-              className="primary-button"
-              onClick={() =>
-                nav("/leave")
-              }
-            >
-              <span>＋</span>
-              إضافة إجازة
-            </button>
-
-          </div>
-        </header>
-
-        <div className="content">
-
-          {/* ================= STATS ================= */}
-
-          <section className="stats-grid">
-
-            <div className="stat-card total">
-              <div className="stat-card-top">
-                <div className="stat-icon">
-                  📅
-                </div>
-
-                <span className="stat-mini">
-                  الكل
-                </span>
-              </div>
-
-              <div className="stat-label">
-                إجمالي الإجازات
-              </div>
-
-              <div className="stat-number">
-                {loading
-                  ? "..."
-                  : statistics.total}
-              </div>
-            </div>
-
-            <div className="stat-card pending">
-              <div className="stat-card-top">
-                <div className="stat-icon">
-                  ◷
-                </div>
-
-                <span className="stat-mini">
-                  معلقة
-                </span>
-              </div>
-
-              <div className="stat-label">
-                قيد الانتظار
-              </div>
-
-              <div className="stat-number">
-                {loading
-                  ? "..."
-                  : statistics.pending}
-              </div>
-            </div>
-
-            <div className="stat-card approved">
-              <div className="stat-card-top">
-                <div className="stat-icon">
-                  ✓
-                </div>
-
-                <span className="stat-mini">
-                  مكتملة
-                </span>
-              </div>
-
-              <div className="stat-label">
-                الإجازات المقبولة
-              </div>
-
-              <div className="stat-number">
-                {loading
-                  ? "..."
-                  : statistics.approved}
-              </div>
-            </div>
-
-            <div className="stat-card rejected">
-              <div className="stat-card-top">
-                <div className="stat-icon">
-                  ×
-                </div>
-
-                <span className="stat-mini">
-                  مرفوضة
-                </span>
-              </div>
-
-              <div className="stat-label">
-                الإجازات المرفوضة
-              </div>
-
-              <div className="stat-number">
-                {loading
-                  ? "..."
-                  : statistics.rejected}
-              </div>
-            </div>
-
-          </section>
-
-          {/* ================= TOOLBAR ================= */}
-
-          <section className="toolbar">
-
-            <div className="search-wrapper">
-
-              <span className="search-icon">
-                ⌕
+              <span className="results-count">
+                طلبات الإجازة المسجلة في النظام
               </span>
+            </div>
 
-              <input
-                className="search-input"
-                placeholder="ابحث باسم الموظف أو نوع الإجازة..."
-                value={search}
-                onChange={(e) =>
-                  setSearch(
-                    e.target.value
-                  )
+            <button
+              className="refresh-button"
+              onClick={fetchLeaves}
+              disabled={loading}
+            >
+              <span
+                className={
+                  loading
+                    ? "refresh-spin"
+                    : ""
                 }
-              />
+              >
+                ↻
+              </span>
+              تحديث
+            </button>
 
-              {search && (
+          </div>
+
+          {loading ? (
+            <div className="empty-state">
+
+              <div className="loading-spinner" />
+
+              <h3>
+                جاري تحميل الإجازات
+              </h3>
+
+              <p>
+                يرجى الانتظار قليلاً...
+              </p>
+
+            </div>
+          ) : filteredLeaves.length === 0 ? (
+
+            <div className="empty-state">
+
+              <div className="empty-icon">
+                📅
+              </div>
+
+              <h3>
+                لا توجد إجازات
+              </h3>
+
+              <p>
+                لم يتم العثور على طلبات إجازات
+                مطابقة للبحث أو الفلاتر الحالية.
+              </p>
+
+              {(search ||
+                filterType ||
+                filterStatus) && (
+
                 <button
-                  className="clear-search"
-                  onClick={() =>
-                    setSearch("")
-                  }
+                  className="reset-filters"
+                  onClick={() => {
+                    setSearch("");
+                    setFilterType("");
+                    setFilterStatus("");
+                  }}
                 >
-                  ×
+                  إعادة ضبط الفلاتر
                 </button>
+
               )}
 
             </div>
 
-            <div className="filters">
+          ) : (
 
-              <select
-                className="select-filter"
-                value={filterType}
-                onChange={(e) =>
-                  setFilterType(
-                    e.target.value
-                  )
-                }
-              >
-                <option value="">
-                  كل أنواع الإجازات
-                </option>
+            <>
 
-                {leaveTypes.map(
-                  (type) => (
-                    <option
-                      key={type}
-                      value={type}
+              {/* DESKTOP */}
+
+              <div className="desktop-table">
+
+                <div className="table-head">
+                  <div>الموظف</div>
+                  <div>نوع الإجازة</div>
+                  <div>من</div>
+                  <div>إلى</div>
+                  <div>الحالة</div>
+                  <div>الإجراءات</div>
+                </div>
+
+                {filteredLeaves.map((leave) => {
+
+                  const status =
+                    getStatusInfo(leave.status);
+
+                  const statusKey =
+                    getStatusKey(leave.status);
+
+                  const employeeName =
+                    getEmployeeName(leave);
+
+                  return (
+                    <div
+                      key={leave.leave_id}
+                      className="table-row"
                     >
-                      {type}
-                    </option>
-                  )
-                )}
-              </select>
 
-              <select
-                className="select-filter"
-                value={filterStatus}
-                onChange={(e) =>
-                  setFilterStatus(
-                    e.target.value
-                  )
-                }
-              >
-                <option value="">
-                  كل الحالات
-                </option>
+                      <div className="employee-cell">
 
-                <option value="pending">
-                  قيد الانتظار
-                </option>
+                        <div className="avatar">
+                          {String(
+                            employeeName
+                          ).charAt(0)}
+                        </div>
 
-                <option value="approved">
-                  مقبولة
-                </option>
+                        <div className="employee-info">
 
-                <option value="rejected">
-                  مرفوضة
-                </option>
-              </select>
+                          <div className="employee-name">
+                            {employeeName}
+                          </div>
 
-              <button
-                className="excel-button"
-                onClick={
-                  exportToExcel
-                }
-              >
-                <span>↓</span>
-                Excel
-              </button>
+                          <div className="employee-role">
+                            طلب إجازة
+                          </div>
 
-            </div>
-          </section>
+                        </div>
 
-          {/* ================= TABLE ================= */}
+                      </div>
 
-          <section className="table-container">
+                      <div>
+                        <span className="leave-type-badge">
+                          {leave.type || "—"}
+                        </span>
+                      </div>
 
-            <div className="table-header">
+                      <div className="date-cell">
+                        {formatDate(
+                          leave.from_date
+                        )}
+                      </div>
 
-              <div>
-                <div className="section-title-row">
-                  <h2 className="section-title">
-                    قائمة الإجازات
-                  </h2>
+                      <div className="date-cell">
+                        {formatDate(
+                          leave.to_date
+                        )}
+                      </div>
 
-                  <span className="count-badge">
-                    {filteredLeaves.length}
-                  </span>
-                </div>
-
-                <span className="results-count">
-                  طلبات الإجازة المسجلة في النظام
-                </span>
-              </div>
-
-              <button
-                className="refresh-button"
-                onClick={fetchLeaves}
-                disabled={loading}
-              >
-                <span
-                  className={
-                    loading
-                      ? "refresh-spin"
-                      : ""
-                  }
-                >
-                  ↻
-                </span>
-                تحديث
-              </button>
-
-            </div>
-
-            {/* LOADING */}
-
-            {loading ? (
-              <div className="empty-state">
-
-                <div className="loading-spinner" />
-
-                <h3>
-                  جاري تحميل الإجازات
-                </h3>
-
-                <p>
-                  يرجى الانتظار قليلاً...
-                </p>
-
-              </div>
-            ) : filteredLeaves.length === 0 ? (
-
-              <div className="empty-state">
-
-                <div className="empty-icon">
-                  📅
-                </div>
-
-                <h3>
-                  لا توجد إجازات
-                </h3>
-
-                <p>
-                  لم يتم العثور على طلبات إجازات
-                  مطابقة للبحث أو الفلاتر الحالية.
-                </p>
-
-                {(search ||
-                  filterType ||
-                  filterStatus) && (
-                  <button
-                    className="reset-filters"
-                    onClick={() => {
-                      setSearch("");
-                      setFilterType("");
-                      setFilterStatus("");
-                    }}
-                  >
-                    إعادة ضبط الفلاتر
-                  </button>
-                )}
-
-              </div>
-            ) : (
-
-              <>
-                {/* DESKTOP */}
-
-                <div className="desktop-table">
-
-                  <div className="table-head">
-                    <div>الموظف</div>
-                    <div>نوع الإجازة</div>
-                    <div>من</div>
-                    <div>إلى</div>
-                    <div>الحالة</div>
-                    <div>الإجراءات</div>
-                  </div>
-
-                  {filteredLeaves.map(
-                    (leave) => {
-
-                      const status =
-                        getStatusInfo(
-                          leave.status
-                        );
-
-                      const statusKey =
-                        getStatusKey(
-                          leave.status
-                        );
-
-                      const employeeName =
-                        getEmployeeName(
-                          leave
-                        );
-
-                      return (
-                        <div
-                          key={
-                            leave.leave_id
-                          }
-                          className="table-row"
+                      <div>
+                        <span
+                          className={`status-badge ${status.className}`}
                         >
+                          <span className="status-dot" />
+                          {status.text}
+                        </span>
+                      </div>
 
-                          <div className="employee-cell">
+                      <div className="actions">
 
-                            <div className="avatar">
-                              {String(
-                                employeeName
-                              ).charAt(0)}
+                        {statusKey === "pending" && (
+                          <>
+                            <button
+                              className="action-button accept"
+                              title="قبول الطلب"
+                              onClick={() =>
+                                updateStatus(
+                                  leave.leave_id,
+                                  "approved"
+                                )
+                              }
+                              disabled={saving}
+                            >
+                              ✓
+                            </button>
+
+                            <button
+                              className="action-button reject"
+                              title="رفض الطلب"
+                              onClick={() =>
+                                updateStatus(
+                                  leave.leave_id,
+                                  "rejected"
+                                )
+                              }
+                              disabled={saving}
+                            >
+                              ×
+                            </button>
+
+                            <button
+                              className="action-button edit"
+                              title="تعديل"
+                              onClick={() =>
+                                openEditLeave(leave)
+                              }
+                              disabled={saving}
+                            >
+                              ✎
+                            </button>
+                          </>
+                        )}
+
+                        <button
+                          className="action-button view"
+                          title="عرض التفاصيل"
+                          onClick={() =>
+                            setSelectedLeave(leave)
+                          }
+                        >
+                          👁
+                        </button>
+
+                      </div>
+
+                    </div>
+                  );
+                })}
+
+              </div>
+
+              {/* MOBILE */}
+
+              <div className="mobile-cards">
+
+                {filteredLeaves.map((leave) => {
+
+                  const status =
+                    getStatusInfo(leave.status);
+
+                  const statusKey =
+                    getStatusKey(leave.status);
+
+                  const employeeName =
+                    getEmployeeName(leave);
+
+                  return (
+                    <div
+                      key={leave.leave_id}
+                      className="mobile-leave-card"
+                    >
+
+                      <div className="mobile-leave-top">
+
+                        <div className="employee-cell">
+
+                          <div className="avatar">
+                            {String(
+                              employeeName
+                            ).charAt(0)}
+                          </div>
+
+                          <div className="employee-info">
+
+                            <div className="employee-name">
+                              {employeeName}
                             </div>
 
-                            <div className="employee-info">
-                              <div className="employee-name">
-                                {employeeName}
-                              </div>
-
-                              <div className="employee-role">
-                                طلب إجازة
-                              </div>
+                            <div className="employee-role">
+                              {leave.type || "إجازة"}
                             </div>
 
                           </div>
 
-                          <div>
-                            <span className="leave-type-badge">
-                              {leave.type ||
-                                "—"}
-                            </span>
-                          </div>
+                        </div>
 
-                          <div className="date-cell">
+                        <span
+                          className={`status-badge ${status.className}`}
+                        >
+                          <span className="status-dot" />
+                          {status.text}
+                        </span>
+
+                      </div>
+
+                      <div className="mobile-info">
+
+                        <div>
+                          <small>
+                            نوع الإجازة
+                          </small>
+
+                          <span>
+                            {leave.type || "—"}
+                          </span>
+                        </div>
+
+                        <div>
+                          <small>من</small>
+
+                          <span>
                             {formatDate(
                               leave.from_date
                             )}
-                          </div>
+                          </span>
+                        </div>
 
-                          <div className="date-cell">
+                        <div>
+                          <small>إلى</small>
+
+                          <span>
                             {formatDate(
                               leave.to_date
                             )}
-                          </div>
+                          </span>
+                        </div>
 
-                          <div>
-                            <span
-                              className={`status-badge ${status.className}`}
-                            >
-                              <span className="status-dot" />
-                              {status.text}
-                            </span>
-                          </div>
+                        <div>
+                          <small>الأيام</small>
 
-                          <div className="actions">
+                          <span>
+                            {leave.days || "—"}
+                          </span>
+                        </div>
 
-                            {statusKey ===
-                            "pending" && (
-                              <>
-                                <button
-                                  className="action-button accept"
-                                  title="قبول الطلب"
-                                  onClick={() =>
-                                    updateStatus(
-                                      leave.leave_id,
-                                      "approved"
-                                    )
-                                  }
-                                  disabled={
-                                    saving
-                                  }
-                                >
-                                  ✓
-                                </button>
+                      </div>
 
-                                <button
-                                  className="action-button reject"
-                                  title="رفض الطلب"
-                                  onClick={() =>
-                                    updateStatus(
-                                      leave.leave_id,
-                                      "rejected"
-                                    )
-                                  }
-                                  disabled={
-                                    saving
-                                  }
-                                >
-                                  ×
-                                </button>
+                      <div className="mobile-actions">
 
-                                <button
-                                  className="action-button edit"
-                                  title="تعديل"
-                                  onClick={() =>
-                                    openEditLeave(
-                                      leave
-                                    )
-                                  }
-                                  disabled={
-                                    saving
-                                  }
-                                >
-                                  ✎
-                                </button>
-                              </>
-                            )}
-
+                        {statusKey === "pending" && (
+                          <>
                             <button
-                              className="action-button view"
-                              title="عرض التفاصيل"
+                              className="mobile-action accept"
                               onClick={() =>
-                                setSelectedLeave(
-                                  leave
+                                updateStatus(
+                                  leave.leave_id,
+                                  "approved"
                                 )
                               }
+                              disabled={saving}
                             >
-                              👁
+                              ✓ قبول
                             </button>
 
-                          </div>
+                            <button
+                              className="mobile-action reject"
+                              onClick={() =>
+                                updateStatus(
+                                  leave.leave_id,
+                                  "rejected"
+                                )
+                              }
+                              disabled={saving}
+                            >
+                              × رفض
+                            </button>
 
-                        </div>
-                      );
-                    }
-                  )}
+                            <button
+                              className="mobile-action edit"
+                              onClick={() =>
+                                openEditLeave(leave)
+                              }
+                              disabled={saving}
+                            >
+                              ✎ تعديل
+                            </button>
+                          </>
+                        )}
 
-                </div>
-
-                {/* MOBILE */}
-
-                <div className="mobile-cards">
-
-                  {filteredLeaves.map(
-                    (leave) => {
-
-                      const status =
-                        getStatusInfo(
-                          leave.status
-                        );
-
-                      const statusKey =
-                        getStatusKey(
-                          leave.status
-                        );
-
-                      const employeeName =
-                        getEmployeeName(
-                          leave
-                        );
-
-                      return (
-                        <div
-                          key={
-                            leave.leave_id
+                        <button
+                          className="mobile-action view full"
+                          onClick={() =>
+                            setSelectedLeave(leave)
                           }
-                          className="mobile-leave-card"
                         >
+                          👁 عرض التفاصيل
+                        </button>
 
-                          <div className="mobile-leave-top">
+                      </div>
 
-                            <div className="employee-cell">
+                    </div>
+                  );
+                })}
 
-                              <div className="avatar">
-                                {String(
-                                  employeeName
-                                ).charAt(0)}
-                              </div>
+              </div>
 
-                              <div className="employee-info">
+            </>
+          )}
 
-                                <div className="employee-name">
-                                  {employeeName}
-                                </div>
+        </section>
 
-                                <div className="employee-role">
-                                  {leave.type ||
-                                    "إجازة"}
-                                </div>
-
-                              </div>
-
-                            </div>
-
-                            <span
-                              className={`status-badge ${status.className}`}
-                            >
-                              <span className="status-dot" />
-                              {status.text}
-                            </span>
-
-                          </div>
-
-                          <div className="mobile-info">
-
-                            <div>
-                              <small>
-                                نوع الإجازة
-                              </small>
-
-                              <span>
-                                {leave.type ||
-                                  "—"}
-                              </span>
-                            </div>
-
-                            <div>
-                              <small>
-                                من
-                              </small>
-
-                              <span>
-                                {formatDate(
-                                  leave.from_date
-                                )}
-                              </span>
-                            </div>
-
-                            <div>
-                              <small>
-                                إلى
-                              </small>
-
-                              <span>
-                                {formatDate(
-                                  leave.to_date
-                                )}
-                              </span>
-                            </div>
-
-                            <div>
-                              <small>
-                                الأيام
-                              </small>
-
-                              <span>
-                                {leave.days ||
-                                  "—"}
-                              </span>
-                            </div>
-
-                          </div>
-
-                          <div className="mobile-actions">
-
-                            {statusKey ===
-                            "pending" && (
-                              <>
-                                <button
-                                  className="mobile-action accept"
-                                  onClick={() =>
-                                    updateStatus(
-                                      leave.leave_id,
-                                      "approved"
-                                    )
-                                  }
-                                  disabled={
-                                    saving
-                                  }
-                                >
-                                  ✓ قبول
-                                </button>
-
-                                <button
-                                  className="mobile-action reject"
-                                  onClick={() =>
-                                    updateStatus(
-                                      leave.leave_id,
-                                      "rejected"
-                                    )
-                                  }
-                                  disabled={
-                                    saving
-                                  }
-                                >
-                                  × رفض
-                                </button>
-
-                                <button
-                                  className="mobile-action edit"
-                                  onClick={() =>
-                                    openEditLeave(
-                                      leave
-                                    )
-                                  }
-                                  disabled={
-                                    saving
-                                  }
-                                >
-                                  ✎ تعديل
-                                </button>
-                              </>
-                            )}
-
-                            <button
-                              className="mobile-action view full"
-                              onClick={() =>
-                                setSelectedLeave(
-                                  leave
-                                )
-                              }
-                            >
-                              👁 عرض التفاصيل
-                            </button>
-
-                          </div>
-
-                        </div>
-                      );
-                    }
-                  )}
-
-                </div>
-              </>
-            )}
-
-          </section>
-        </div>
-      </main>
+      </div>
 
       {/* ================= DETAILS MODAL ================= */}
 
@@ -1344,14 +1080,12 @@ export default function LeavesList() {
         <div
           className="modal-overlay"
           onClick={(e) => {
-            if (
-              e.target ===
-              e.currentTarget
-            ) {
+            if (e.target === e.currentTarget) {
               setSelectedLeave(null);
             }
           }}
         >
+
           <div className="modal">
 
             <div className="modal-header">
@@ -1363,6 +1097,7 @@ export default function LeavesList() {
                 </div>
 
                 <div>
+
                   <h2 className="modal-title">
                     تفاصيل طلب الإجازة
                   </h2>
@@ -1375,6 +1110,7 @@ export default function LeavesList() {
                       )}
                     </strong>
                   </p>
+
                 </div>
 
               </div>
@@ -1406,8 +1142,7 @@ export default function LeavesList() {
                 <div className="detail-item">
                   <span>نوع الإجازة</span>
                   <strong>
-                    {selectedLeave.type ||
-                      "—"}
+                    {selectedLeave.type || "—"}
                   </strong>
                 </div>
 
@@ -1432,13 +1167,13 @@ export default function LeavesList() {
                 <div className="detail-item">
                   <span>عدد الأيام</span>
                   <strong>
-                    {selectedLeave.days ||
-                      "—"}
+                    {selectedLeave.days || "—"}
                   </strong>
                 </div>
 
                 <div className="detail-item">
                   <span>الحالة</span>
+
                   <strong>
                     <span
                       className={`status-badge ${
@@ -1448,6 +1183,7 @@ export default function LeavesList() {
                       }`}
                     >
                       <span className="status-dot" />
+
                       {
                         getStatusInfo(
                           selectedLeave.status
@@ -1455,15 +1191,18 @@ export default function LeavesList() {
                       }
                     </span>
                   </strong>
+
                 </div>
 
                 <div className="detail-item full">
+
                   <span>الملاحظات</span>
 
                   <strong className="notes-value">
                     {selectedLeave.notes ||
                       "لا توجد ملاحظات"}
                   </strong>
+
                 </div>
 
               </div>
@@ -1484,26 +1223,29 @@ export default function LeavesList() {
               {getStatusKey(
                 selectedLeave.status
               ) === "pending" && (
+
                 <button
                   className="primary-button"
                   onClick={() => {
+
                     const leave =
                       selectedLeave;
 
                     setSelectedLeave(null);
 
-                    openEditLeave(
-                      leave
-                    );
+                    openEditLeave(leave);
+
                   }}
                 >
                   ✎ تعديل الإجازة
                 </button>
+
               )}
 
             </div>
 
           </div>
+
         </div>
       )}
 
@@ -1513,13 +1255,14 @@ export default function LeavesList() {
         <div
           className="modal-overlay"
           onClick={(e) => {
+
             if (
-              e.target ===
-                e.currentTarget &&
+              e.target === e.currentTarget &&
               !saving
             ) {
               setEditingLeave(null);
             }
+
           }}
         >
 
@@ -1534,6 +1277,7 @@ export default function LeavesList() {
                 </div>
 
                 <div>
+
                   <h2 className="modal-title">
                     تعديل طلب الإجازة
                   </h2>
@@ -1546,6 +1290,7 @@ export default function LeavesList() {
                       )}
                     </strong>
                   </p>
+
                 </div>
 
               </div>
@@ -1573,9 +1318,7 @@ export default function LeavesList() {
 
                 <input
                   className="form-input"
-                  value={
-                    editForm.type
-                  }
+                  value={editForm.type}
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
@@ -1600,9 +1343,7 @@ export default function LeavesList() {
                   <input
                     type="date"
                     className="form-input"
-                    value={
-                      editForm.from_date
-                    }
+                    value={editForm.from_date}
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
@@ -1625,9 +1366,7 @@ export default function LeavesList() {
                   <input
                     type="date"
                     className="form-input"
-                    value={
-                      editForm.to_date
-                    }
+                    value={editForm.to_date}
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
@@ -1644,18 +1383,21 @@ export default function LeavesList() {
 
               {calculateDays() > 0 && (
                 <div className="days-preview">
+
                   <span>📅</span>
 
                   <div>
+
                     <small>
                       مدة الإجازة
                     </small>
 
                     <strong>
-                      {calculateDays()}{" "}
-                      يوم
+                      {calculateDays()} يوم
                     </strong>
+
                   </div>
+
                 </div>
               )}
 
@@ -1667,9 +1409,7 @@ export default function LeavesList() {
 
                 <textarea
                   className="form-textarea"
-                  value={
-                    editForm.notes
-                  }
+                  value={editForm.notes}
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
@@ -1699,11 +1439,10 @@ export default function LeavesList() {
 
               <button
                 className="primary-button save-button"
-                onClick={
-                  updateLeave
-                }
+                onClick={updateLeave}
                 disabled={saving}
               >
+
                 {saving ? (
                   <>
                     <span className="button-spinner" />
@@ -1714,11 +1453,13 @@ export default function LeavesList() {
                     💾 حفظ التعديلات
                   </>
                 )}
+
               </button>
 
             </div>
 
           </div>
+
         </div>
       )}
 
