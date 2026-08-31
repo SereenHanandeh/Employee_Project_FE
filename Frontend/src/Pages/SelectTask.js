@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import API from "../api/api";
 import "./SelectTask.css";
 
@@ -11,76 +17,37 @@ export default function SelectTask() {
 
   const [search, setSearch] = useState("");
 
-  // Add / Edit modal
+  // Add / Edit Modal
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
-  // Assign employee modal
+  // Assign Modal
   const [assigningTask, setAssigningTask] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState("");
 
   const [form, setForm] = useState({
     title: "",
     description: "",
+    employee_id: "",
   });
 
-  // =====================================================
-  // FETCH TASKS
-  // =====================================================
+  // =========================================================
+  // GET EMPLOYEE ID
+  // =========================================================
+  const getEmployeeId = useCallback((employee) => {
+    if (!employee) return null;
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const res = await API.get("/tasks");
-
-      setTasks(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error("FETCH TASKS ERROR:", err);
-
-      alert(
-        err?.response?.data?.message ||
-          "فشل تحميل المهام"
-      );
-    } finally {
-      setLoading(false);
-    }
+    return (
+      employee.employee_id ??
+      employee.id ??
+      employee.user_id ??
+      null
+    );
   }, []);
 
-  // =====================================================
-  // FETCH EMPLOYEES
-  // =====================================================
-
-  const fetchEmployees = useCallback(async () => {
-    try {
-      const res = await API.get("/employees");
-
-      setEmployees(
-        Array.isArray(res.data) ? res.data : []
-      );
-    } catch (err) {
-      console.error("FETCH EMPLOYEES ERROR:", err);
-
-      alert(
-        err?.response?.data?.message ||
-          "فشل تحميل الموظفين"
-      );
-    }
-  }, []);
-
-  // =====================================================
-  // INITIAL LOAD
-  // =====================================================
-
-  useEffect(() => {
-    fetchTasks();
-    fetchEmployees();
-  }, [fetchTasks, fetchEmployees]);
-
-  // =====================================================
-  // EMPLOYEE HELPERS
-  // =====================================================
-
+  // =========================================================
+  // GET EMPLOYEE NAME
+  // =========================================================
   const getEmployeeName = useCallback(
     (employeeId) => {
       if (
@@ -93,7 +60,7 @@ export default function SelectTask() {
 
       const employee = employees.find(
         (item) =>
-          Number(item.id) === Number(employeeId)
+          Number(getEmployeeId(item)) === Number(employeeId)
       );
 
       return (
@@ -103,9 +70,12 @@ export default function SelectTask() {
         `موظف #${employeeId}`
       );
     },
-    [employees]
+    [employees, getEmployeeId]
   );
 
+  // =========================================================
+  // GET EMPLOYEE
+  // =========================================================
   const getEmployee = useCallback(
     (employeeId) => {
       if (
@@ -119,17 +89,75 @@ export default function SelectTask() {
       return (
         employees.find(
           (item) =>
-            Number(item.id) === Number(employeeId)
+            Number(getEmployeeId(item)) === Number(employeeId)
         ) || null
       );
     },
-    [employees]
+    [employees, getEmployeeId]
   );
 
-  // =====================================================
-  // FILTER TASKS
-  // =====================================================
+  // =========================================================
+  // FETCH TASKS
+  // =========================================================
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true);
 
+      const res = await API.get("/tasks");
+
+      setTasks(
+        Array.isArray(res.data)
+          ? res.data
+          : []
+      );
+    } catch (err) {
+      console.error("FETCH TASKS ERROR:", err);
+
+      alert(
+        err?.response?.data?.message ||
+          "فشل تحميل المهام"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // =========================================================
+  // FETCH EMPLOYEES
+  // =========================================================
+  const fetchEmployees = useCallback(async () => {
+    try {
+      const res = await API.get("/employees");
+
+      setEmployees(
+        Array.isArray(res.data)
+          ? res.data
+          : []
+      );
+    } catch (err) {
+      console.error(
+        "FETCH EMPLOYEES ERROR:",
+        err
+      );
+
+      alert(
+        err?.response?.data?.message ||
+          "فشل تحميل الموظفين"
+      );
+    }
+  }, []);
+
+  // =========================================================
+  // INITIAL LOAD
+  // =========================================================
+  useEffect(() => {
+    fetchTasks();
+    fetchEmployees();
+  }, [fetchTasks, fetchEmployees]);
+
+  // =========================================================
+  // FILTERED TASKS
+  // =========================================================
   const filteredTasks = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -150,58 +178,65 @@ export default function SelectTask() {
 
       return text.includes(query);
     });
-  }, [tasks, search, getEmployeeName]);
+  }, [
+    tasks,
+    search,
+    getEmployeeName,
+  ]);
 
-  // =====================================================
-  // ADD TASK
-  // =====================================================
-
-  const openAddModal = () => {
-    setEditingTask(null);
-
+  // =========================================================
+  // RESET FORM
+  // =========================================================
+  const resetForm = () => {
     setForm({
       title: "",
       description: "",
+      employee_id: "",
     });
+  };
 
+  // =========================================================
+  // OPEN ADD MODAL
+  // =========================================================
+  const openAddModal = () => {
+    setEditingTask(null);
+    resetForm();
     setShowModal(true);
   };
 
-  // =====================================================
-  // EDIT TASK
-  // =====================================================
-
+  // =========================================================
+  // OPEN EDIT MODAL
+  // =========================================================
   const openEditModal = (task) => {
     setEditingTask(task);
 
     setForm({
       title: task.title || "",
       description: task.description || "",
+      employee_id:
+        task.employee_id !== null &&
+        task.employee_id !== undefined
+          ? String(task.employee_id)
+          : "",
     });
 
     setShowModal(true);
   };
 
-  // =====================================================
+  // =========================================================
   // CLOSE ADD / EDIT MODAL
-  // =====================================================
-
+  // =========================================================
   const closeModal = () => {
     if (saving) return;
 
     setShowModal(false);
     setEditingTask(null);
-
-    setForm({
-      title: "",
-      description: "",
-    });
+    resetForm();
   };
 
-  // =====================================================
-  // FORM CHANGE
-  // =====================================================
-
+  // =========================================================
+  // HANDLE FORM CHANGE
+  // =========================================================
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -211,10 +246,9 @@ export default function SelectTask() {
     }));
   };
 
-  // =====================================================
+  // =========================================================
   // SAVE TASK
-  // =====================================================
-
+  // =========================================================
   const saveTask = async (e) => {
     e.preventDefault();
 
@@ -231,6 +265,9 @@ export default function SelectTask() {
       const taskData = {
         title: form.title.trim(),
         description: form.description.trim(),
+        employee_id: form.employee_id
+          ? Number(form.employee_id)
+          : null,
       };
 
       if (editingTask) {
@@ -242,10 +279,7 @@ export default function SelectTask() {
         setTasks((prev) =>
           prev.map((task) =>
             task.task_id === editingTask.task_id
-              ? {
-                  ...task,
-                  ...res.data,
-                }
+              ? res.data
               : task
           )
         );
@@ -267,13 +301,12 @@ export default function SelectTask() {
 
       setShowModal(false);
       setEditingTask(null);
-
-      setForm({
-        title: "",
-        description: "",
-      });
+      resetForm();
     } catch (err) {
-      console.error("SAVE TASK ERROR:", err);
+      console.error(
+        "SAVE TASK ERROR:",
+        err
+      );
 
       alert(
         err?.response?.data?.message ||
@@ -284,10 +317,9 @@ export default function SelectTask() {
     }
   };
 
-  // =====================================================
+  // =========================================================
   // DELETE TASK
-  // =====================================================
-
+  // =========================================================
   const deleteTask = async (task) => {
     if (saving) return;
 
@@ -313,7 +345,10 @@ export default function SelectTask() {
 
       alert("تم حذف المهمة بنجاح 🗑️");
     } catch (err) {
-      console.error("DELETE TASK ERROR:", err);
+      console.error(
+        "DELETE TASK ERROR:",
+        err
+      );
 
       alert(
         err?.response?.data?.message ||
@@ -324,10 +359,9 @@ export default function SelectTask() {
     }
   };
 
-  // =====================================================
+  // =========================================================
   // OPEN ASSIGN MODAL
-  // =====================================================
-
+  // =========================================================
   const openAssignModal = (task) => {
     setAssigningTask(task);
 
@@ -339,10 +373,9 @@ export default function SelectTask() {
     );
   };
 
-  // =====================================================
+  // =========================================================
   // CLOSE ASSIGN MODAL
-  // =====================================================
-
+  // =========================================================
   const closeAssignModal = () => {
     if (saving) return;
 
@@ -350,39 +383,57 @@ export default function SelectTask() {
     setSelectedEmployee("");
   };
 
-  // =====================================================
+  // =========================================================
   // ASSIGN TASK
-  // =====================================================
-
+  // =========================================================
   const assignTask = async () => {
     if (saving) return;
 
     if (!assigningTask) {
+      alert("لم يتم تحديد المهمة");
       return;
     }
 
-    if (!selectedEmployee) {
-      alert("يرجى اختيار الموظف أولاً");
+    const employeeId = Number(
+      selectedEmployee
+    );
+
+    const taskId = Number(
+      assigningTask.task_id
+    );
+
+    console.log("ASSIGN DATA:", {
+      employee_id: employeeId,
+      task_id: taskId,
+    });
+
+    if (!Number.isInteger(employeeId) || employeeId <= 0) {
+      alert("يرجى اختيار موظف صحيح");
+      return;
+    }
+
+    if (!Number.isInteger(taskId) || taskId <= 0) {
+      alert("معرّف المهمة غير صحيح");
       return;
     }
 
     try {
       setSaving(true);
 
-      const employeeId = Number(
-        selectedEmployee
+      const res = await API.post(
+        "/tasks/assign",
+        {
+          employee_id: employeeId,
+          task_id: taskId,
+        }
       );
 
-      const taskId = Number(
-        assigningTask.task_id
+      console.log(
+        "ASSIGN RESPONSE:",
+        res.data
       );
 
-      await API.post("/tasks/assign", {
-        employee_id: employeeId,
-        task_id: taskId,
-      });
-
-      // تحديث المهمة مباشرة في الواجهة
+      // تحديث المهمة في الواجهة
       setTasks((prev) =>
         prev.map((task) =>
           Number(task.task_id) === taskId
@@ -394,10 +445,11 @@ export default function SelectTask() {
         )
       );
 
+      const employeeName =
+        getEmployeeName(employeeId);
+
       alert(
-        `تم تعيين المهمة للموظف ${getEmployeeName(
-          employeeId
-        )} بنجاح ✅`
+        `تم تعيين المهمة للموظف ${employeeName} بنجاح ✅`
       );
 
       setAssigningTask(null);
@@ -417,26 +469,23 @@ export default function SelectTask() {
     }
   };
 
-  // =====================================================
+  // =========================================================
   // STATS
-  // =====================================================
-
-  const assignedTasksCount = useMemo(() => {
-    return tasks.filter(
+  // =========================================================
+  const assignedTasksCount =
+    tasks.filter(
       (task) =>
         task.employee_id !== null &&
         task.employee_id !== undefined &&
         task.employee_id !== ""
     ).length;
-  }, [tasks]);
 
   const availableTasksCount =
     tasks.length - assignedTasksCount;
 
-  // =====================================================
+  // =========================================================
   // RENDER
-  // =====================================================
-
+  // =========================================================
   return (
     <div className="tasks-page">
 
@@ -451,7 +500,6 @@ export default function SelectTask() {
             <span className="page-title-icon">
               📋
             </span>
-
             إدارة المهام
           </h1>
 
@@ -469,7 +517,6 @@ export default function SelectTask() {
           <span className="add-icon">
             ＋
           </span>
-
           إضافة مهمة
         </button>
       </div>
@@ -483,13 +530,8 @@ export default function SelectTask() {
           </div>
 
           <div className="stat-content">
-            <span>
-              إجمالي المهام
-            </span>
-
-            <strong>
-              {tasks.length}
-            </strong>
+            <span>إجمالي المهام</span>
+            <strong>{tasks.length}</strong>
           </div>
         </div>
 
@@ -499,10 +541,7 @@ export default function SelectTask() {
           </div>
 
           <div className="stat-content">
-            <span>
-              المهام المخصصة
-            </span>
-
+            <span>المهام المخصصة</span>
             <strong>
               {assignedTasksCount}
             </strong>
@@ -515,10 +554,7 @@ export default function SelectTask() {
           </div>
 
           <div className="stat-content">
-            <span>
-              مهام غير مخصصة
-            </span>
-
+            <span>مهام غير مخصصة</span>
             <strong>
               {availableTasksCount}
             </strong>
@@ -531,10 +567,7 @@ export default function SelectTask() {
           </div>
 
           <div className="stat-content">
-            <span>
-              الموظفون
-            </span>
-
+            <span>الموظفون</span>
             <strong>
               {employees.length}
             </strong>
@@ -547,9 +580,7 @@ export default function SelectTask() {
       <div className="tasks-toolbar">
 
         <div className="toolbar-title">
-          <h2>
-            قائمة المهام
-          </h2>
+          <h2>قائمة المهام</h2>
 
           <span>
             {filteredTasks.length} مهمة
@@ -573,10 +604,10 @@ export default function SelectTask() {
           {search && (
             <button
               className="clear-search"
+              type="button"
               onClick={() =>
                 setSearch("")
               }
-              type="button"
             >
               ✕
             </button>
@@ -600,7 +631,6 @@ export default function SelectTask() {
         </div>
       ) : filteredTasks.length === 0 ? (
         <div className="tasks-empty">
-
           <div className="empty-icon">
             📋
           </div>
@@ -625,7 +655,6 @@ export default function SelectTask() {
               ＋ إضافة أول مهمة
             </button>
           )}
-
         </div>
       ) : (
         <div className="tasks-grid">
@@ -713,6 +742,7 @@ export default function SelectTask() {
                     </div>
 
                     <div className="assignment-info">
+
                       <small>
                         {isAssigned
                           ? "الموظف المسؤول"
@@ -721,14 +751,14 @@ export default function SelectTask() {
 
                       <strong>
                         {isAssigned
-                          ? employee?.name ||
-                            employee?.full_name ||
-                            employee?.username ||
-                            getEmployeeName(
-                              task.employee_id
-                            )
+                          ? employee
+                            ? getEmployeeName(
+                                task.employee_id
+                              )
+                            : `موظف #${task.employee_id}`
                           : "متاحة لجميع الموظفين"}
                       </strong>
+
                     </div>
 
                     <span
@@ -783,13 +813,11 @@ export default function SelectTask() {
       {/* =====================================================
           ADD / EDIT MODAL
       ===================================================== */}
-
       {showModal && (
         <div
           className="task-modal-overlay"
           onClick={closeModal}
         >
-
           <div
             className="task-modal"
             onClick={(e) =>
@@ -872,16 +900,56 @@ export default function SelectTask() {
 
               </div>
 
-              <div className="info-box">
-                <span>
-                  💡
-                </span>
+              <div className="form-group">
 
-                <p>
-                  بعد إنشاء المهمة يمكنك
-                  اختيار الموظف المسؤول عنها
-                  من خلال زر "تعيين موظف للمهمة".
-                </p>
+                <label>
+                  تخصيص المهمة
+                </label>
+
+                <select
+                  name="employee_id"
+                  value={form.employee_id}
+                  onChange={handleChange}
+                  disabled={saving}
+                >
+
+                  <option value="">
+                    🌐 متاحة لجميع الموظفين
+                  </option>
+
+                  {employees.map(
+                    (employee) => {
+                      const employeeId =
+                        getEmployeeId(
+                          employee
+                        );
+
+                      if (!employeeId) {
+                        return null;
+                      }
+
+                      return (
+                        <option
+                          key={employeeId}
+                          value={employeeId}
+                        >
+                          👤{" "}
+                          {employee.name ||
+                            employee.full_name ||
+                            employee.username ||
+                            `موظف #${employeeId}`}
+                        </option>
+                      );
+                    }
+                  )}
+
+                </select>
+
+                <small>
+                  يمكنك تخصيص المهمة لموظف معين
+                  أو جعلها متاحة لجميع الموظفين.
+                </small>
+
               </div>
 
               <div className="modal-actions">
@@ -916,20 +984,17 @@ export default function SelectTask() {
             </form>
 
           </div>
-
         </div>
       )}
 
       {/* =====================================================
           ASSIGN EMPLOYEE MODAL
       ===================================================== */}
-
       {assigningTask && (
         <div
           className="task-modal-overlay"
           onClick={closeAssignModal}
         >
-
           <div
             className="task-modal assign-modal"
             onClick={(e) =>
@@ -946,7 +1011,6 @@ export default function SelectTask() {
                 </div>
 
                 <div>
-
                   <h2>
                     {selectedEmployee
                       ? "تغيير الموظف"
@@ -956,7 +1020,6 @@ export default function SelectTask() {
                   <p>
                     اختر الموظف المسؤول عن هذه المهمة
                   </p>
-
                 </div>
 
               </div>
@@ -991,7 +1054,7 @@ export default function SelectTask() {
 
             </div>
 
-            {/* EMPLOYEE SELECT */}
+            {/* EMPLOYEE */}
             <div className="form-group">
 
               <label>
@@ -1015,25 +1078,35 @@ export default function SelectTask() {
                 </option>
 
                 {employees.map(
-                  (employee) => (
-                    <option
-                      key={employee.id}
-                      value={employee.id}
-                    >
-                      👤{" "}
-                      {employee.name ||
-                        employee.full_name ||
-                        employee.username ||
-                        `موظف #${employee.id}`}
-                    </option>
-                  )
+                  (employee) => {
+                    const employeeId =
+                      getEmployeeId(
+                        employee
+                      );
+
+                    if (!employeeId) {
+                      return null;
+                    }
+
+                    return (
+                      <option
+                        key={employeeId}
+                        value={employeeId}
+                      >
+                        {employee.name ||
+                          employee.full_name ||
+                          employee.username ||
+                          `موظف #${employeeId}`}
+                      </option>
+                    );
+                  }
                 )}
 
               </select>
 
               <small>
-                سيتم ربط المهمة بالموظف
-                الذي تختاره هنا.
+                سيتم ربط المهمة بالموظف الذي
+                تختاره هنا.
               </small>
 
             </div>
@@ -1046,8 +1119,7 @@ export default function SelectTask() {
                   👤
                 </div>
 
-                <div className="selected-employee-info">
-
+                <div>
                   <small>
                     الموظف المحدد
                   </small>
@@ -1057,7 +1129,6 @@ export default function SelectTask() {
                       selectedEmployee
                     )}
                   </strong>
-
                 </div>
 
                 <div className="selected-check">
@@ -1101,7 +1172,6 @@ export default function SelectTask() {
             </div>
 
           </div>
-
         </div>
       )}
 
