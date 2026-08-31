@@ -1,208 +1,492 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
+import "./Step1.css";
 
 export default function Step1() {
   const nav = useNavigate();
+
   const [employees, setEmployees] = useState([]);
   const [leaves, setLeaves] = useState([]);
-  const [name, setName] = useState("");
+
+  const [employeeId, setEmployeeId] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
+  const [loading, setLoading] = useState(true);
+
+  // =========================================================
+  // FETCH DATA
+  // =========================================================
+
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return nav("/login");
+
+    if (!token) {
+      nav("/login");
+      return;
+    }
 
     const fetchData = async () => {
       try {
+        setLoading(true);
+
         const [empRes, leavesRes] = await Promise.all([
           API.get("/employees"),
           API.get("/leaves"),
         ]);
 
-        setEmployees(empRes.data);
-        setLeaves(leavesRes.data);
+        setEmployees(
+          Array.isArray(empRes.data) ? empRes.data : []
+        );
+
+        setLeaves(
+          Array.isArray(leavesRes.data) ? leavesRes.data : []
+        );
       } catch (err) {
-        console.log(err);
-        alert("فشل تحميل البيانات");
+        console.error("Step1 Fetch Error:", err);
+
+        alert(
+          err.response?.data?.message ||
+            "فشل تحميل بيانات الموظفين والإجازات"
+        );
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
   }, [nav]);
 
+  // =========================================================
+  // TODAY
+  // =========================================================
+
   const today = new Date().toISOString().split("T")[0];
 
-  const isOnLeave = (employeeId) => {
-    const today = new Date();
+  // =========================================================
+  // CHECK EMPLOYEE LEAVE
+  // =========================================================
 
-    return leaves.some(
-      (l) =>
-        l.employee_id === employeeId &&
-        new Date(l.from_date) <= today &&
-        new Date(l.to_date) >= today &&
-        l.status === "approved",
+  const isOnLeave = (id) => {
+    if (!id) return false;
+
+    const currentDate = new Date();
+
+    currentDate.setHours(0, 0, 0, 0);
+
+    return leaves.some((leave) => {
+      const leaveEmployeeId =
+        leave.employee_id ??
+        leave.employee?.employee_id;
+
+      if (String(leaveEmployeeId) !== String(id)) {
+        return false;
+      }
+
+      if (leave.status !== "approved") {
+        return false;
+      }
+
+      const fromDate = new Date(leave.from_date);
+      const toDate = new Date(leave.to_date);
+
+      fromDate.setHours(0, 0, 0, 0);
+      toDate.setHours(23, 59, 59, 999);
+
+      return (
+        fromDate <= currentDate &&
+        toDate >= currentDate
+      );
+    });
+  };
+
+  // =========================================================
+  // SELECTED EMPLOYEE
+  // =========================================================
+
+  const selectedEmployee = useMemo(() => {
+    return employees.find(
+      (employee) =>
+        String(employee.employee_id) === String(employeeId)
+    );
+  }, [employees, employeeId]);
+
+  // =========================================================
+  // SELECTED EMPLOYEE STATUS
+  // =========================================================
+
+  const selectedEmployeeOnLeave = selectedEmployee
+    ? isOnLeave(selectedEmployee.employee_id)
+    : false;
+
+  // =========================================================
+  // CALCULATE DAYS
+  // =========================================================
+
+  const calculateDays = () => {
+    if (!from || !to) return 0;
+
+    const start = new Date(from);
+    const end = new Date(to);
+
+    if (end < start) return 0;
+
+    return (
+      Math.ceil(
+        (end.getTime() - start.getTime()) /
+          (1000 * 60 * 60 * 24)
+      ) + 1
     );
   };
 
+  // =========================================================
+  // NEXT
+  // =========================================================
+
   const next = () => {
-    if (!name || !from || !to) return alert("يرجى تعبئة جميع الحقول!");
+    if (!employeeId || !from || !to) {
+      alert("يرجى تعبئة جميع الحقول المطلوبة");
+      return;
+    }
 
-    if (new Date(to) < new Date(from))
-      return alert("تاريخ 'إلى' يجب أن يكون بعد 'من'");
+    if (new Date(to) < new Date(from)) {
+      alert(
+        "تاريخ نهاية فترة التقييم يجب أن يكون بعد أو يساوي تاريخ البداية"
+      );
+      return;
+    }
 
-    const selectedEmployee = employees.find((emp) => emp.name === name);
+    if (!selectedEmployee) {
+      alert("لم يتم العثور على الموظف");
+      return;
+    }
 
-    if (!selectedEmployee) return alert("خطأ: الموظف غير موجود!");
-
-    // 🚫 check leave from DB
-    if (isOnLeave(selectedEmployee.employee_id)) {
-      return alert("هذا الموظف في إجازة حالياً!");
+    if (selectedEmployeeOnLeave) {
+      alert("هذا الموظف في إجازة حالياً ولا يمكن بدء التقييم له");
+      return;
     }
 
     nav("/performance", {
       state: {
         employee_id: selectedEmployee.employee_id,
-        name,
+        name: selectedEmployee.name,
         from_date: from,
         to_date: to,
       },
     });
   };
 
-  const goBack = () => nav(-1);
+  // =========================================================
+  // BACK
+  // =========================================================
+
+  const goBack = () => {
+    nav(-1);
+  };
+
+  // =========================================================
+  // RENDER
+  // =========================================================
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h2 style={styles.heading}>👨‍💼 بيانات الموظف</h2>
+    <div className="step1-page">
 
-        {/* Employee Select */}
-        <div style={styles.formGroup}>
-          <label style={styles.label}>اختر الموظف</label>
-          <select
-            style={styles.input}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          >
-            <option value="">-- اختر الموظف --</option>
-            {employees.map((emp) => (
-              <option key={emp.employee_id} value={emp.name}>
-                {emp.name} {isOnLeave(emp.employee_id) ? " (On Leave)" : ""}
-              </option>
-            ))}
-          </select>
+      {/* Background Decorations */}
+      <div className="step1-bg-circle circle-one" />
+      <div className="step1-bg-circle circle-two" />
+
+      {/* Main Card */}
+      <div className="step1-card">
+
+        {/* Header */}
+        <div className="step1-header">
+
+          <div className="step1-header-icon">
+            👨‍💼
+          </div>
+
+          <div>
+            <h1>بيانات الموظف</h1>
+
+            <p>
+              اختر الموظف وحدد فترة التقييم للمتابعة
+            </p>
+          </div>
+
         </div>
 
-        {/* From */}
-        <input
-          type="date"
-          style={styles.input}
-          value={from}
-          max={today} // لا يسمح بتاريخ بعد اليوم
-          onChange={(e) => setFrom(e.target.value)}
-        />
+        {/* Progress */}
+        <div className="step-progress">
 
-        {/* To */}
-        <input
-          type="date"
-          style={styles.input}
-          value={to}
-          min={from || undefined} // لا يقل عن تاريخ البداية
-          max={today} // لا يسمح بتاريخ بعد اليوم
-          onChange={(e) => setTo(e.target.value)}
-        />
-        <button style={styles.button} onClick={next}>
-          ➜ التالي
-        </button>
+          <div className="progress-step active">
+            <div className="progress-number">
+              1
+            </div>
+
+            <span>بيانات الموظف</span>
+          </div>
+
+          <div className="progress-line" />
+
+          <div className="progress-step">
+            <div className="progress-number">
+              2
+            </div>
+
+            <span>الأداء</span>
+          </div>
+
+          <div className="progress-line" />
+
+          <div className="progress-step">
+            <div className="progress-number">
+              3
+            </div>
+
+            <span>النتيجة</span>
+          </div>
+
+        </div>
+
+        {/* Form */}
+        <div className="step1-form">
+
+          {/* Employee */}
+          <div className="field-group">
+
+            <label>
+              الموظف
+              <span>*</span>
+            </label>
+
+            <div className="select-wrapper">
+
+              <span className="field-icon">
+                👤
+              </span>
+
+              <select
+                value={employeeId}
+                onChange={(e) =>
+                  setEmployeeId(e.target.value)
+                }
+                disabled={loading}
+              >
+                <option value="">
+                  {loading
+                    ? "جاري تحميل الموظفين..."
+                    : "-- اختر الموظف --"}
+                </option>
+
+                {employees.map((employee) => {
+                  const onLeave = isOnLeave(
+                    employee.employee_id
+                  );
+
+                  return (
+                    <option
+                      key={employee.employee_id}
+                      value={employee.employee_id}
+                    >
+                      {employee.name}
+                      {onLeave
+                        ? " — في إجازة حالياً"
+                        : ""}
+                    </option>
+                  );
+                })}
+              </select>
+
+              <span className="select-arrow">
+                ⌄
+              </span>
+
+            </div>
+
+          </div>
+
+          {/* Selected Employee */}
+          {selectedEmployee && (
+            <div
+              className={`employee-preview ${
+                selectedEmployeeOnLeave
+                  ? "employee-on-leave"
+                  : ""
+              }`}
+            >
+
+              <div className="preview-avatar">
+                {String(
+                  selectedEmployee.name || "م"
+                ).charAt(0)}
+              </div>
+
+              <div className="preview-info">
+
+                <strong>
+                  {selectedEmployee.name}
+                </strong>
+
+                <span>
+                  {selectedEmployee.position ||
+                    selectedEmployee.job_title ||
+                    "موظف"}
+                </span>
+
+              </div>
+
+              <div
+                className={`employee-status ${
+                  selectedEmployeeOnLeave
+                    ? "leave-status"
+                    : "available-status"
+                }`}
+              >
+                <span className="status-dot" />
+
+                {selectedEmployeeOnLeave
+                  ? "في إجازة"
+                  : "متاح للتقييم"}
+              </div>
+
+            </div>
+          )}
+
+          {/* Dates */}
+          <div className="date-fields">
+
+            <div className="field-group">
+
+              <label>
+                من تاريخ
+                <span>*</span>
+              </label>
+
+              <div className="date-input-wrapper">
+
+                <span className="field-icon">
+                  📅
+                </span>
+
+                <input
+                  type="date"
+                  value={from}
+                  max={today}
+                  onChange={(e) =>
+                    setFrom(e.target.value)
+                  }
+                />
+
+              </div>
+
+            </div>
+
+            <div className="field-group">
+
+              <label>
+                إلى تاريخ
+                <span>*</span>
+              </label>
+
+              <div className="date-input-wrapper">
+
+                <span className="field-icon">
+                  📅
+                </span>
+
+                <input
+                  type="date"
+                  value={to}
+                  min={from || undefined}
+                  max={today}
+                  onChange={(e) =>
+                    setTo(e.target.value)
+                  }
+                />
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Days */}
+          {calculateDays() > 0 && (
+            <div className="days-summary">
+
+              <div className="days-summary-icon">
+                📊
+              </div>
+
+              <div>
+                <span>
+                  مدة فترة التقييم
+                </span>
+
+                <strong>
+                  {calculateDays()}{" "}
+                  <small>يوم</small>
+                </strong>
+              </div>
+
+            </div>
+          )}
+
+          {/* Info */}
+          <div className="step1-info">
+
+            <span>💡</span>
+
+            <p>
+              سيتم استخدام الفترة المحددة لتقييم أداء
+              الموظف خلال هذه المدة.
+            </p>
+
+          </div>
+
+          {/* Buttons */}
+          <div className="step1-actions">
+
+            <button
+              className="back-button"
+              onClick={goBack}
+              type="button"
+            >
+              <span>←</span>
+              رجوع
+            </button>
+
+            <button
+              className="next-button"
+              onClick={next}
+              disabled={
+                loading ||
+                !employeeId ||
+                !from ||
+                !to ||
+                selectedEmployeeOnLeave
+              }
+              type="button"
+            >
+              <span>التالي</span>
+              <span className="next-arrow">
+                ←
+              </span>
+            </button>
+
+          </div>
+
+        </div>
+
       </div>
 
-      <button style={styles.backBtn} onClick={goBack}>
-        ⬅ رجوع
-      </button>
+      {/* Footer */}
+      <div className="step1-footer">
+        نظام الموارد البشرية
+      </div>
+
     </div>
   );
 }
 
-/* ================= STYLES ================= */
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "linear-gradient(135deg,#0f172a,#1e293b)",
-    fontFamily: "'Cairo', sans-serif",
-    direction: "rtl",
-    padding: "20px",
-  },
-
-  card: {
-    width: "500px",
-    padding: "40px",
-    borderRadius: "20px",
-    background: "rgba(255,255,255,0.08)",
-    backdropFilter: "blur(14px)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    boxShadow: "0 20px 50px rgba(0,0,0,0.4)",
-  },
-
-  heading: {
-    textAlign: "center",
-    marginBottom: "30px",
-    color: "#fff",
-    fontSize: "26px",
-    fontWeight: "700",
-  },
-
-  formGroup: {
-    display: "flex",
-    flexDirection: "column",
-    marginBottom: "20px",
-  },
-
-  label: {
-    marginBottom: "8px",
-    fontWeight: "600",
-    color: "#cbd5e1",
-  },
-
-  input: {
-    padding: "12px",
-    borderRadius: "12px",
-    border: "1px solid rgba(255,255,255,0.2)",
-    background: "rgba(255,255,255,0.05)",
-    color: "#fff",
-    outline: "none",
-  },
-
-  button: {
-    width: "100%",
-    padding: "14px",
-    marginTop: "10px",
-    background: "linear-gradient(135deg,#3b82f6,#6366f1)",
-    color: "#fff",
-    fontSize: "16px",
-    fontWeight: "600",
-    border: "none",
-    borderRadius: "12px",
-    cursor: "pointer",
-    boxShadow: "0 10px 25px rgba(59,130,246,0.3)",
-  },
-
-  backBtn: {
-    position: "fixed",
-    bottom: "25px",
-    right: "25px",
-    background: "linear-gradient(135deg,#475569,#1e293b)",
-    color: "#fff",
-    border: "none",
-    padding: "12px 18px",
-    borderRadius: "50px",
-    cursor: "pointer",
-    fontWeight: "600",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
-  },
-};

@@ -1,8 +1,21 @@
+
 import { useState } from "react";
 import API from "../api/api";
 import { useNavigate } from "react-router-dom";
+import {
+  FaUserPlus,
+  FaUser,
+  FaEnvelope,
+  FaBuilding,
+  FaBriefcase,
+  FaLock,
+  FaArrowRight,
+  FaSave,
+  FaSpinner,
+} from "react-icons/fa";
+import "./AddEmployee.css";
 
-export default function AddEmployee() {
+export default function CreateEmployee() {
   const nav = useNavigate();
 
   const [form, setForm] = useState({
@@ -13,156 +26,386 @@ export default function AddEmployee() {
     password: "",
   });
 
-  const handleSubmit = async () => {
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!form.name.trim()) {
+      alert("يرجى إدخال اسم الموظف");
+      return;
+    }
+
+    if (!form.email.trim()) {
+      alert("يرجى إدخال البريد الإلكتروني");
+      return;
+    }
+
+    if (!form.department.trim()) {
+      alert("يرجى إدخال القسم");
+      return;
+    }
+
+    if (!form.position.trim()) {
+      alert("يرجى إدخال المسمى الوظيفي");
+      return;
+    }
+
+    if (!form.password.trim()) {
+      alert("يرجى إدخال كلمة المرور");
+      return;
+    }
+
     try {
+      setLoading(true);
+
       await API.post("/employees", {
         ...form,
         role: "employee",
       });
 
-      alert("تم إضافة الموظف");
+      alert("تم إضافة الموظف بنجاح");
+
       nav("/admin-dashboard");
     } catch (err) {
-      console.log(err);
-      alert("خطأ");
+      console.error("Add Employee Error:", err);
+
+      alert(
+        err?.response?.data?.message ||
+          "حدث خطأ أثناء إضافة الموظف"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   const goBack = () => {
-    nav(-1);
+    if (!loading) {
+      nav(-1);
+    }
   };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>➕ إضافة موظف جديد</h2>
+    <div className="add-employee-page">
 
-        <div style={styles.form}>
-          <input
-            style={styles.input}
-            placeholder="الاسم"
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
+      {/* الخلفية الزخرفية */}
+      <div className="add-employee-bg-circle circle-one" />
+      <div className="add-employee-bg-circle circle-two" />
 
-          <input
-            style={styles.input}
-            placeholder="الإيميل"
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-          />
+      <main className="add-employee-wrapper">
 
-          <input
-            style={styles.input}
-            placeholder="القسم"
-            onChange={(e) =>
-              setForm({ ...form, department: e.target.value })
-            }
-          />
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
-          <input
-            style={styles.input}
-            placeholder="الوظيفة"
-            onChange={(e) =>
-              setForm({ ...form, position: e.target.value })
-            }
-          />
+        <div className="add-employee-header">
 
-          <input
-            style={styles.input}
-            placeholder="كلمة المرور"
-            type="password"
-            onChange={(e) =>
-              setForm({ ...form, password: e.target.value })
-            }
-          />
+          <div className="add-employee-breadcrumb">
+            <span>لوحة التحكم</span>
+            <b>/</b>
+            <span>الموظفين</span>
+            <b>/</b>
+            <strong>إضافة موظف</strong>
+          </div>
 
-          <button style={styles.button} onClick={handleSubmit}>
-            حفظ الموظف
+          <button
+            type="button"
+            className="add-employee-back"
+            onClick={goBack}
+            disabled={loading}
+          >
+            <FaArrowRight />
+            <span>رجوع</span>
           </button>
-        </div>
-      </div>
 
-      {/* زر الرجوع العائم */}
-      <button style={styles.floatingBackBtn} onClick={goBack}>
-        ⬅ رجوع
-      </button>
+        </div>
+
+        {/* =================================================
+            CARD
+        ================================================= */}
+
+        <section className="add-employee-card">
+
+          {/* Card Header */}
+
+          <div className="add-employee-card-header">
+
+            <div className="add-employee-title-section">
+
+              <div className="add-employee-icon">
+                <FaUserPlus />
+              </div>
+
+              <div>
+                <h1>إضافة موظف جديد</h1>
+
+                <p>
+                  أضف بيانات الموظف لإنشاء حساب جديد في النظام
+                </p>
+              </div>
+
+            </div>
+
+            <div className="employee-status">
+              <span />
+              حساب جديد
+            </div>
+
+          </div>
+
+          {/* Divider */}
+
+          <div className="add-employee-divider" />
+
+          {/* =================================================
+              FORM
+          ================================================= */}
+
+          <form
+            className="add-employee-form"
+            onSubmit={handleSubmit}
+          >
+
+            {/* Section */}
+
+            <div className="form-section">
+
+              <div className="form-section-title">
+                <span />
+                المعلومات الأساسية
+              </div>
+
+              <div className="form-grid">
+
+                {/* Name */}
+
+                <div className="form-group">
+
+                  <label htmlFor="name">
+                    اسم الموظف
+                    <span>*</span>
+                  </label>
+
+                  <div className="input-wrapper">
+
+                    <FaUser />
+
+                    <input
+                      id="name"
+                      name="name"
+                      type="text"
+                      value={form.name}
+                      onChange={handleChange}
+                      placeholder="أدخل اسم الموظف"
+                      autoComplete="name"
+                    />
+
+                  </div>
+
+                </div>
+
+                {/* Email */}
+
+                <div className="form-group">
+
+                  <label htmlFor="email">
+                    البريد الإلكتروني
+                    <span>*</span>
+                  </label>
+
+                  <div className="input-wrapper">
+
+                    <FaEnvelope />
+
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="example@email.com"
+                      autoComplete="email"
+                      dir="ltr"
+                    />
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* =================================================
+                JOB INFORMATION
+            ================================================= */}
+
+            <div className="form-section">
+
+              <div className="form-section-title">
+                <span />
+                المعلومات الوظيفية
+              </div>
+
+              <div className="form-grid">
+
+                {/* Department */}
+
+                <div className="form-group">
+
+                  <label htmlFor="department">
+                    القسم
+                    <span>*</span>
+                  </label>
+
+                  <div className="input-wrapper">
+
+                    <FaBuilding />
+
+                    <input
+                      id="department"
+                      name="department"
+                      type="text"
+                      value={form.department}
+                      onChange={handleChange}
+                      placeholder="مثال: الموارد البشرية"
+                    />
+
+                  </div>
+
+                </div>
+
+                {/* Position */}
+
+                <div className="form-group">
+
+                  <label htmlFor="position">
+                    المسمى الوظيفي
+                    <span>*</span>
+                  </label>
+
+                  <div className="input-wrapper">
+
+                    <FaBriefcase />
+
+                    <input
+                      id="position"
+                      name="position"
+                      type="text"
+                      value={form.position}
+                      onChange={handleChange}
+                      placeholder="مثال: موظف موارد بشرية"
+                    />
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* =================================================
+                ACCOUNT INFORMATION
+            ================================================= */}
+
+            <div className="form-section">
+
+              <div className="form-section-title">
+                <span />
+                معلومات الحساب
+              </div>
+
+              <div className="form-group">
+
+                <label htmlFor="password">
+                  كلمة المرور
+                  <span>*</span>
+                </label>
+
+                <div className="input-wrapper">
+
+                  <FaLock />
+
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    placeholder="أدخل كلمة مرور الحساب"
+                    autoComplete="new-password"
+                    dir="ltr"
+                  />
+
+                </div>
+
+                <small>
+                  استخدم كلمة مرور قوية للحفاظ على أمان الحساب.
+                </small>
+
+              </div>
+
+            </div>
+
+            {/* =================================================
+                ACTIONS
+            ================================================= */}
+
+            <div className="add-employee-actions">
+
+              <button
+                type="button"
+                className="cancel-button"
+                onClick={goBack}
+                disabled={loading}
+              >
+                إلغاء
+              </button>
+
+              <button
+                type="submit"
+                className="save-button"
+                disabled={loading}
+              >
+
+                {loading ? (
+                  <>
+                    <FaSpinner className="button-spinner" />
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  <>
+                    <FaSave />
+                    حفظ الموظف
+                  </>
+                )}
+
+              </button>
+
+            </div>
+
+          </form>
+
+        </section>
+
+        {/* Footer */}
+
+        <div className="add-employee-footer">
+          جميع البيانات المدخلة محفوظة بشكل آمن داخل النظام
+        </div>
+
+      </main>
     </div>
   );
 }
 
-/* ================= STYLE ================= */
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "linear-gradient(135deg,#1e293b,#0f172a)",
-    fontFamily: "'Cairo', sans-serif",
-    direction: "rtl",
-    padding: "20px",
-  },
-
-  card: {
-    width: "420px",
-    background: "rgba(255,255,255,0.08)",
-    backdropFilter: "blur(12px)",
-    padding: "35px",
-    borderRadius: "18px",
-    boxShadow: "0 15px 35px rgba(0,0,0,0.4)",
-    border: "1px solid rgba(255,255,255,0.1)",
-  },
-
-  title: {
-    textAlign: "center",
-    marginBottom: "25px",
-    color: "#ffffff",
-    fontSize: "24px",
-    fontWeight: "700",
-  },
-
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "15px",
-  },
-
-  input: {
-    padding: "12px",
-    borderRadius: "10px",
-    border: "1px solid rgba(255,255,255,0.2)",
-    outline: "none",
-    fontSize: "15px",
-    background: "rgba(255,255,255,0.05)",
-    color: "#fff",
-  },
-
-  button: {
-    marginTop: "10px",
-    padding: "12px",
-    borderRadius: "12px",
-    border: "none",
-    cursor: "pointer",
-    background: "linear-gradient(135deg,#3b82f6,#6366f1)",
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: "16px",
-    boxShadow: "0 8px 20px rgba(59,130,246,0.3)",
-    transition: "0.3s",
-  },
-
-  floatingBackBtn: {
-    position: "fixed",
-    bottom: "25px",
-    right: "25px",
-    background: "linear-gradient(135deg,#64748b,#334155)",
-    color: "#fff",
-    border: "none",
-    padding: "12px 18px",
-    borderRadius: "50px",
-    cursor: "pointer",
-    fontWeight: "600",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
-    zIndex: 999,
-  },
-};

@@ -66,15 +66,6 @@ export default function DashboardLayout() {
             <span>الموظفين</span>
           </button>
 
-          <button
-            className={`menu-item ${
-              isActive("/add-employee") ? "active" : ""
-            }`}
-            onClick={() => nav("/add-employee")}
-          >
-            <span>➕</span>
-            <span>إضافة موظف</span>
-          </button>
 
           <div className="menu-title">
             الإدارة
@@ -108,16 +99,6 @@ export default function DashboardLayout() {
           >
             <span>📋</span>
             <span>المهام</span>
-          </button>
-
-          <button
-            className={`menu-item ${
-              isActive("/add-task") ? "active" : ""
-            }`}
-            onClick={() => nav("/add-task")}
-          >
-            <span>➕</span>
-            <span>إضافة مهمة</span>
           </button>
 
         </div>
