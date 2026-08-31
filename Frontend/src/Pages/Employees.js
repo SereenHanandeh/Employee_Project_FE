@@ -3,6 +3,7 @@ import API from "../api/api";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
+
 import {
   FaUsers,
   FaUserCheck,
@@ -20,7 +21,11 @@ import {
   FaSave,
   FaEnvelope,
   FaBriefcase,
+  FaUserTie,
+  FaCheckCircle,
+  FaLayerGroup,
 } from "react-icons/fa";
+
 import "./Employees.css";
 
 export default function Employees() {
@@ -29,6 +34,7 @@ export default function Employees() {
   const [employees, setEmployees] = useState([]);
   const [editing, setEditing] = useState(null);
   const [showTrash, setShowTrash] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -44,9 +50,9 @@ export default function Employees() {
     role: "",
   });
 
-  // =========================================================
-  // FETCH EMPLOYEES
-  // =========================================================
+  /* =========================================================
+     FETCH
+  ========================================================= */
 
   useEffect(() => {
     fetchEmployees();
@@ -67,29 +73,29 @@ export default function Employees() {
     }
   };
 
-  // =========================================================
-  // STATUS
-  // =========================================================
+  /* =========================================================
+     STATUS
+  ========================================================= */
 
   const getStatusKey = (status) => {
     if (!status) return "";
 
-    const s = String(status).toLowerCase().trim();
+    const value = String(status).toLowerCase().trim();
 
-    if (s === "نشط" || s === "active") {
+    if (value === "نشط" || value === "active") {
       return "active";
     }
 
-    if (s === "محذوف" || s === "deleted") {
+    if (value === "محذوف" || value === "deleted") {
       return "deleted";
     }
 
-    return s;
+    return value;
   };
 
-  // =========================================================
-  // STATISTICS
-  // =========================================================
+  /* =========================================================
+     STATISTICS
+  ========================================================= */
 
   const statistics = useMemo(() => {
     const total = employees.length;
@@ -119,9 +125,9 @@ export default function Employees() {
     };
   }, [employees]);
 
-  // =========================================================
-  // DEPARTMENTS
-  // =========================================================
+  /* =========================================================
+     DEPARTMENTS
+  ========================================================= */
 
   const departments = useMemo(() => {
     return [
@@ -133,9 +139,9 @@ export default function Employees() {
     ];
   }, [employees]);
 
-  // =========================================================
-  // FILTER
-  // =========================================================
+  /* =========================================================
+     FILTER
+  ========================================================= */
 
   const filteredEmployees = useMemo(() => {
     const searchValue = search.toLowerCase().trim();
@@ -184,9 +190,9 @@ export default function Employees() {
     );
   }, [employees]);
 
-  // =========================================================
-  // DELETE EMPLOYEE
-  // =========================================================
+  /* =========================================================
+     DELETE
+  ========================================================= */
 
   const deleteEmployee = async (id) => {
     const employee = employees.find(
@@ -218,9 +224,9 @@ export default function Employees() {
     }
   };
 
-  // =========================================================
-  // RESTORE EMPLOYEE
-  // =========================================================
+  /* =========================================================
+     RESTORE
+  ========================================================= */
 
   const restoreEmployee = async (id) => {
     try {
@@ -242,9 +248,9 @@ export default function Employees() {
     }
   };
 
-  // =========================================================
-  // EDIT
-  // =========================================================
+  /* =========================================================
+     EDIT
+  ========================================================= */
 
   const openEdit = (emp) => {
     setEditing(emp);
@@ -302,7 +308,14 @@ export default function Employees() {
         )
       );
 
-      closeEdit();
+      setEditing(null);
+      setForm({
+        name: "",
+        email: "",
+        department: "",
+        position: "",
+        role: "",
+      });
     } catch (error) {
       console.error("Update Employee Error:", error);
       alert("فشل التعديل");
@@ -311,9 +324,9 @@ export default function Employees() {
     }
   };
 
-  // =========================================================
-  // EXCEL
-  // =========================================================
+  /* =========================================================
+     EXCEL
+  ========================================================= */
 
   const exportToExcel = () => {
     if (filteredEmployees.length === 0) {
@@ -334,6 +347,15 @@ export default function Employees() {
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
+
+    worksheet["!cols"] = [
+      { wch: 25 },
+      { wch: 32 },
+      { wch: 20 },
+      { wch: 25 },
+      { wch: 18 },
+      { wch: 12 },
+    ];
 
     const workbook = XLSX.utils.book_new();
 
@@ -356,17 +378,23 @@ export default function Employees() {
     );
   };
 
-  // =========================================================
-  // EMPLOYEE AVATAR
-  // =========================================================
+  /* =========================================================
+     HELPERS
+  ========================================================= */
 
   const getInitial = (name) => {
     return String(name || "م").charAt(0);
   };
 
-  // =========================================================
-  // RENDER
-  // =========================================================
+  const clearFilters = () => {
+    setSearch("");
+    setFilterDept("");
+    setFilterStatus("");
+  };
+
+  /* =========================================================
+     RENDER
+  ========================================================= */
 
   return (
     <div className="employees-page">
@@ -377,26 +405,36 @@ export default function Employees() {
 
       <header className="employees-header">
 
-        <div className="header-content">
+        <div className="employees-header-content">
 
-          <div className="breadcrumb">
-            لوحة التحكم
-            <span>/</span>
-            الموظفين
+          <div className="employees-breadcrumb">
+            <span>لوحة التحكم</span>
+            <span className="breadcrumb-separator">/</span>
+            <strong>الموظفين</strong>
           </div>
 
-          <h1>إدارة الموظفين</h1>
+          <div className="employees-title-row">
 
-          <p>
-            إدارة ومتابعة بيانات الموظفين في النظام
-          </p>
+            <div className="employees-title-icon">
+              <FaUsers />
+            </div>
+
+            <div>
+              <h1>إدارة الموظفين</h1>
+
+              <p>
+                إدارة ومتابعة بيانات الموظفين في النظام
+              </p>
+            </div>
+
+          </div>
 
         </div>
 
-        <div className="header-actions">
+        <div className="employees-header-actions">
 
           <button
-            className="btn btn-secondary"
+            className="employees-btn employees-btn-secondary"
             onClick={() => nav(-1)}
           >
             <FaArrowRight />
@@ -404,7 +442,7 @@ export default function Employees() {
           </button>
 
           <button
-            className="btn btn-primary"
+            className="employees-btn employees-btn-primary"
             onClick={() => nav("/add-employee")}
           >
             <FaPlus />
@@ -421,82 +459,66 @@ export default function Employees() {
 
       <section className="employees-stats">
 
-        {/* Total */}
+        <div className="employees-stat-card stat-total">
 
-        <div className="stat-card stat-purple">
-
-          <div className="stat-icon">
+          <div className="employees-stat-icon">
             <FaUsers />
           </div>
 
-          <div className="stat-content">
-
+          <div className="employees-stat-info">
             <span>إجمالي الموظفين</span>
-
-            <strong>
-              {statistics.total}
-            </strong>
-
+            <strong>{statistics.total}</strong>
+            <small>
+              جميع سجلات الموظفين
+            </small>
           </div>
 
         </div>
 
-        {/* Active */}
+        <div className="employees-stat-card stat-active">
 
-        <div className="stat-card stat-green">
-
-          <div className="stat-icon">
+          <div className="employees-stat-icon">
             <FaUserCheck />
           </div>
 
-          <div className="stat-content">
-
+          <div className="employees-stat-info">
             <span>الموظفون النشطون</span>
-
-            <strong>
-              {statistics.active}
-            </strong>
-
+            <strong>{statistics.active}</strong>
+            <small>
+              موظفون يعملون حاليًا
+            </small>
           </div>
 
         </div>
 
-        {/* Deleted */}
+        <div className="employees-stat-card stat-deleted">
 
-        <div className="stat-card stat-red">
-
-          <div className="stat-icon">
+          <div className="employees-stat-icon">
             <FaTrash />
           </div>
 
-          <div className="stat-content">
-
+          <div className="employees-stat-info">
             <span>المحذوفون</span>
-
-            <strong>
-              {statistics.deleted}
-            </strong>
-
+            <strong>{statistics.deleted}</strong>
+            <small>
+              داخل سلة المحذوفات
+            </small>
           </div>
 
         </div>
 
-        {/* Departments */}
+        <div className="employees-stat-card stat-departments">
 
-        <div className="stat-card stat-blue">
-
-          <div className="stat-icon">
+          <div className="employees-stat-icon">
             <FaBuilding />
           </div>
 
-          <div className="stat-content">
-
+          <div className="employees-stat-info">
             <span>الأقسام</span>
-
-            <strong>
-              {statistics.departments}
-            </strong>
-
+            <strong>{statistics.departments}</strong>
+            <small>
+              الأقسام النشطة
+            </small>
           </div>
 
         </div>
@@ -504,18 +526,18 @@ export default function Employees() {
       </section>
 
       {/* =====================================================
-          FILTERS
+          TOOLBAR
       ===================================================== */}
 
       <section className="employees-toolbar">
 
-        <div className="search-box">
+        <div className="employees-search">
 
-          <FaSearch />
+          <FaSearch className="employees-search-icon" />
 
           <input
             type="text"
-            placeholder="ابحث بالاسم أو البريد أو المنصب..."
+            placeholder="ابحث بالاسم، البريد، القسم أو المنصب..."
             value={search}
             onChange={(e) =>
               setSearch(e.target.value)
@@ -524,9 +546,9 @@ export default function Employees() {
 
           {search && (
             <button
-              className="clear-search"
-              onClick={() => setSearch("")}
               type="button"
+              className="employees-clear-search"
+              onClick={() => setSearch("")}
             >
               <FaTimes />
             </button>
@@ -534,70 +556,78 @@ export default function Employees() {
 
         </div>
 
-        <div className="filter-actions">
+        <div className="employees-filter-group">
 
-          <select
-            value={filterDept}
-            onChange={(e) =>
-              setFilterDept(e.target.value)
-            }
-          >
-            <option value="">
-              كل الأقسام
-            </option>
+          <div className="employees-filter">
 
-            {departments.map((dept) => (
-              <option
-                key={dept}
-                value={dept}
-              >
-                {dept}
+            <FaBuilding />
+
+            <select
+              value={filterDept}
+              onChange={(e) =>
+                setFilterDept(e.target.value)
+              }
+            >
+              <option value="">
+                كل الأقسام
               </option>
-            ))}
-          </select>
 
-          <select
-            value={filterStatus}
-            onChange={(e) =>
-              setFilterStatus(e.target.value)
-            }
-          >
-            <option value="">
-              الموظفون النشطون
-            </option>
+              {departments.map((dept) => (
+                <option
+                  key={dept}
+                  value={dept}
+                >
+                  {dept}
+                </option>
+              ))}
+            </select>
 
-            <option value="نشط">
-              نشط
-            </option>
+          </div>
 
-            <option value="محذوف">
-              محذوف
-            </option>
-          </select>
+          <div className="employees-filter">
+
+            <FaLayerGroup />
+
+            <select
+              value={filterStatus}
+              onChange={(e) =>
+                setFilterStatus(e.target.value)
+              }
+            >
+              <option value="">
+                الموظفون النشطون
+              </option>
+
+              <option value="نشط">
+                نشط
+              </option>
+
+              <option value="محذوف">
+                محذوف
+              </option>
+
+            </select>
+
+          </div>
 
           <button
-            className="toolbar-btn trash-toolbar-btn"
-            onClick={() =>
-              setShowTrash(true)
-            }
+            className="employees-tool-btn employees-trash-btn"
+            onClick={() => setShowTrash(true)}
           >
             <FaTrash />
-
             <span>السلة</span>
 
             {statistics.deleted > 0 && (
-              <b>
-                {statistics.deleted}
-              </b>
+              <b>{statistics.deleted}</b>
             )}
           </button>
 
           <button
-            className="toolbar-btn excel-toolbar-btn"
+            className="employees-tool-btn employees-excel-btn"
             onClick={exportToExcel}
           >
             <FaFileExcel />
-            <span>Excel</span>
+            <span>تصدير Excel</span>
           </button>
 
         </div>
@@ -605,39 +635,47 @@ export default function Employees() {
       </section>
 
       {/* =====================================================
-          EMPLOYEES TABLE
+          TABLE CARD
       ===================================================== */}
 
       <section className="employees-container">
 
-        <div className="section-header">
+        <div className="employees-section-header">
 
-          <div>
+          <div className="employees-section-heading">
 
-            <h2>
-              قائمة الموظفين
-            </h2>
+            <div className="employees-section-icon">
+              <FaUserTie />
+            </div>
 
-            <span>
-              عرض {filteredEmployees.length} موظف
-            </span>
+            <div>
+              <h2>قائمة الموظفين</h2>
+
+              <p>
+                عرض{" "}
+                <strong>
+                  {filteredEmployees.length}
+                </strong>{" "}
+                موظف
+              </p>
+            </div>
 
           </div>
 
           <button
-            className="refresh-btn"
+            className="employees-refresh-btn"
             onClick={fetchEmployees}
             disabled={loading}
           >
             <FaSyncAlt
               className={
                 loading
-                  ? "refresh-spin"
+                  ? "employees-spin"
                   : ""
               }
             />
 
-            تحديث
+            <span>تحديث</span>
           </button>
 
         </div>
@@ -647,30 +685,32 @@ export default function Employees() {
         =================================================== */}
 
         {loading ? (
-          <div className="employees-empty">
 
-            <div className="loading-spinner">
+          <div className="employees-state">
+
+            <div className="employees-loading-icon">
               <FaSyncAlt />
             </div>
 
             <h3>
-              جاري تحميل الموظفين...
+              جاري تحميل الموظفين
             </h3>
 
             <p>
-              يرجى الانتظار قليلاً
+              يرجى الانتظار، يتم جلب البيانات...
             </p>
 
           </div>
+
         ) : filteredEmployees.length === 0 ? (
 
           /* =================================================
              EMPTY
           ================================================= */
 
-          <div className="employees-empty">
+          <div className="employees-state">
 
-            <div className="empty-icon">
+            <div className="employees-empty-icon">
               <FaUsers />
             </div>
 
@@ -687,12 +727,8 @@ export default function Employees() {
               filterDept ||
               filterStatus) && (
               <button
-                className="clear-filters-btn"
-                onClick={() => {
-                  setSearch("");
-                  setFilterDept("");
-                  setFilterStatus("");
-                }}
+                className="employees-clear-filters"
+                onClick={clearFilters}
               >
                 مسح الفلاتر
               </button>
@@ -705,12 +741,12 @@ export default function Employees() {
           <>
 
             {/* =================================================
-                DESKTOP TABLE
+                DESKTOP
             ================================================= */}
 
-            <div className="employees-table">
+            <div className="employees-desktop-table">
 
-              <div className="table-head">
+              <div className="employees-table-head">
 
                 <div>الموظف</div>
                 <div>البريد الإلكتروني</div>
@@ -724,24 +760,21 @@ export default function Employees() {
               {filteredEmployees.map((emp) => {
 
                 const active =
-                  getStatusKey(emp.status) ===
-                  "active";
+                  getStatusKey(emp.status) === "active";
 
                 return (
                   <div
-                    className="table-row"
+                    className="employees-table-row"
                     key={emp.employee_id}
                   >
 
-                    {/* Employee */}
+                    <div className="employees-employee-cell">
 
-                    <div className="employee-info">
-
-                      <div className="employee-avatar">
+                      <div className="employees-avatar">
                         {getInitial(emp.name)}
                       </div>
 
-                      <div className="employee-details">
+                      <div className="employees-employee-info">
 
                         <strong>
                           {emp.name}
@@ -755,47 +788,49 @@ export default function Employees() {
 
                     </div>
 
-                    {/* Email */}
+                    <div className="employees-email-cell">
 
-                    <div className="employee-email">
                       <FaEnvelope />
-                      {emp.email}
-                    </div>
 
-                    {/* Department */}
-
-                    <div>
-
-                      <span className="department-badge">
-                        <FaBuilding />
-                        {emp.department || "—"}
+                      <span>
+                        {emp.email || "—"}
                       </span>
 
                     </div>
 
-                    {/* Position */}
+                    <div>
 
-                    <div className="employee-position">
+                      <span className="employees-department">
 
-                      <FaBriefcase />
+                        <FaBuilding />
 
-                      {emp.position || "—"}
+                        {emp.department || "غير محدد"}
+
+                      </span>
 
                     </div>
 
-                    {/* Status */}
+                    <div className="employees-position-cell">
+
+                      <FaBriefcase />
+
+                      <span>
+                        {emp.position || "غير محدد"}
+                      </span>
+
+                    </div>
 
                     <div>
 
                       <span
-                        className={`status-badge ${
+                        className={`employees-status ${
                           active
-                            ? "status-active"
-                            : "status-deleted"
+                            ? "employees-status-active"
+                            : "employees-status-deleted"
                         }`}
                       >
 
-                        <span className="status-dot" />
+                        <span className="employees-status-dot" />
 
                         {active
                           ? "نشط"
@@ -805,14 +840,12 @@ export default function Employees() {
 
                     </div>
 
-                    {/* Actions */}
-
-                    <div className="employee-actions">
+                    <div className="employees-actions">
 
                       {active ? (
                         <>
                           <button
-                            className="action-btn edit-btn"
+                            className="employees-action edit"
                             title="تعديل الموظف"
                             onClick={() =>
                               openEdit(emp)
@@ -822,7 +855,7 @@ export default function Employees() {
                           </button>
 
                           <button
-                            className="action-btn delete-btn"
+                            className="employees-action delete"
                             title="حذف الموظف"
                             onClick={() =>
                               deleteEmployee(
@@ -834,8 +867,9 @@ export default function Employees() {
                           </button>
                         </>
                       ) : (
+
                         <button
-                          className="restore-btn"
+                          className="employees-restore"
                           onClick={() =>
                             restoreEmployee(
                               emp.employee_id
@@ -845,6 +879,7 @@ export default function Employees() {
                           <FaUndo />
                           استرجاع
                         </button>
+
                       )}
 
                     </div>
@@ -856,7 +891,7 @@ export default function Employees() {
             </div>
 
             {/* =================================================
-                MOBILE CARDS
+                MOBILE
             ================================================= */}
 
             <div className="employees-mobile">
@@ -864,24 +899,23 @@ export default function Employees() {
               {filteredEmployees.map((emp) => {
 
                 const active =
-                  getStatusKey(emp.status) ===
-                  "active";
+                  getStatusKey(emp.status) === "active";
 
                 return (
-                  <div
-                    className="employee-mobile-card"
+                  <article
+                    className="employees-mobile-card"
                     key={emp.employee_id}
                   >
 
-                    <div className="mobile-card-top">
+                    <div className="employees-mobile-header">
 
-                      <div className="employee-info">
+                      <div className="employees-employee-cell">
 
-                        <div className="employee-avatar">
+                        <div className="employees-avatar">
                           {getInitial(emp.name)}
                         </div>
 
-                        <div className="employee-details">
+                        <div className="employees-employee-info">
 
                           <strong>
                             {emp.name}
@@ -896,13 +930,13 @@ export default function Employees() {
                       </div>
 
                       <span
-                        className={`status-badge ${
+                        className={`employees-status ${
                           active
-                            ? "status-active"
-                            : "status-deleted"
+                            ? "employees-status-active"
+                            : "employees-status-deleted"
                         }`}
                       >
-                        <span className="status-dot" />
+                        <span className="employees-status-dot" />
 
                         {active
                           ? "نشط"
@@ -911,55 +945,49 @@ export default function Employees() {
 
                     </div>
 
-                    <div className="mobile-info">
+                    <div className="employees-mobile-details">
 
-                      <div className="mobile-info-item">
-
+                      <div>
                         <small>
                           البريد الإلكتروني
                         </small>
 
                         <span>
                           <FaEnvelope />
-                          {emp.email}
+                          {emp.email || "—"}
                         </span>
-
                       </div>
 
-                      <div className="mobile-info-item">
-
+                      <div>
                         <small>
                           القسم
                         </small>
 
                         <span>
                           <FaBuilding />
-                          {emp.department || "—"}
+                          {emp.department || "غير محدد"}
                         </span>
-
                       </div>
 
-                      <div className="mobile-info-item">
-
+                      <div>
                         <small>
                           المنصب
                         </small>
 
                         <span>
                           <FaBriefcase />
-                          {emp.position || "—"}
+                          {emp.position || "غير محدد"}
                         </span>
-
                       </div>
 
                     </div>
 
-                    <div className="mobile-actions">
+                    <div className="employees-mobile-actions">
 
                       {active ? (
                         <>
                           <button
-                            className="mobile-edit-btn"
+                            className="mobile-edit"
                             onClick={() =>
                               openEdit(emp)
                             }
@@ -969,7 +997,7 @@ export default function Employees() {
                           </button>
 
                           <button
-                            className="mobile-delete-btn"
+                            className="mobile-delete"
                             onClick={() =>
                               deleteEmployee(
                                 emp.employee_id
@@ -981,8 +1009,9 @@ export default function Employees() {
                           </button>
                         </>
                       ) : (
+
                         <button
-                          className="mobile-restore-btn"
+                          className="mobile-restore"
                           onClick={() =>
                             restoreEmployee(
                               emp.employee_id
@@ -992,11 +1021,12 @@ export default function Employees() {
                           <FaUndo />
                           استرجاع الموظف
                         </button>
+
                       )}
 
                     </div>
 
-                  </div>
+                  </article>
                 );
               })}
 
@@ -1015,7 +1045,7 @@ export default function Employees() {
       {showTrash && (
 
         <div
-          className="modal-overlay"
+          className="employees-modal-overlay"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) {
               setShowTrash(false);
@@ -1023,32 +1053,28 @@ export default function Employees() {
           }}
         >
 
-          <div className="modal trash-modal">
+          <div className="employees-modal">
 
-            <div className="modal-header">
+            <div className="employees-modal-header">
 
-              <div className="modal-heading">
+              <div className="employees-modal-heading">
 
-                <div className="modal-icon trash-icon">
+                <div className="employees-modal-icon trash">
                   <FaTrash />
                 </div>
 
                 <div>
-
-                  <h2>
-                    سلة المحذوفات
-                  </h2>
+                  <h2>سلة المحذوفات</h2>
 
                   <p>
                     الموظفون الذين تم حذفهم مؤقتًا
                   </p>
-
                 </div>
 
               </div>
 
               <button
-                className="modal-close"
+                className="employees-modal-close"
                 onClick={() =>
                   setShowTrash(false)
                 }
@@ -1058,14 +1084,14 @@ export default function Employees() {
 
             </div>
 
-            <div className="modal-body">
+            <div className="employees-modal-body">
 
               {deletedEmployees.length === 0 ? (
 
-                <div className="empty-trash">
+                <div className="employees-trash-empty">
 
-                  <div className="empty-trash-icon">
-                    <FaTrash />
+                  <div>
+                    <FaCheckCircle />
                   </div>
 
                   <h3>
@@ -1080,22 +1106,22 @@ export default function Employees() {
 
               ) : (
 
-                <div className="trash-list">
+                <div className="employees-trash-list">
 
                   {deletedEmployees.map((emp) => (
 
                     <div
-                      className="trash-card"
+                      className="employees-trash-card"
                       key={emp.employee_id}
                     >
 
-                      <div className="employee-info">
+                      <div className="employees-employee-cell">
 
-                        <div className="employee-avatar deleted-avatar">
+                        <div className="employees-avatar deleted">
                           {getInitial(emp.name)}
                         </div>
 
-                        <div className="employee-details">
+                        <div className="employees-employee-info">
 
                           <strong>
                             {emp.name}
@@ -1110,7 +1136,7 @@ export default function Employees() {
                       </div>
 
                       <button
-                        className="restore-btn"
+                        className="employees-restore"
                         onClick={() =>
                           restoreEmployee(
                             emp.employee_id
@@ -1131,10 +1157,10 @@ export default function Employees() {
 
             </div>
 
-            <div className="modal-footer">
+            <div className="employees-modal-footer">
 
               <button
-                className="cancel-btn"
+                className="employees-cancel"
                 onClick={() =>
                   setShowTrash(false)
                 }
@@ -1157,7 +1183,7 @@ export default function Employees() {
       {editing && (
 
         <div
-          className="modal-overlay"
+          className="employees-modal-overlay"
           onMouseDown={(e) => {
             if (
               e.target === e.currentTarget &&
@@ -1168,18 +1194,17 @@ export default function Employees() {
           }}
         >
 
-          <div className="modal edit-modal">
+          <div className="employees-modal edit-modal">
 
-            <div className="modal-header">
+            <div className="employees-modal-header">
 
-              <div className="modal-heading">
+              <div className="employees-modal-heading">
 
-                <div className="modal-icon edit-icon">
+                <div className="employees-modal-icon edit">
                   <FaEdit />
                 </div>
 
                 <div>
-
                   <h2>
                     تعديل بيانات الموظف
                   </h2>
@@ -1190,13 +1215,12 @@ export default function Employees() {
                       {editing.name}
                     </strong>
                   </p>
-
                 </div>
 
               </div>
 
               <button
-                className="modal-close"
+                className="employees-modal-close"
                 onClick={closeEdit}
                 disabled={saving}
               >
@@ -1205,129 +1229,141 @@ export default function Employees() {
 
             </div>
 
-            <div className="edit-form">
+            <div className="employees-form">
 
-              {/* Name */}
-
-              <div className="form-group">
+              <div className="employees-form-group">
 
                 <label>
                   اسم الموظف
                 </label>
 
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      name: e.target.value,
-                    })
-                  }
-                  placeholder="أدخل اسم الموظف"
-                />
+                <div className="employees-input-wrapper">
+                  <FaUserTie />
+
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        name: e.target.value,
+                      })
+                    }
+                    placeholder="أدخل اسم الموظف"
+                  />
+                </div>
 
               </div>
 
-              {/* Email */}
-
-              <div className="form-group">
+              <div className="employees-form-group">
 
                 <label>
                   البريد الإلكتروني
                 </label>
 
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      email: e.target.value,
-                    })
-                  }
-                  placeholder="example@email.com"
-                  dir="ltr"
-                />
+                <div className="employees-input-wrapper">
+                  <FaEnvelope />
+
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        email: e.target.value,
+                      })
+                    }
+                    placeholder="example@email.com"
+                    dir="ltr"
+                  />
+                </div>
 
               </div>
 
-              {/* Department + Position */}
+              <div className="employees-form-grid">
 
-              <div className="form-grid">
-
-                <div className="form-group">
+                <div className="employees-form-group">
 
                   <label>
                     القسم
                   </label>
 
-                  <input
-                    type="text"
-                    value={form.department}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        department:
-                          e.target.value,
-                      })
-                    }
-                    placeholder="اسم القسم"
-                  />
+                  <div className="employees-input-wrapper">
+                    <FaBuilding />
+
+                    <input
+                      type="text"
+                      value={form.department}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          department:
+                            e.target.value,
+                        })
+                      }
+                      placeholder="اسم القسم"
+                    />
+                  </div>
 
                 </div>
 
-                <div className="form-group">
+                <div className="employees-form-group">
 
                   <label>
                     المنصب
                   </label>
 
-                  <input
-                    type="text"
-                    value={form.position}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        position:
-                          e.target.value,
-                      })
-                    }
-                    placeholder="المسمى الوظيفي"
-                  />
+                  <div className="employees-input-wrapper">
+                    <FaBriefcase />
+
+                    <input
+                      type="text"
+                      value={form.position}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          position:
+                            e.target.value,
+                        })
+                      }
+                      placeholder="المسمى الوظيفي"
+                    />
+                  </div>
 
                 </div>
 
               </div>
 
-              {/* Role */}
-
-              <div className="form-group">
+              <div className="employees-form-group">
 
                 <label>
                   الدور الوظيفي
                 </label>
 
-                <input
-                  type="text"
-                  value={form.role}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      role: e.target.value,
-                    })
-                  }
-                  placeholder="الدور الوظيفي"
-                />
+                <div className="employees-input-wrapper">
+                  <FaUsers />
+
+                  <input
+                    type="text"
+                    value={form.role}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        role: e.target.value,
+                      })
+                    }
+                    placeholder="الدور الوظيفي"
+                  />
+                </div>
 
               </div>
 
             </div>
 
-            <div className="modal-footer">
+            <div className="employees-modal-footer">
 
               <button
-                className="cancel-btn"
+                className="employees-cancel"
                 onClick={closeEdit}
                 disabled={saving}
               >
@@ -1335,14 +1371,14 @@ export default function Employees() {
               </button>
 
               <button
-                className="save-btn"
+                className="employees-save"
                 onClick={updateEmployee}
                 disabled={saving}
               >
 
                 {saving ? (
                   <>
-                    <FaSyncAlt className="refresh-spin" />
+                    <FaSyncAlt className="employees-spin" />
                     جاري الحفظ...
                   </>
                 ) : (
@@ -1364,4 +1400,4 @@ export default function Employees() {
 
     </div>
   );
-}
+};
