@@ -1085,61 +1085,43 @@ export default function LeavesList() {
                           )}
                         </div>
 
+
                         {/* ATTACHMENT */}
+<div className="attachment-cell">
+  {attachmentUrl ? (
+    <button
+      type="button"
+      className="attachment-preview-button"
+      onClick={() => openAttachment(leave)}
+      title="عرض المرفق"
+    >
+      {isPdfFile(attachmentUrl) ? (
+        <span className="attachment-pdf-mini">
+          <span className="attachment-pdf-icon">PDF</span>
+        </span>
+      ) : (
+        <span className="attachment-image-mini">
+          <img
+            src={attachmentUrl}
+            alt="مرفق الإجازة"
+            className="attachment-thumbnail"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        </span>
+      )}
 
-                        <div className="attachment-cell">
-
-                          {attachmentUrl ? (
-
-                            <button
-                              className="attachment-preview-button"
-                              onClick={() =>
-                                openAttachment(
-                                  leave
-                                )
-                              }
-                              title="عرض المرفق"
-                            >
-
-                              {isPdfFile(
-                                attachmentUrl
-                              ) ? (
-
-                                <span className="attachment-pdf">
-                                  📄
-                                </span>
-
-                              ) : (
-
-                                <img
-                                  src={
-                                    attachmentUrl
-                                  }
-                                  alt="مرفق الإجازة"
-                                  className="attachment-thumbnail"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display =
-                                      "none";
-                                  }}
-                                />
-
-                              )}
-
-                              <span className="attachment-text">
-                                عرض
-                              </span>
-
-                            </button>
-
-                          ) : (
-
-                            <span className="no-attachment">
-                              لا يوجد
-                            </span>
-
-                          )}
-
-                        </div>
+      <span className="attachment-text">
+        عرض
+      </span>
+    </button>
+  ) : (
+    <span className="no-attachment">
+      لا يوجد
+    </span>
+  )}
+</div>
 
                         {/* STATUS */}
 
