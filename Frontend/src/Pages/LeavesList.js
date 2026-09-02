@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import API from "../api/api";
 import * as XLSX from "xlsx";
@@ -17,8 +16,14 @@ export default function LeavesList() {
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  const [selectedLeave, setSelectedLeave] = useState(null);
-  const [editingLeave, setEditingLeave] = useState(null);
+  const [selectedLeave, setSelectedLeave] =
+    useState(null);
+
+  const [selectedAttachment, setSelectedAttachment] =
+    useState(null);
+
+  const [editingLeave, setEditingLeave] =
+    useState(null);
 
   const [editForm, setEditForm] = useState({
     type: "",
@@ -27,9 +32,9 @@ export default function LeavesList() {
     notes: "",
   });
 
-  // =========================
+  // =====================================================
   // FETCH
-  // =========================
+  // =====================================================
 
   useEffect(() => {
     fetchLeaves();
@@ -41,9 +46,16 @@ export default function LeavesList() {
 
       const res = await API.get("/leaves");
 
-      setLeaves(Array.isArray(res.data) ? res.data : []);
+      setLeaves(
+        Array.isArray(res.data)
+          ? res.data
+          : []
+      );
     } catch (error) {
-      console.error("Fetch Leaves Error:", error);
+      console.error(
+        "Fetch Leaves Error:",
+        error
+      );
 
       alert(
         error.response?.data?.message ||
@@ -54,14 +66,92 @@ export default function LeavesList() {
     }
   };
 
-  // =========================
+  // =====================================================
+  // ATTACHMENT URL
+  // =====================================================
+
+  const getAttachmentUrl = (leave) => {
+    if (!leave) return null;
+
+    const attachment =
+      leave.attachment ||
+      leave.attachment_url ||
+      leave.file ||
+      leave.file_url ||
+      leave.document ||
+      leave.document_url;
+
+    if (!attachment) {
+      return null;
+    }
+
+    const value = String(attachment);
+
+    // URL كامل
+    if (
+      value.startsWith("http://") ||
+      value.startsWith("https://")
+    ) {
+      return value;
+    }
+
+    // الحصول على Base URL من Axios
+    const baseURL =
+      API?.defaults?.baseURL || "";
+
+    if (!baseURL) {
+      return value.startsWith("/")
+        ? value
+        : `/${value}`;
+    }
+
+    const cleanBase = baseURL.replace(
+      /\/$/,
+      ""
+    );
+
+    const cleanPath = value.startsWith("/")
+      ? value
+      : `/${value}`;
+
+    return `${cleanBase}${cleanPath}`;
+  };
+
+  const isPdfFile = (url) => {
+    if (!url) return false;
+
+    return (
+      String(url)
+        .split("?")[0]
+        .toLowerCase()
+        .endsWith(".pdf")
+    );
+  };
+
+  const openAttachment = (leave) => {
+    const url = getAttachmentUrl(leave);
+
+    if (!url) {
+      return;
+    }
+
+    setSelectedAttachment({
+      url,
+      isPdf: isPdfFile(url),
+      employee: getEmployeeName(leave),
+    });
+  };
+
+  // =====================================================
   // STATUS
-  // =========================
+  // =====================================================
 
   const getStatusKey = (status) => {
     if (!status) return "pending";
 
-    const value = String(status).toLowerCase().trim();
+    const value = String(status)
+      .toLowerCase()
+      .trim();
 
     if (
       value === "approved" ||
@@ -108,9 +198,9 @@ export default function LeavesList() {
     };
   };
 
-  // =========================
+  // =====================================================
   // EMPLOYEE
-  // =========================
+  // =====================================================
 
   const getEmployeeName = (leave) =>
     leave.name ||
@@ -118,9 +208,9 @@ export default function LeavesList() {
     leave.employee?.name ||
     "غير محدد";
 
-  // =========================
+  // =====================================================
   // STATISTICS
-  // =========================
+  // =====================================================
 
   const statistics = useMemo(() => {
     return {
@@ -128,24 +218,27 @@ export default function LeavesList() {
 
       pending: leaves.filter(
         (leave) =>
-          getStatusKey(leave.status) === "pending"
+          getStatusKey(leave.status) ===
+          "pending"
       ).length,
 
       approved: leaves.filter(
         (leave) =>
-          getStatusKey(leave.status) === "approved"
+          getStatusKey(leave.status) ===
+          "approved"
       ).length,
 
       rejected: leaves.filter(
         (leave) =>
-          getStatusKey(leave.status) === "rejected"
+          getStatusKey(leave.status) ===
+          "rejected"
       ).length,
     };
   }, [leaves]);
 
-  // =========================
+  // =====================================================
   // TYPES
-  // =========================
+  // =====================================================
 
   const leaveTypes = useMemo(() => {
     return [
@@ -157,16 +250,21 @@ export default function LeavesList() {
     ];
   }, [leaves]);
 
-  // =========================
+  // =====================================================
   // FILTER
-  // =========================
+  // =====================================================
 
   const filteredLeaves = useMemo(() => {
-    const searchValue = search.toLowerCase().trim();
+    const searchValue = search
+      .toLowerCase()
+      .trim();
 
     return leaves.filter((leave) => {
-      const employeeName = getEmployeeName(leave);
-      const statusKey = getStatusKey(leave.status);
+      const employeeName =
+        getEmployeeName(leave);
+
+      const statusKey =
+        getStatusKey(leave.status);
 
       const matchesSearch =
         String(employeeName)
@@ -203,17 +301,23 @@ export default function LeavesList() {
     filterStatus,
   ]);
 
-  // =========================
+  // =====================================================
   // UPDATE STATUS
-  // =========================
+  // =====================================================
 
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (
+    id,
+    status
+  ) => {
     const leave = leaves.find(
-      (item) => item.leave_id === id
+      (item) =>
+        item.leave_id === id
     );
 
     const actionText =
-      status === "approved" ? "قبول" : "رفض";
+      status === "approved"
+        ? "قبول"
+        : "رفض";
 
     if (
       !window.confirm(
@@ -228,15 +332,23 @@ export default function LeavesList() {
     try {
       setSaving(true);
 
-      await API.put(`/leaves/${id}`, {
-        status,
-      });
+      const res = await API.put(
+        `/leaves/${id}`,
+        {
+          status,
+        }
+      );
+
+      const updatedLeave =
+        res.data?.leave ||
+        res.data;
 
       setLeaves((prev) =>
         prev.map((item) =>
           item.leave_id === id
             ? {
                 ...item,
+                ...(updatedLeave || {}),
                 status,
               }
             : item
@@ -259,9 +371,9 @@ export default function LeavesList() {
     }
   };
 
-  // =========================
+  // =====================================================
   // EDIT
-  // =========================
+  // =====================================================
 
   const openEditLeave = (leave) => {
     setEditingLeave(leave);
@@ -270,11 +382,15 @@ export default function LeavesList() {
       type: leave.type || "",
 
       from_date: leave.from_date
-        ? String(leave.from_date).slice(0, 10)
+        ? String(
+            leave.from_date
+          ).slice(0, 10)
         : "",
 
       to_date: leave.to_date
-        ? String(leave.to_date).slice(0, 10)
+        ? String(
+            leave.to_date
+          ).slice(0, 10)
         : "",
 
       notes: leave.notes || "",
@@ -287,7 +403,9 @@ export default function LeavesList() {
       !editForm.from_date ||
       !editForm.to_date
     ) {
-      alert("يرجى تعبئة جميع الحقول المطلوبة");
+      alert(
+        "يرجى تعبئة جميع الحقول المطلوبة"
+      );
       return;
     }
 
@@ -308,21 +426,30 @@ export default function LeavesList() {
         `/leaves/edit/${editingLeave.leave_id}`,
         {
           type: editForm.type,
-          from_date: editForm.from_date,
-          to_date: editForm.to_date,
+          from_date:
+            editForm.from_date,
+          to_date:
+            editForm.to_date,
           notes: editForm.notes,
         }
       );
 
+      const updatedLeave =
+        res.data?.leave ||
+        res.data;
+
       setLeaves((prev) =>
         prev.map((leave) =>
-          leave.leave_id === editingLeave.leave_id
+          leave.leave_id ===
+          editingLeave.leave_id
             ? {
                 ...leave,
-                ...(res.data || {}),
+                ...(updatedLeave || {}),
                 type: editForm.type,
-                from_date: editForm.from_date,
-                to_date: editForm.to_date,
+                from_date:
+                  editForm.from_date,
+                to_date:
+                  editForm.to_date,
                 notes: editForm.notes,
               }
             : leave
@@ -331,9 +458,14 @@ export default function LeavesList() {
 
       setEditingLeave(null);
 
-      alert("تم تعديل الإجازة بنجاح");
+      alert(
+        "تم تعديل الإجازة بنجاح"
+      );
     } catch (error) {
-      console.error("Update Leave Error:", error);
+      console.error(
+        "Update Leave Error:",
+        error
+      );
 
       alert(
         error.response?.data?.message ||
@@ -344,30 +476,58 @@ export default function LeavesList() {
     }
   };
 
-  // =========================
+  // =====================================================
   // EXCEL
-  // =========================
+  // =====================================================
 
   const exportToExcel = () => {
     if (!filteredLeaves.length) {
-      alert("لا توجد بيانات لتصديرها");
+      alert(
+        "لا توجد بيانات لتصديرها"
+      );
       return;
     }
 
-    const data = filteredLeaves.map((leave) => ({
-      الموظف: getEmployeeName(leave),
-      "نوع الإجازة": leave.type || "",
-      "من تاريخ": leave.from_date || "",
-      "إلى تاريخ": leave.to_date || "",
-      "عدد الأيام": leave.days || "",
-      الملاحظات: leave.notes || "",
-      الحالة: getStatusInfo(leave.status).text,
-    }));
+    const data =
+      filteredLeaves.map(
+        (leave) => ({
+          الموظف:
+            getEmployeeName(leave),
+
+          "نوع الإجازة":
+            leave.type || "",
+
+          "من تاريخ":
+            leave.from_date || "",
+
+          "إلى تاريخ":
+            leave.to_date || "",
+
+          "عدد الأيام":
+            leave.days || "",
+
+          المرفق:
+            leave.attachment
+              ? "يوجد مرفق"
+              : "لا يوجد",
+
+          الملاحظات:
+            leave.notes || "",
+
+          الحالة:
+            getStatusInfo(
+              leave.status
+            ).text,
+        })
+      );
 
     const worksheet =
-      XLSX.utils.json_to_sheet(data);
+      XLSX.utils.json_to_sheet(
+        data
+      );
 
-    const workbook = XLSX.utils.book_new();
+    const workbook =
+      XLSX.utils.book_new();
 
     XLSX.utils.book_append_sheet(
       workbook,
@@ -375,42 +535,51 @@ export default function LeavesList() {
       "الإجازات"
     );
 
-    const file = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
+    const file = XLSX.write(
+      workbook,
+      {
+        bookType: "xlsx",
+        type: "array",
+      }
+    );
 
     saveAs(
       new Blob([file], {
-        type: "application/octet-stream",
+        type:
+          "application/octet-stream",
       }),
       "الإجازات.xlsx"
     );
   };
 
-  // =========================
+  // =====================================================
   // DATE
-  // =========================
+  // =====================================================
 
   const formatDate = (date) => {
     if (!date) return "—";
 
     const d = new Date(date);
 
-    if (Number.isNaN(d.getTime())) {
+    if (
+      Number.isNaN(d.getTime())
+    ) {
       return String(date);
     }
 
-    return d.toLocaleDateString("ar-SA", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
+    return d.toLocaleDateString(
+      "ar-SA",
+      {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }
+    );
   };
 
-  // =========================
+  // =====================================================
   // DAYS
-  // =========================
+  // =====================================================
 
   const calculateDays = () => {
     if (
@@ -420,27 +589,35 @@ export default function LeavesList() {
       return 0;
     }
 
-    const start = new Date(editForm.from_date);
-    const end = new Date(editForm.to_date);
+    const start = new Date(
+      `${editForm.from_date}T00:00:00`
+    );
 
-    if (end < start) return 0;
+    const end = new Date(
+      `${editForm.to_date}T00:00:00`
+    );
+
+    if (end < start) {
+      return 0;
+    }
 
     return (
       Math.ceil(
-        (end.getTime() - start.getTime()) /
+        (end.getTime() -
+          start.getTime()) /
           (1000 * 60 * 60 * 24)
       ) + 1
     );
   };
 
-  // =========================
+  // =====================================================
   // RENDER
-  // =========================
+  // =====================================================
 
   return (
     <div className="leaves-page">
 
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
 
       <header className="top-header">
 
@@ -448,8 +625,12 @@ export default function LeavesList() {
 
           <div>
             <div className="breadcrumb">
-              <span>لوحة التحكم</span>
+              <span>
+                لوحة التحكم
+              </span>
+
               <b>/</b>
+
               <span className="current">
                 الإجازات
               </span>
@@ -470,7 +651,9 @@ export default function LeavesList() {
 
           <button
             className="primary-button"
-            onClick={() => nav("/leave")}
+            onClick={() =>
+              nav("/leave")
+            }
           >
             <span>＋</span>
             إضافة إجازة
@@ -482,7 +665,7 @@ export default function LeavesList() {
 
       <div className="content">
 
-        {/* ================= STATS ================= */}
+        {/* STATS */}
 
         <section className="stats-grid">
 
@@ -576,7 +759,7 @@ export default function LeavesList() {
 
         </section>
 
-        {/* ================= TOOLBAR ================= */}
+        {/* TOOLBAR */}
 
         <section className="toolbar">
 
@@ -591,14 +774,18 @@ export default function LeavesList() {
               placeholder="ابحث باسم الموظف أو نوع الإجازة..."
               value={search}
               onChange={(e) =>
-                setSearch(e.target.value)
+                setSearch(
+                  e.target.value
+                )
               }
             />
 
             {search && (
               <button
                 className="clear-search"
-                onClick={() => setSearch("")}
+                onClick={() =>
+                  setSearch("")
+                }
               >
                 ×
               </button>
@@ -612,28 +799,34 @@ export default function LeavesList() {
               className="select-filter"
               value={filterType}
               onChange={(e) =>
-                setFilterType(e.target.value)
+                setFilterType(
+                  e.target.value
+                )
               }
             >
               <option value="">
                 كل أنواع الإجازات
               </option>
 
-              {leaveTypes.map((type) => (
-                <option
-                  key={type}
-                  value={type}
-                >
-                  {type}
-                </option>
-              ))}
+              {leaveTypes.map(
+                (type) => (
+                  <option
+                    key={type}
+                    value={type}
+                  >
+                    {type}
+                  </option>
+                )
+              )}
             </select>
 
             <select
               className="select-filter"
               value={filterStatus}
               onChange={(e) =>
-                setFilterStatus(e.target.value)
+                setFilterStatus(
+                  e.target.value
+                )
               }
             >
               <option value="">
@@ -655,7 +848,9 @@ export default function LeavesList() {
 
             <button
               className="excel-button"
-              onClick={exportToExcel}
+              onClick={
+                exportToExcel
+              }
             >
               <span>↓</span>
               Excel
@@ -665,7 +860,7 @@ export default function LeavesList() {
 
         </section>
 
-        {/* ================= TABLE ================= */}
+        {/* TABLE */}
 
         <section className="table-container">
 
@@ -679,7 +874,9 @@ export default function LeavesList() {
                 </h2>
 
                 <span className="count-badge">
-                  {filteredLeaves.length}
+                  {
+                    filteredLeaves.length
+                  }
                 </span>
 
               </div>
@@ -691,7 +888,9 @@ export default function LeavesList() {
 
             <button
               className="refresh-button"
-              onClick={fetchLeaves}
+              onClick={
+                fetchLeaves
+              }
               disabled={loading}
             >
               <span
@@ -709,6 +908,7 @@ export default function LeavesList() {
           </div>
 
           {loading ? (
+
             <div className="empty-state">
 
               <div className="loading-spinner" />
@@ -722,7 +922,9 @@ export default function LeavesList() {
               </p>
 
             </div>
-          ) : filteredLeaves.length === 0 ? (
+
+          ) : filteredLeaves.length ===
+            0 ? (
 
             <div className="empty-state">
 
@@ -767,165 +969,70 @@ export default function LeavesList() {
               <div className="desktop-table">
 
                 <div className="table-head">
-                  <div>الموظف</div>
-                  <div>نوع الإجازة</div>
-                  <div>من</div>
-                  <div>إلى</div>
-                  <div>الحالة</div>
-                  <div>الإجراءات</div>
+
+                  <div>
+                    الموظف
+                  </div>
+
+                  <div>
+                    نوع الإجازة
+                  </div>
+
+                  <div>
+                    من
+                  </div>
+
+                  <div>
+                    إلى
+                  </div>
+
+                  <div>
+                    المرفق
+                  </div>
+
+                  <div>
+                    الحالة
+                  </div>
+
+                  <div>
+                    الإجراءات
+                  </div>
+
                 </div>
 
-                {filteredLeaves.map((leave) => {
+                {filteredLeaves.map(
+                  (leave) => {
 
-                  const status =
-                    getStatusInfo(leave.status);
+                    const status =
+                      getStatusInfo(
+                        leave.status
+                      );
 
-                  const statusKey =
-                    getStatusKey(leave.status);
+                    const statusKey =
+                      getStatusKey(
+                        leave.status
+                      );
 
-                  const employeeName =
-                    getEmployeeName(leave);
+                    const employeeName =
+                      getEmployeeName(
+                        leave
+                      );
 
-                  return (
-                    <div
-                      key={leave.leave_id}
-                      className="table-row"
-                    >
+                    const attachmentUrl =
+                      getAttachmentUrl(
+                        leave
+                      );
 
-                      <div className="employee-cell">
+                    return (
 
-                        <div className="avatar">
-                          {String(
-                            employeeName
-                          ).charAt(0)}
-                        </div>
+                      <div
+                        key={
+                          leave.leave_id
+                        }
+                        className="table-row"
+                      >
 
-                        <div className="employee-info">
-
-                          <div className="employee-name">
-                            {employeeName}
-                          </div>
-
-                          <div className="employee-role">
-                            طلب إجازة
-                          </div>
-
-                        </div>
-
-                      </div>
-
-                      <div>
-                        <span className="leave-type-badge">
-                          {leave.type || "—"}
-                        </span>
-                      </div>
-
-                      <div className="date-cell">
-                        {formatDate(
-                          leave.from_date
-                        )}
-                      </div>
-
-                      <div className="date-cell">
-                        {formatDate(
-                          leave.to_date
-                        )}
-                      </div>
-
-                      <div>
-                        <span
-                          className={`status-badge ${status.className}`}
-                        >
-                          <span className="status-dot" />
-                          {status.text}
-                        </span>
-                      </div>
-
-                      <div className="actions">
-
-                        {statusKey === "pending" && (
-                          <>
-                            <button
-                              className="action-button accept"
-                              title="قبول الطلب"
-                              onClick={() =>
-                                updateStatus(
-                                  leave.leave_id,
-                                  "approved"
-                                )
-                              }
-                              disabled={saving}
-                            >
-                              ✓
-                            </button>
-
-                            <button
-                              className="action-button reject"
-                              title="رفض الطلب"
-                              onClick={() =>
-                                updateStatus(
-                                  leave.leave_id,
-                                  "rejected"
-                                )
-                              }
-                              disabled={saving}
-                            >
-                              ×
-                            </button>
-
-                            <button
-                              className="action-button edit"
-                              title="تعديل"
-                              onClick={() =>
-                                openEditLeave(leave)
-                              }
-                              disabled={saving}
-                            >
-                              ✎
-                            </button>
-                          </>
-                        )}
-
-                        <button
-                          className="action-button view"
-                          title="عرض التفاصيل"
-                          onClick={() =>
-                            setSelectedLeave(leave)
-                          }
-                        >
-                          👁
-                        </button>
-
-                      </div>
-
-                    </div>
-                  );
-                })}
-
-              </div>
-
-              {/* MOBILE */}
-
-              <div className="mobile-cards">
-
-                {filteredLeaves.map((leave) => {
-
-                  const status =
-                    getStatusInfo(leave.status);
-
-                  const statusKey =
-                    getStatusKey(leave.status);
-
-                  const employeeName =
-                    getEmployeeName(leave);
-
-                  return (
-                    <div
-                      key={leave.leave_id}
-                      className="mobile-leave-card"
-                    >
-
-                      <div className="mobile-leave-top">
+                        {/* EMPLOYEE */}
 
                         <div className="employee-cell">
 
@@ -938,124 +1045,426 @@ export default function LeavesList() {
                           <div className="employee-info">
 
                             <div className="employee-name">
-                              {employeeName}
+                              {
+                                employeeName
+                              }
                             </div>
 
                             <div className="employee-role">
-                              {leave.type || "إجازة"}
+                              طلب إجازة
                             </div>
 
                           </div>
 
                         </div>
 
-                        <span
-                          className={`status-badge ${status.className}`}
-                        >
-                          <span className="status-dot" />
-                          {status.text}
-                        </span>
-
-                      </div>
-
-                      <div className="mobile-info">
+                        {/* TYPE */}
 
                         <div>
-                          <small>
-                            نوع الإجازة
-                          </small>
-
-                          <span>
-                            {leave.type || "—"}
+                          <span className="leave-type-badge">
+                            {
+                              leave.type ||
+                              "—"
+                            }
                           </span>
                         </div>
 
-                        <div>
-                          <small>من</small>
+                        {/* FROM */}
 
-                          <span>
-                            {formatDate(
-                              leave.from_date
-                            )}
-                          </span>
+                        <div className="date-cell">
+                          {formatDate(
+                            leave.from_date
+                          )}
                         </div>
 
-                        <div>
-                          <small>إلى</small>
+                        {/* TO */}
 
-                          <span>
-                            {formatDate(
-                              leave.to_date
-                            )}
-                          </span>
+                        <div className="date-cell">
+                          {formatDate(
+                            leave.to_date
+                          )}
                         </div>
 
-                        <div>
-                          <small>الأيام</small>
+                        {/* ATTACHMENT */}
 
-                          <span>
-                            {leave.days || "—"}
-                          </span>
-                        </div>
+                        <div className="attachment-cell">
 
-                      </div>
+                          {attachmentUrl ? (
 
-                      <div className="mobile-actions">
-
-                        {statusKey === "pending" && (
-                          <>
                             <button
-                              className="mobile-action accept"
+                              className="attachment-preview-button"
                               onClick={() =>
-                                updateStatus(
-                                  leave.leave_id,
-                                  "approved"
+                                openAttachment(
+                                  leave
                                 )
                               }
-                              disabled={saving}
+                              title="عرض المرفق"
                             >
-                              ✓ قبول
+
+                              {isPdfFile(
+                                attachmentUrl
+                              ) ? (
+
+                                <span className="attachment-pdf">
+                                  📄
+                                </span>
+
+                              ) : (
+
+                                <img
+                                  src={
+                                    attachmentUrl
+                                  }
+                                  alt="مرفق الإجازة"
+                                  className="attachment-thumbnail"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display =
+                                      "none";
+                                  }}
+                                />
+
+                              )}
+
+                              <span className="attachment-text">
+                                عرض
+                              </span>
+
                             </button>
 
-                            <button
-                              className="mobile-action reject"
-                              onClick={() =>
-                                updateStatus(
-                                  leave.leave_id,
-                                  "rejected"
-                                )
-                              }
-                              disabled={saving}
-                            >
-                              × رفض
-                            </button>
+                          ) : (
 
-                            <button
-                              className="mobile-action edit"
-                              onClick={() =>
-                                openEditLeave(leave)
+                            <span className="no-attachment">
+                              لا يوجد
+                            </span>
+
+                          )}
+
+                        </div>
+
+                        {/* STATUS */}
+
+                        <div>
+
+                          <span
+                            className={`status-badge ${status.className}`}
+                          >
+                            <span className="status-dot" />
+
+                            {
+                              status.text
+                            }
+                          </span>
+
+                        </div>
+
+                        {/* ACTIONS */}
+
+                        <div className="actions">
+
+                          {statusKey ===
+                            "pending" && (
+                            <>
+
+                              <button
+                                className="action-button accept"
+                                title="قبول الطلب"
+                                onClick={() =>
+                                  updateStatus(
+                                    leave.leave_id,
+                                    "approved"
+                                  )
+                                }
+                                disabled={
+                                  saving
+                                }
+                              >
+                                ✓
+                              </button>
+
+                              <button
+                                className="action-button reject"
+                                title="رفض الطلب"
+                                onClick={() =>
+                                  updateStatus(
+                                    leave.leave_id,
+                                    "rejected"
+                                  )
+                                }
+                                disabled={
+                                  saving
+                                }
+                              >
+                                ×
+                              </button>
+
+                              <button
+                                className="action-button edit"
+                                title="تعديل"
+                                onClick={() =>
+                                  openEditLeave(
+                                    leave
+                                  )
+                                }
+                                disabled={
+                                  saving
+                                }
+                              >
+                                ✎
+                              </button>
+
+                            </>
+                          )}
+
+                          <button
+                            className="action-button view"
+                            title="عرض التفاصيل"
+                            onClick={() =>
+                              setSelectedLeave(
+                                leave
+                              )
+                            }
+                          >
+                            👁
+                          </button>
+
+                        </div>
+
+                      </div>
+                    );
+                  }
+                )}
+
+              </div>
+
+              {/* MOBILE */}
+
+              <div className="mobile-cards">
+
+                {filteredLeaves.map(
+                  (leave) => {
+
+                    const status =
+                      getStatusInfo(
+                        leave.status
+                      );
+
+                    const statusKey =
+                      getStatusKey(
+                        leave.status
+                      );
+
+                    const employeeName =
+                      getEmployeeName(
+                        leave
+                      );
+
+                    const attachmentUrl =
+                      getAttachmentUrl(
+                        leave
+                      );
+
+                    return (
+
+                      <div
+                        key={
+                          leave.leave_id
+                        }
+                        className="mobile-leave-card"
+                      >
+
+                        <div className="mobile-leave-top">
+
+                          <div className="employee-cell">
+
+                            <div className="avatar">
+                              {String(
+                                employeeName
+                              ).charAt(0)}
+                            </div>
+
+                            <div className="employee-info">
+
+                              <div className="employee-name">
+                                {
+                                  employeeName
+                                }
+                              </div>
+
+                              <div className="employee-role">
+                                {
+                                  leave.type ||
+                                  "إجازة"
+                                }
+                              </div>
+
+                            </div>
+
+                          </div>
+
+                          <span
+                            className={`status-badge ${status.className}`}
+                          >
+                            <span className="status-dot" />
+                            {
+                              status.text
+                            }
+                          </span>
+
+                        </div>
+
+                        <div className="mobile-info">
+
+                          <div>
+                            <small>
+                              نوع الإجازة
+                            </small>
+
+                            <span>
+                              {
+                                leave.type ||
+                                "—"
                               }
-                              disabled={saving}
-                            >
-                              ✎ تعديل
-                            </button>
-                          </>
+                            </span>
+                          </div>
+
+                          <div>
+                            <small>
+                              من
+                            </small>
+
+                            <span>
+                              {formatDate(
+                                leave.from_date
+                              )}
+                            </span>
+                          </div>
+
+                          <div>
+                            <small>
+                              إلى
+                            </small>
+
+                            <span>
+                              {formatDate(
+                                leave.to_date
+                              )}
+                            </span>
+                          </div>
+
+                          <div>
+                            <small>
+                              الأيام
+                            </small>
+
+                            <span>
+                              {
+                                leave.days ||
+                                "—"
+                              }
+                            </span>
+                          </div>
+
+                        </div>
+
+                        {/* MOBILE ATTACHMENT */}
+
+                        {attachmentUrl && (
+                          <button
+                            className="mobile-attachment"
+                            onClick={() =>
+                              openAttachment(
+                                leave
+                              )
+                            }
+                          >
+
+                            {isPdfFile(
+                              attachmentUrl
+                            ) ? (
+                              <>
+                                📄
+                                عرض ملف PDF
+                              </>
+                            ) : (
+                              <>
+                                🖼️
+                                عرض مرفق الإجازة
+                              </>
+                            )}
+
+                          </button>
                         )}
 
-                        <button
-                          className="mobile-action view full"
-                          onClick={() =>
-                            setSelectedLeave(leave)
-                          }
-                        >
-                          👁 عرض التفاصيل
-                        </button>
+                        <div className="mobile-actions">
+
+                          {statusKey ===
+                            "pending" && (
+                            <>
+
+                              <button
+                                className="mobile-action accept"
+                                onClick={() =>
+                                  updateStatus(
+                                    leave.leave_id,
+                                    "approved"
+                                  )
+                                }
+                                disabled={
+                                  saving
+                                }
+                              >
+                                ✓ قبول
+                              </button>
+
+                              <button
+                                className="mobile-action reject"
+                                onClick={() =>
+                                  updateStatus(
+                                    leave.leave_id,
+                                    "rejected"
+                                  )
+                                }
+                                disabled={
+                                  saving
+                                }
+                              >
+                                × رفض
+                              </button>
+
+                              <button
+                                className="mobile-action edit"
+                                onClick={() =>
+                                  openEditLeave(
+                                    leave
+                                  )
+                                }
+                                disabled={
+                                  saving
+                                }
+                              >
+                                ✎ تعديل
+                              </button>
+
+                            </>
+                          )}
+
+                          <button
+                            className="mobile-action view full"
+                            onClick={() =>
+                              setSelectedLeave(
+                                leave
+                              )
+                            }
+                          >
+                            👁 عرض التفاصيل
+                          </button>
+
+                        </div>
 
                       </div>
-
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                )}
 
               </div>
 
@@ -1066,13 +1475,128 @@ export default function LeavesList() {
 
       </div>
 
-      {/* ================= DETAILS MODAL ================= */}
+      {/* =====================================================
+          ATTACHMENT MODAL
+      ===================================================== */}
+
+      {selectedAttachment && (
+        <div
+          className="attachment-modal-overlay"
+          onClick={(e) => {
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
+              setSelectedAttachment(
+                null
+              );
+            }
+          }}
+        >
+
+          <div className="attachment-modal">
+
+            <div className="attachment-modal-header">
+
+              <div>
+
+                <h2>
+                  مرفق الإجازة
+                </h2>
+
+                <p>
+                  الموظف:{" "}
+                  <strong>
+                    {
+                      selectedAttachment.employee
+                    }
+                  </strong>
+                </p>
+
+              </div>
+
+              <button
+                className="attachment-close"
+                onClick={() =>
+                  setSelectedAttachment(
+                    null
+                  )
+                }
+              >
+                ×
+              </button>
+
+            </div>
+
+            <div className="attachment-modal-body">
+
+              {selectedAttachment.isPdf ? (
+
+                <iframe
+                  src={
+                    selectedAttachment.url
+                  }
+                  title="مرفق الإجازة"
+                  className="attachment-pdf-viewer"
+                />
+
+              ) : (
+
+                <img
+                  src={
+                    selectedAttachment.url
+                  }
+                  alt="مرفق الإجازة"
+                  className="attachment-large-image"
+                />
+
+              )}
+
+            </div>
+
+            <div className="attachment-modal-footer">
+
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  setSelectedAttachment(
+                    null
+                  )
+                }
+              >
+                إغلاق
+              </button>
+
+              <a
+                href={
+                  selectedAttachment.url
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="primary-button"
+              >
+                فتح في نافذة جديدة
+              </a>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* =====================================================
+          DETAILS MODAL
+      ===================================================== */}
 
       {selectedLeave && (
         <div
           className="modal-overlay"
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
               setSelectedLeave(null);
             }
           }}
@@ -1097,9 +1621,11 @@ export default function LeavesList() {
                   <p className="modal-subtitle">
                     الطلب المقدم من{" "}
                     <strong>
-                      {getEmployeeName(
-                        selectedLeave
-                      )}
+                      {
+                        getEmployeeName(
+                          selectedLeave
+                        )
+                      }
                     </strong>
                   </p>
 
@@ -1110,7 +1636,9 @@ export default function LeavesList() {
               <button
                 className="close-button"
                 onClick={() =>
-                  setSelectedLeave(null)
+                  setSelectedLeave(
+                    null
+                  )
                 }
               >
                 ×
@@ -1123,23 +1651,37 @@ export default function LeavesList() {
               <div className="detail-grid">
 
                 <div className="detail-item">
-                  <span>الموظف</span>
+                  <span>
+                    الموظف
+                  </span>
+
                   <strong>
-                    {getEmployeeName(
-                      selectedLeave
-                    )}
+                    {
+                      getEmployeeName(
+                        selectedLeave
+                      )
+                    }
                   </strong>
                 </div>
 
                 <div className="detail-item">
-                  <span>نوع الإجازة</span>
+                  <span>
+                    نوع الإجازة
+                  </span>
+
                   <strong>
-                    {selectedLeave.type || "—"}
+                    {
+                      selectedLeave.type ||
+                      "—"
+                    }
                   </strong>
                 </div>
 
                 <div className="detail-item">
-                  <span>من تاريخ</span>
+                  <span>
+                    من تاريخ
+                  </span>
+
                   <strong>
                     {formatDate(
                       selectedLeave.from_date
@@ -1148,7 +1690,10 @@ export default function LeavesList() {
                 </div>
 
                 <div className="detail-item">
-                  <span>إلى تاريخ</span>
+                  <span>
+                    إلى تاريخ
+                  </span>
+
                   <strong>
                     {formatDate(
                       selectedLeave.to_date
@@ -1157,14 +1702,22 @@ export default function LeavesList() {
                 </div>
 
                 <div className="detail-item">
-                  <span>عدد الأيام</span>
+                  <span>
+                    عدد الأيام
+                  </span>
+
                   <strong>
-                    {selectedLeave.days || "—"}
+                    {
+                      selectedLeave.days ||
+                      "—"
+                    }
                   </strong>
                 </div>
 
                 <div className="detail-item">
-                  <span>الحالة</span>
+                  <span>
+                    الحالة
+                  </span>
 
                   <strong>
                     <span
@@ -1183,16 +1736,60 @@ export default function LeavesList() {
                       }
                     </span>
                   </strong>
+                </div>
+
+                {/* ATTACHMENT */}
+
+                <div className="detail-item full">
+
+                  <span>
+                    مرفق الإجازة
+                  </span>
+
+                  {getAttachmentUrl(
+                    selectedLeave
+                  ) ? (
+
+                    <button
+                      className="detail-attachment-button"
+                      onClick={() =>
+                        openAttachment(
+                          selectedLeave
+                        )
+                      }
+                    >
+
+                      {isPdfFile(
+                        getAttachmentUrl(
+                          selectedLeave
+                        )
+                      )
+                        ? "📄 عرض ملف PDF"
+                        : "🖼️ عرض صورة الإجازة"}
+
+                    </button>
+
+                  ) : (
+
+                    <strong>
+                      لا يوجد مرفق
+                    </strong>
+
+                  )}
 
                 </div>
 
                 <div className="detail-item full">
 
-                  <span>الملاحظات</span>
+                  <span>
+                    الملاحظات
+                  </span>
 
                   <strong className="notes-value">
-                    {selectedLeave.notes ||
-                      "لا توجد ملاحظات"}
+                    {
+                      selectedLeave.notes ||
+                      "لا توجد ملاحظات"
+                    }
                   </strong>
 
                 </div>
@@ -1206,7 +1803,9 @@ export default function LeavesList() {
               <button
                 className="secondary-button"
                 onClick={() =>
-                  setSelectedLeave(null)
+                  setSelectedLeave(
+                    null
+                  )
                 }
               >
                 إغلاق
@@ -1223,10 +1822,13 @@ export default function LeavesList() {
                     const leave =
                       selectedLeave;
 
-                    setSelectedLeave(null);
+                    setSelectedLeave(
+                      null
+                    );
 
-                    openEditLeave(leave);
-
+                    openEditLeave(
+                      leave
+                    );
                   }}
                 >
                   ✎ تعديل الإجازة
@@ -1241,7 +1843,9 @@ export default function LeavesList() {
         </div>
       )}
 
-      {/* ================= EDIT MODAL ================= */}
+      {/* =====================================================
+          EDIT MODAL
+      ===================================================== */}
 
       {editingLeave && (
         <div
@@ -1249,10 +1853,13 @@ export default function LeavesList() {
           onClick={(e) => {
 
             if (
-              e.target === e.currentTarget &&
+              e.target ===
+                e.currentTarget &&
               !saving
             ) {
-              setEditingLeave(null);
+              setEditingLeave(
+                null
+              );
             }
 
           }}
@@ -1277,9 +1884,11 @@ export default function LeavesList() {
                   <p className="modal-subtitle">
                     تعديل طلب الموظف{" "}
                     <strong>
-                      {getEmployeeName(
-                        editingLeave
-                      )}
+                      {
+                        getEmployeeName(
+                          editingLeave
+                        )
+                      }
                     </strong>
                   </p>
 
@@ -1290,7 +1899,9 @@ export default function LeavesList() {
               <button
                 className="close-button"
                 onClick={() =>
-                  setEditingLeave(null)
+                  setEditingLeave(
+                    null
+                  )
                 }
                 disabled={saving}
               >
@@ -1310,11 +1921,14 @@ export default function LeavesList() {
 
                 <input
                   className="form-input"
-                  value={editForm.type}
+                  value={
+                    editForm.type
+                  }
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
-                      type: e.target.value,
+                      type: e.target
+                        .value,
                     })
                   }
                   placeholder="مثال: إجازة سنوية"
@@ -1335,7 +1949,9 @@ export default function LeavesList() {
                   <input
                     type="date"
                     className="form-input"
-                    value={editForm.from_date}
+                    value={
+                      editForm.from_date
+                    }
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
@@ -1358,7 +1974,13 @@ export default function LeavesList() {
                   <input
                     type="date"
                     className="form-input"
-                    value={editForm.to_date}
+                    value={
+                      editForm.to_date
+                    }
+                    min={
+                      editForm.from_date ||
+                      undefined
+                    }
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
@@ -1373,7 +1995,8 @@ export default function LeavesList() {
 
               </div>
 
-              {calculateDays() > 0 && (
+              {calculateDays() >
+                0 && (
                 <div className="days-preview">
 
                   <span>📅</span>
@@ -1385,7 +2008,10 @@ export default function LeavesList() {
                     </small>
 
                     <strong>
-                      {calculateDays()} يوم
+                      {
+                        calculateDays()
+                      }{" "}
+                      يوم
                     </strong>
 
                   </div>
@@ -1401,11 +2027,14 @@ export default function LeavesList() {
 
                 <textarea
                   className="form-textarea"
-                  value={editForm.notes}
+                  value={
+                    editForm.notes
+                  }
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
-                      notes: e.target.value,
+                      notes: e.target
+                        .value,
                     })
                   }
                   placeholder="أدخل الملاحظات..."
@@ -1422,7 +2051,9 @@ export default function LeavesList() {
               <button
                 className="secondary-button"
                 onClick={() =>
-                  setEditingLeave(null)
+                  setEditingLeave(
+                    null
+                  )
                 }
                 disabled={saving}
               >
@@ -1431,7 +2062,9 @@ export default function LeavesList() {
 
               <button
                 className="primary-button save-button"
-                onClick={updateLeave}
+                onClick={
+                  updateLeave
+                }
                 disabled={saving}
               >
 
