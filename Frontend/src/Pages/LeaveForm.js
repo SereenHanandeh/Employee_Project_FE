@@ -85,23 +85,28 @@ export default function LeaveForm() {
       // =======================================================
       // ADMIN
       // =======================================================
+if (user.role === "admin") {
+  setIsAdmin(true);
 
-      if (user.role === "admin") {
-        setIsAdmin(true);
+  // جلب جميع الموظفين النشطين
+  const empRes = await API.get("/employees/active");
 
-        // فقط الموظفون النشطون
-        const empRes = await API.get(
-          "/employees/active"
-        );
+  console.log("ACTIVE EMPLOYEES:", empRes.data);
+  console.log(
+    "EMPLOYEES COUNT:",
+    Array.isArray(empRes.data)
+      ? empRes.data.length
+      : 0
+  );
 
-        setEmployees(
-          Array.isArray(empRes.data)
-            ? empRes.data
-            : []
-        );
+  setEmployees(
+    Array.isArray(empRes.data)
+      ? empRes.data
+      : []
+  );
 
-        return;
-      }
+  return;
+}
 
 
       // =======================================================
