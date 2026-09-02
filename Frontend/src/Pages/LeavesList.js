@@ -742,7 +742,7 @@ export default function LeavesList() {
             type="button"
             className="primary-button"
             onClick={() =>
-              nav("/leaves/add")
+              nav("/leave")
             }
           >
             <FaCalendarAlt />
