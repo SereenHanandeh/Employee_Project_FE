@@ -23,70 +23,137 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
+ const fetchDashboardData = async () => {
+  try {
+    setLoading(true);
 
-      const [
-        empRes,
-        evalRes,
-        leaveRes,
-        taskRes,
-      ] = await Promise.all([
-        API.get("/employees"),
-        API.get("/evaluations"),
-        API.get("/leaves"),
-        API.get("/tasks"),
-      ]);
+    const results = await Promise.allSettled([
+      API.get("/employees"),
+      API.get("/evaluations"),
+      API.get("/leaves"),
+      API.get("/tasks"),
+    ]);
 
-      const employees = empRes.data || [];
-      const evaluations = evalRes.data || [];
-      const allLeaves = leaveRes.data || [];
-      const allTasks = taskRes.data || [];
+    const [empRes, evalRes, leaveRes, taskRes] = results;
 
-      setStats({
-        employees: employees.length,
-        evaluations: evaluations.length,
-        leaves: allLeaves.length,
-        tasks: allTasks.length,
-      });
+    // ================================
+    // EMPLOYEES
+    // ================================
+    const employees =
+      empRes.status === "fulfilled"
+        ? Array.isArray(empRes.value.data)
+          ? empRes.value.data
+          : empRes.value.data?.employees || []
+        : [];
 
-      // آخر 5 إجازات
-      setLeaves(
-        [...allLeaves]
-          .reverse()
-          .slice(0, 5)
+    // ================================
+    // EVALUATIONS
+    // ================================
+    const evaluations =
+      evalRes.status === "fulfilled"
+        ? Array.isArray(evalRes.value.data)
+          ? evalRes.value.data
+          : evalRes.value.data?.evaluations || []
+        : [];
+
+    // ================================
+    // LEAVES
+    // ================================
+    const allLeaves =
+      leaveRes.status === "fulfilled"
+        ? Array.isArray(leaveRes.value.data)
+          ? leaveRes.value.data
+          : leaveRes.value.data?.leaves || []
+        : [];
+
+    // ================================
+    // TASKS
+    // ================================
+    const allTasks =
+      taskRes.status === "fulfilled"
+        ? Array.isArray(taskRes.value.data)
+          ? taskRes.value.data
+          : taskRes.value.data?.tasks || []
+        : [];
+
+    // ================================
+    // LOG ERRORS
+    // ================================
+    if (empRes.status === "rejected") {
+      console.error(
+        "Employees Error:",
+        empRes.reason?.response?.data || empRes.reason
       );
-
-      // آخر 5 تقييمات
-      setEvaluations(
-        [...evaluations]
-          .reverse()
-          .slice(0, 5)
-      );
-
-      // المهام غير المكتملة
-      const pendingTasks = allTasks.filter(
-        (task) =>
-          task.status !== "completed" &&
-          task.status !== "مكتملة"
-      );
-
-      setTasks(
-        pendingTasks.slice(0, 5)
-      );
-
-    } catch (error) {
-      console.error("Dashboard Error:", error);
-
-      alert(
-        error?.response?.data?.message ||
-          "فشل تحميل بيانات لوحة التحكم"
-      );
-    } finally {
-      setLoading(false);
     }
-  };
+
+    if (evalRes.status === "rejected") {
+      console.error(
+        "Evaluations Error:",
+        evalRes.reason?.response?.data || evalRes.reason
+      );
+    }
+
+    if (leaveRes.status === "rejected") {
+      console.error(
+        "Leaves Error:",
+        leaveRes.reason?.response?.data || leaveRes.reason
+      );
+    }
+
+    if (taskRes.status === "rejected") {
+      console.error(
+        "Tasks Error:",
+        taskRes.reason?.response?.data || taskRes.reason
+      );
+    }
+
+    // ================================
+    // STATS
+    // ================================
+    setStats({
+      employees: employees.length,
+      evaluations: evaluations.length,
+      leaves: allLeaves.length,
+      tasks: allTasks.length,
+    });
+
+    // ================================
+    // LAST 5 LEAVES
+    // ================================
+    setLeaves(
+      [...allLeaves]
+        .reverse()
+        .slice(0, 5)
+    );
+
+    // ================================
+    // LAST 5 EVALUATIONS
+    // ================================
+    setEvaluations(
+      [...evaluations]
+        .reverse()
+        .slice(0, 5)
+    );
+
+    // ================================
+    // PENDING TASKS
+    // ================================
+    const pendingTasks = allTasks.filter(
+      (task) =>
+        task.status !== "completed" &&
+        task.status !== "مكتملة"
+    );
+
+    setTasks(
+      pendingTasks.slice(0, 5)
+    );
+
+  } catch (error) {
+    console.error("Dashboard Error:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const statCards = [
     {
