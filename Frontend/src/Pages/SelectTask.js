@@ -386,88 +386,153 @@ export default function SelectTask() {
   // =========================================================
   // ASSIGN TASK
   // =========================================================
-  const assignTask = async () => {
-    if (saving) return;
+  // =========================================================
+// ASSIGN TASK - DEBUG VERSION
+// =========================================================
+const assignTask = async () => {
+  if (saving) return;
 
-    if (!assigningTask) {
-      alert("لم يتم تحديد المهمة");
-      return;
-    }
+  if (!assigningTask) {
+    alert("لم يتم تحديد المهمة");
+    return;
+  }
 
-    const employeeId = Number(
-      selectedEmployee
-    );
+  const employeeId = Number(selectedEmployee);
+  const taskId = Number(assigningTask.task_id);
 
-    const taskId = Number(
-      assigningTask.task_id
-    );
+  console.log("=================================");
+  console.log("🔵 ASSIGN TASK START");
+  console.log("assigningTask:", assigningTask);
+  console.log("selectedEmployee:", selectedEmployee);
+  console.log("employeeId:", employeeId);
+  console.log("taskId:", taskId);
+  console.log("=================================");
 
-    console.log("ASSIGN DATA:", {
-      employee_id: employeeId,
-      task_id: taskId,
-    });
+  if (!Number.isInteger(employeeId) || employeeId <= 0) {
+    alert("يرجى اختيار موظف صحيح");
+    return;
+  }
 
-    if (!Number.isInteger(employeeId) || employeeId <= 0) {
-      alert("يرجى اختيار موظف صحيح");
-      return;
-    }
+  if (!Number.isInteger(taskId) || taskId <= 0) {
+    alert("معرّف المهمة غير صحيح");
+    return;
+  }
 
-    if (!Number.isInteger(taskId) || taskId <= 0) {
-      alert("معرّف المهمة غير صحيح");
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      const res = await API.post(
-        "/tasks/assign",
-        {
-          employee_id: employeeId,
-          task_id: taskId,
-        }
-      );
-
-      console.log(
-        "ASSIGN RESPONSE:",
-        res.data
-      );
-
-      // تحديث المهمة في الواجهة
-      setTasks((prev) =>
-        prev.map((task) =>
-          Number(task.task_id) === taskId
-            ? {
-                ...task,
-                employee_id: employeeId,
-              }
-            : task
-        )
-      );
-
-      const employeeName =
-        getEmployeeName(employeeId);
-
-      alert(
-        `تم تعيين المهمة للموظف ${employeeName} بنجاح ✅`
-      );
-
-      setAssigningTask(null);
-      setSelectedEmployee("");
-    } catch (err) {
-      console.error(
-        "ASSIGN TASK ERROR:",
-        err
-      );
-
-      alert(
-        err?.response?.data?.message ||
-          "حدث خطأ أثناء تعيين المهمة"
-      );
-    } finally {
-      setSaving(false);
-    }
+  const data = {
+    employee_id: employeeId,
+    task_id: taskId,
   };
+
+  console.log("📤 DATA SENT TO SERVER:", data);
+
+  try {
+    setSaving(true);
+
+    const res = await API.post("/tasks/assign", data);
+
+    console.log("=================================");
+    console.log("🟢 ASSIGN SUCCESS");
+    console.log("STATUS:", res.status);
+    console.log("RESPONSE:", res.data);
+    console.log("=================================");
+
+    // تحديث المهمة في الواجهة
+    setTasks((prev) =>
+      prev.map((task) =>
+        Number(task.task_id) === taskId
+          ? {
+              ...task,
+              employee_id: employeeId,
+              employee_name:
+                res.data?.employee?.name ||
+                getEmployeeName(employeeId),
+            }
+          : task
+      )
+    );
+
+    const employeeName = getEmployeeName(employeeId);
+
+    alert(
+      `تم تعيين المهمة للموظف ${employeeName} بنجاح ✅`
+    );
+
+    setAssigningTask(null);
+    setSelectedEmployee("");
+
+  } catch (err) {
+
+    console.log("=================================");
+    console.error("🔴 ASSIGN TASK FAILED");
+    console.log("=================================");
+
+    console.error("ERROR OBJECT:", err);
+
+    console.log(
+      "HTTP STATUS:",
+      err?.response?.status
+    );
+
+    console.log(
+      "SERVER DATA:",
+      err?.response?.data
+    );
+
+    console.log(
+      "SERVER MESSAGE:",
+      err?.response?.data?.message
+    );
+
+    console.log(
+      "SERVER ERROR:",
+      err?.response?.data?.error
+    );
+
+    console.log(
+      "SERVER CODE:",
+      err?.response?.data?.code
+    );
+
+    console.log(
+      "SERVER DETAIL:",
+      err?.response?.data?.detail
+    );
+
+    console.log(
+      "REQUEST URL:",
+      err?.config?.url
+    );
+
+    console.log(
+      "REQUEST METHOD:",
+      err?.config?.method
+    );
+
+    console.log(
+      "REQUEST DATA:",
+      err?.config?.data
+    );
+
+    console.log("=================================");
+
+    // إظهار الخطأ الحقيقي للمستخدم
+    const serverMessage =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.response?.data?.detail ||
+      err?.message ||
+      "حدث خطأ غير معروف";
+
+    alert(
+      `فشل تعيين المهمة ❌\n\n` +
+      `Status: ${err?.response?.status || "غير معروف"}\n\n` +
+      `${serverMessage}`
+    );
+
+  } finally {
+    setSaving(false);
+  }
+};
 
   // =========================================================
   // STATS
