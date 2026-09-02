@@ -16,14 +16,15 @@ import "./leaveForm.css";
 export default function LeaveForm() {
   const nav = useNavigate();
 
-  // =============================
+  // =========================================================
   // STATE
-  // =============================
+  // =========================================================
 
   const [employees, setEmployees] = useState([]);
   const [me, setMe] = useState(null);
 
   const [employeeId, setEmployeeId] = useState("");
+
   const [type, setType] = useState("سنوية");
 
   const [from, setFrom] = useState("");
@@ -39,17 +40,19 @@ export default function LeaveForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // =============================
+
+  // =========================================================
   // LOAD DATA
-  // =============================
+  // =========================================================
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // =============================
+
+  // =========================================================
   // CLEAN PREVIEW URL
-  // =============================
+  // =========================================================
 
   useEffect(() => {
     return () => {
@@ -59,13 +62,18 @@ export default function LeaveForm() {
     };
   }, [preview]);
 
-  // =============================
+
+  // =========================================================
   // FETCH USER DATA
-  // =============================
+  // =========================================================
 
   const fetchData = async () => {
     try {
       setLoading(true);
+
+      // -------------------------------------------------------
+      // Get current user
+      // -------------------------------------------------------
 
       const res = await API.get("/employees/me");
 
@@ -73,14 +81,18 @@ export default function LeaveForm() {
 
       setMe(user);
 
-      // =============================
+
+      // =======================================================
       // ADMIN
-      // =============================
+      // =======================================================
 
       if (user.role === "admin") {
         setIsAdmin(true);
 
-        const empRes = await API.get("/employees");
+        // فقط الموظفون النشطون
+        const empRes = await API.get(
+          "/employees/active"
+        );
 
         setEmployees(
           Array.isArray(empRes.data)
@@ -91,18 +103,24 @@ export default function LeaveForm() {
         return;
       }
 
-      // =============================
+
+      // =======================================================
       // EMPLOYEE
-      // =============================
+      // =======================================================
 
       setIsAdmin(false);
 
-      if (user.employee_id) {
-        setEmployeeId(user.employee_id);
-      } else if (user.id) {
-        setEmployeeId(user.id);
+      const currentEmployeeId =
+        user.employee_id || user.id;
+
+      if (currentEmployeeId) {
+        setEmployeeId(
+          String(currentEmployeeId)
+        );
       } else {
-        alert("تعذر تحديد رقم الموظف");
+        alert(
+          "تعذر تحديد رقم الموظف"
+        );
       }
     } catch (err) {
       console.error(
@@ -119,22 +137,26 @@ export default function LeaveForm() {
     }
   };
 
-  // =============================
+
+  // =========================================================
   // FILE SELECT
-  // =============================
+  // =========================================================
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files?.[0];
+    const selectedFile =
+      e.target.files?.[0];
 
     if (!selectedFile) {
       return;
     }
 
-    // =============================
-    // MAX SIZE 5MB
-    // =============================
 
-    const maxSize = 5 * 1024 * 1024;
+    // =======================================================
+    // MAX SIZE 5MB
+    // =======================================================
+
+    const maxSize =
+      5 * 1024 * 1024;
 
     if (selectedFile.size > maxSize) {
       alert(
@@ -142,12 +164,14 @@ export default function LeaveForm() {
       );
 
       e.target.value = "";
+
       return;
     }
 
-    // =============================
+
+    // =======================================================
     // ALLOWED TYPES
-    // =============================
+    // =======================================================
 
     const allowedTypes = [
       "image/jpeg",
@@ -157,49 +181,65 @@ export default function LeaveForm() {
       "application/pdf",
     ];
 
-    if (!allowedTypes.includes(selectedFile.type)) {
+    if (
+      !allowedTypes.includes(
+        selectedFile.type
+      )
+    ) {
       alert(
         "يسمح فقط برفع JPG أو PNG أو WEBP أو PDF"
       );
 
       e.target.value = "";
+
       return;
     }
 
-    // =============================
+
+    // =======================================================
     // REMOVE OLD PREVIEW
-    // =============================
+    // =======================================================
 
     if (preview) {
       URL.revokeObjectURL(preview);
     }
 
-    // =============================
+
+    // =======================================================
     // SAVE FILE
-    // =============================
+    // =======================================================
 
     setFile(selectedFile);
 
-    // =============================
+
+    // =======================================================
     // CREATE PREVIEW
-    // =============================
+    // =======================================================
 
     const fileUrl =
-      URL.createObjectURL(selectedFile);
+      URL.createObjectURL(
+        selectedFile
+      );
 
-    // فقط الصور لها image preview
-    if (selectedFile.type.startsWith("image/")) {
+    if (
+      selectedFile.type.startsWith(
+        "image/"
+      )
+    ) {
       setPreview(fileUrl);
     } else {
-      // PDF
       setPreview("");
-      URL.revokeObjectURL(fileUrl);
+
+      URL.revokeObjectURL(
+        fileUrl
+      );
     }
   };
 
-  // =============================
+
+  // =========================================================
   // REMOVE FILE
-  // =============================
+  // =========================================================
 
   const removeFile = () => {
     if (preview) {
@@ -210,16 +250,19 @@ export default function LeaveForm() {
     setPreview("");
 
     const input =
-      document.getElementById("leave-file");
+      document.getElementById(
+        "leave-file"
+      );
 
     if (input) {
       input.value = "";
     }
   };
 
-  // =============================
+
+  // =========================================================
   // CALCULATE DAYS
-  // =============================
+  // =========================================================
 
   const calculateDays = () => {
     if (!from || !to) {
@@ -246,7 +289,8 @@ export default function LeaveForm() {
     }
 
     const difference =
-      end.getTime() - start.getTime();
+      end.getTime() -
+      start.getTime();
 
     return (
       Math.floor(
@@ -258,70 +302,119 @@ export default function LeaveForm() {
 
   const days = calculateDays();
 
-  // =============================
+
+  // =========================================================
   // SAVE LEAVE
-  // =============================
+  // =========================================================
 
   const saveLeave = async () => {
-    // =============================
-    // ADMIN EMPLOYEE
-    // =============================
 
-    if (isAdmin && !employeeId) {
-      alert("يرجى اختيار الموظف");
+    // =======================================================
+    // ADMIN EMPLOYEE
+    // =======================================================
+
+    if (
+      isAdmin &&
+      !employeeId
+    ) {
+      alert(
+        "يرجى اختيار الموظف"
+      );
+
       return;
     }
 
-    // =============================
+
+    // =======================================================
+    // EMPLOYEE ID
+    // =======================================================
+
+    if (
+      !isAdmin &&
+      !employeeId
+    ) {
+      alert(
+        "تعذر تحديد الموظف الحالي"
+      );
+
+      return;
+    }
+
+
+    // =======================================================
     // TYPE
-    // =============================
+    // =======================================================
 
     if (!type) {
-      alert("يرجى اختيار نوع الإجازة");
+      alert(
+        "يرجى اختيار نوع الإجازة"
+      );
+
       return;
     }
 
-    // =============================
+
+    // =======================================================
     // DATES
-    // =============================
+    // =======================================================
 
     if (!from || !to) {
-      alert("يرجى تحديد تاريخ الإجازة");
+      alert(
+        "يرجى تحديد تاريخ الإجازة"
+      );
+
       return;
     }
 
-    if (new Date(to) < new Date(from)) {
+
+    if (
+      new Date(to) <
+      new Date(from)
+    ) {
       alert(
         "تاريخ نهاية الإجازة غير صحيح"
       );
+
       return;
     }
 
-    // =============================
+
+    // =======================================================
     // DAYS
-    // =============================
+    // =======================================================
 
     if (days <= 0) {
-      alert("مدة الإجازة غير صحيحة");
+      alert(
+        "مدة الإجازة غير صحيحة"
+      );
+
       return;
     }
+
+
+    // =======================================================
+    // SAVE
+    // =======================================================
 
     try {
       setSaving(true);
 
-      // =============================
+
+      // =====================================================
       // FORM DATA
-      // =============================
+      // =====================================================
 
-      const formData = new FormData();
+      const formData =
+        new FormData();
 
-      // =============================
+
+      // =====================================================
       // ADMIN
-      // =============================
-
       // Admin فقط يرسل employee_id
-      // Employee:
-      // Backend يأخذ employee_id من JWT
+      //
+      // Employee لا يرسل employee_id
+      // Backend يأخذه من JWT
+      // =====================================================
 
       if (isAdmin) {
         formData.append(
@@ -330,11 +423,15 @@ export default function LeaveForm() {
         );
       }
 
-      // =============================
-      // LEAVE DATA
-      // =============================
 
-      formData.append("type", type);
+      // =====================================================
+      // LEAVE DATA
+      // =====================================================
+
+      formData.append(
+        "type",
+        type
+      );
 
       formData.append(
         "from_date",
@@ -346,9 +443,10 @@ export default function LeaveForm() {
         to
       );
 
-      // =============================
+
+      // =====================================================
       // NOTES
-      // =============================
+      // =====================================================
 
       if (notes.trim()) {
         formData.append(
@@ -357,9 +455,10 @@ export default function LeaveForm() {
         );
       }
 
-      // =============================
+
+      // =====================================================
       // ATTACHMENT
-      // =============================
+      // =====================================================
 
       if (file) {
         formData.append(
@@ -368,45 +467,55 @@ export default function LeaveForm() {
         );
       }
 
-      // =============================
-      // SEND REQUEST
-      // =============================
 
-      const response = await API.post(
-        "/leaves",
-        formData
-      );
+      // =====================================================
+      // SEND
+      // =====================================================
+
+      const response =
+        await API.post(
+          "/leaves",
+          formData
+        );
 
       console.log(
         "LEAVE CREATED:",
         response.data
       );
 
-      // =============================
+
+      // =====================================================
       // SUCCESS
-      // =============================
+      // =====================================================
 
       alert(
         "تم تقديم طلب الإجازة بنجاح ✅"
       );
 
-      // =============================
+
+      // =====================================================
       // RESET
-      // =============================
+      // =====================================================
 
       setEmployeeId("");
+
       setType("سنوية");
+
       setFrom("");
+
       setTo("");
+
       setNotes("");
 
       removeFile();
 
-      // =============================
+
+      // =====================================================
       // NAVIGATE
-      // =============================
+      // =====================================================
 
       nav("/leaves-list");
+
     } catch (err) {
       console.error(
         "SAVE LEAVE ERROR:",
@@ -422,9 +531,10 @@ export default function LeaveForm() {
     }
   };
 
-  // =============================
+
+  // =========================================================
   // LOADING
-  // =============================
+  // =========================================================
 
   if (loading) {
     return (
@@ -433,47 +543,68 @@ export default function LeaveForm() {
         dir="rtl"
       >
         <div className="leave-loading">
+
           <div className="loading-spinner"></div>
 
           <p>
             جاري تحميل البيانات...
           </p>
+
         </div>
       </div>
     );
   }
 
-  // =============================
+
+  // =========================================================
   // UI
-  // =============================
+  // =========================================================
 
   return (
     <div
       className="leave-page"
       dir="rtl"
     >
+
       <div className="leave-container">
 
-        {/* HEADER */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
         <div className="leave-header">
-          <h1>طلب إجازة</h1>
+
+          <h1>
+            طلب إجازة
+          </h1>
+
         </div>
+
 
         <div className="leave-card">
 
-          {/* بيانات الموظف */}
+          {/* =================================================
+              EMPLOYEE DATA
+          ================================================= */}
 
           <div className="simple-section">
+
             <h2>
               بيانات الموظف
             </h2>
 
+
             {isAdmin ? (
+
+              // =================================================
+              // ADMIN
+              // =================================================
+
               <div className="form-group">
 
                 <label>
-                  الموظف <span>*</span>
+                  الموظف{" "}
+                  <span>*</span>
                 </label>
 
                 <div className="input-wrapper">
@@ -489,6 +620,7 @@ export default function LeaveForm() {
                     }
                     disabled={saving}
                   >
+
                     <option value="">
                       اختر الموظف
                     </option>
@@ -507,16 +639,25 @@ export default function LeaveForm() {
                         </option>
                       )
                     )}
+
                   </select>
 
                 </div>
+
               </div>
+
             ) : (
+
+              // =================================================
+              // EMPLOYEE
+              // =================================================
+
               <div className="employee-display">
 
                 <FaUser />
 
                 <div>
+
                   <span>
                     الموظف
                   </span>
@@ -525,13 +666,19 @@ export default function LeaveForm() {
                     {me?.name ||
                       "الموظف"}
                   </strong>
+
                 </div>
 
               </div>
+
             )}
+
           </div>
 
-          {/* تفاصيل الإجازة */}
+
+          {/* =================================================
+              LEAVE DETAILS
+          ================================================= */}
 
           <div className="simple-section">
 
@@ -539,7 +686,10 @@ export default function LeaveForm() {
               تفاصيل الإجازة
             </h2>
 
-            {/* نوع الإجازة */}
+
+            {/* =================================================
+                LEAVE TYPE
+            ================================================= */}
 
             <div className="form-group">
 
@@ -561,6 +711,7 @@ export default function LeaveForm() {
                   }
                   disabled={saving}
                 >
+
                   <option value="سنوية">
                     إجازة سنوية
                   </option>
@@ -580,12 +731,17 @@ export default function LeaveForm() {
                   <option value="استثنائية">
                     إجازة استثنائية
                   </option>
+
                 </select>
 
               </div>
+
             </div>
 
-            {/* التواريخ */}
+
+            {/* =================================================
+                DATES
+            ================================================= */}
 
             <div className="date-grid">
 
@@ -600,6 +756,7 @@ export default function LeaveForm() {
                   type="date"
                   value={from}
                   onChange={(e) => {
+
                     const value =
                       e.target.value;
 
@@ -612,11 +769,13 @@ export default function LeaveForm() {
                     ) {
                       setTo("");
                     }
+
                   }}
                   disabled={saving}
                 />
 
               </div>
+
 
               <div className="form-group">
 
@@ -629,7 +788,8 @@ export default function LeaveForm() {
                   type="date"
                   value={to}
                   min={
-                    from || undefined
+                    from ||
+                    undefined
                   }
                   onChange={(e) =>
                     setTo(
@@ -637,7 +797,8 @@ export default function LeaveForm() {
                     )
                   }
                   disabled={
-                    saving || !from
+                    saving ||
+                    !from
                   }
                 />
 
@@ -645,26 +806,37 @@ export default function LeaveForm() {
 
             </div>
 
-            {/* مدة الإجازة */}
+
+            {/* =================================================
+                DAYS
+            ================================================= */}
 
             {days > 0 && (
+
               <div className="days-result">
 
                 مدة الإجازة:
 
                 <strong>
+
                   {days}{" "}
+
                   {days === 1
                     ? "يوم"
                     : "أيام"}
+
                 </strong>
 
               </div>
+
             )}
 
           </div>
 
-          {/* المرفق */}
+
+          {/* =================================================
+              ATTACHMENT
+          ================================================= */}
 
           <div className="simple-section">
 
@@ -672,7 +844,9 @@ export default function LeaveForm() {
               المرفق
             </h2>
 
+
             {!file ? (
+
               <label
                 className="upload-box"
                 htmlFor="leave-file"
@@ -710,15 +884,20 @@ export default function LeaveForm() {
                 </span>
 
               </label>
+
             ) : (
+
               <div className="file-preview">
 
-                {/* IMAGE PREVIEW */}
+                {/* =================================================
+                    IMAGE PREVIEW
+                ================================================= */}
 
                 {preview &&
                   file.type.startsWith(
                     "image/"
                   ) && (
+
                     <div className="image-preview">
 
                       <img
@@ -727,20 +906,34 @@ export default function LeaveForm() {
                       />
 
                     </div>
+
                   )}
 
-                {/* PDF PREVIEW */}
+
+                {/* =================================================
+                    PDF PREVIEW
+                ================================================= */}
 
                 {!preview &&
                   file.type ===
                     "application/pdf" && (
+
                     <div className="pdf-preview">
+
                       <FaFileAlt />
-                      <span>PDF</span>
+
+                      <span>
+                        PDF
+                      </span>
+
                     </div>
+
                   )}
 
-                {/* FILE DETAILS */}
+
+                {/* =================================================
+                    FILE DETAILS
+                ================================================= */}
 
                 <div className="file-details">
 
@@ -760,7 +953,10 @@ export default function LeaveForm() {
 
                 </div>
 
-                {/* REMOVE */}
+
+                {/* =================================================
+                    REMOVE
+                ================================================= */}
 
                 <button
                   type="button"
@@ -771,14 +967,21 @@ export default function LeaveForm() {
                   disabled={saving}
                   title="إزالة المرفق"
                 >
+
                   <FaTimes />
+
                 </button>
 
               </div>
+
             )}
+
           </div>
 
-          {/* الملاحظات */}
+
+          {/* =================================================
+              NOTES
+          ================================================= */}
 
           <div className="simple-section">
 
@@ -805,20 +1008,27 @@ export default function LeaveForm() {
               </div>
 
             </div>
+
           </div>
 
-          {/* ACTIONS */}
+
+          {/* =================================================
+              ACTIONS
+          ================================================= */}
 
           <div className="form-actions">
 
             <button
               type="button"
               className="cancel-button"
-              onClick={() => nav(-1)}
+              onClick={() =>
+                nav(-1)
+              }
               disabled={saving}
             >
               إلغاء
             </button>
+
 
             <button
               type="button"
@@ -826,23 +1036,33 @@ export default function LeaveForm() {
               onClick={saveLeave}
               disabled={saving}
             >
+
               {saving ? (
+
                 <>
                   <span className="button-spinner"></span>
+
                   جاري الإرسال...
                 </>
+
               ) : (
+
                 <>
                   <FaSave />
+
                   إرسال طلب الإجازة
                 </>
+
               )}
+
             </button>
 
           </div>
 
         </div>
+
       </div>
+
     </div>
   );
 }
