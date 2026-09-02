@@ -5,10 +5,12 @@ import {
 } from "react-router-dom";
 
 // ================= GENERAL =================
+
 import Home from "./Pages/home";
 import Login from "./Pages/login";
 
 // ================= EVALUATION =================
+
 import Step1 from "./Pages/Step1";
 import Performance from "./Pages/Performance";
 import Personality from "./Pages/Personality";
@@ -18,10 +20,12 @@ import Print from "./Pages/Print";
 import Relations from "./Pages/Relations";
 
 // ================= LEAVES =================
+
 import LeaveForm from "./Pages/LeaveForm";
 import LeavesList from "./Pages/LeavesList";
 
 // ================= ADMIN =================
+
 import Dashboard from "./Pages/Dashboard";
 import DashboardLayout from "./Pages/DashboardLayout";
 import Employees from "./Pages/Employees";
@@ -31,7 +35,12 @@ import AddTask from "./Pages/AddTask";
 import SelectTask from "./Pages/SelectTask";
 
 // ================= EMPLOYEE =================
+
 import EmployeeDashboard from "./Pages/employeeDashboard";
+
+// ================= PROTECTION =================
+
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -41,6 +50,7 @@ function App() {
         {/* =====================================================
             الصفحة الرئيسية
         ===================================================== */}
+
         <Route
           path="/"
           element={<Home />}
@@ -49,114 +59,168 @@ function App() {
         {/* =====================================================
             تسجيل الدخول
         ===================================================== */}
+
         <Route
           path="/login"
           element={<Login />}
         />
 
         {/* =====================================================
-            نظام التقييم
+            PAGES FOR LOGGED-IN USERS
+            Admin + Employee
         ===================================================== */}
-        <Route
-          path="/step1"
-          element={<Step1 />}
-        />
 
         <Route
-          path="/performance"
-          element={<Performance />}
-        />
+          element={
+            <ProtectedRoute
+              allowedRoles={["admin", "employee"]}
+            />
+          }
+        >
 
-        <Route
-          path="/personality"
-          element={<Personality />}
-        />
+          {/* ================= EVALUATION ================= */}
 
-        <Route
-          path="/relations"
-          element={<Relations />}
-        />
-
-        <Route
-          path="/result"
-          element={<Result />}
-        />
-
-        <Route
-          path="/notes"
-          element={<Notes />}
-        />
-
-        <Route
-          path="/print"
-          element={<Print />}
-        />
-
-        {/* =====================================================
-            نظام الإجازات
-        ===================================================== */}
-        <Route
-          path="/leave"
-          element={<LeaveForm />}
-        />
-
-        {/* =====================================================
-            الموظف
-        ===================================================== */}
-        <Route
-          path="/employee"
-          element={<EmployeeDashboard />}
-        />
-
-        {/* =====================================================
-            ADMIN LAYOUT
-            جميع صفحات الإدارة تستخدم Sidebar المشترك
-        ===================================================== */}
-        <Route element={<DashboardLayout />}>
-
-          {/* لوحة التحكم */}
           <Route
-            path="/admin-dashboard"
-            element={<Dashboard />}
+            path="/step1"
+            element={<Step1 />}
           />
 
-          {/* الموظفين */}
           <Route
-            path="/employees"
-            element={<Employees />}
+            path="/performance"
+            element={<Performance />}
           />
 
-          {/* إضافة موظف */}
           <Route
-            path="/add-employee"
-            element={<CreateEmployee />}
+            path="/personality"
+            element={<Personality />}
           />
 
-          {/* الإجازات */}
           <Route
-            path="/leaves-list"
-            element={<LeavesList />}
+            path="/relations"
+            element={<Relations />}
           />
 
-          {/* التقييمات */}
           <Route
-            path="/history"
-            element={<History />}
+            path="/result"
+            element={<Result />}
           />
 
-          {/* المهام */}
           <Route
-            path="/tasks"
-            element={<SelectTask />}
+            path="/notes"
+            element={<Notes />}
           />
 
-          {/* إضافة مهمة */}
           <Route
-            path="/add-task"
-            element={<AddTask />}
+            path="/print"
+            element={<Print />}
+          />
+
+          {/* ================= LEAVE FORM ================= */}
+
+          <Route
+            path="/leave"
+            element={<LeaveForm />}
           />
 
         </Route>
+
+        {/* =====================================================
+            EMPLOYEE
+            Employee فقط
+        ===================================================== */}
+
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["employee"]}
+            />
+          }
+        >
+
+          <Route
+            path="/employee"
+            element={<EmployeeDashboard />}
+          />
+
+        </Route>
+
+        {/* =====================================================
+            ADMIN
+            Admin فقط
+            جميع صفحات الإدارة تستخدم DashboardLayout
+        ===================================================== */}
+
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["admin"]}
+            />
+          }
+        >
+
+          <Route element={<DashboardLayout />}>
+
+            {/* ================= DASHBOARD ================= */}
+
+            <Route
+              path="/admin-dashboard"
+              element={<Dashboard />}
+            />
+
+            {/* ================= EMPLOYEES ================= */}
+
+            <Route
+              path="/employees"
+              element={<Employees />}
+            />
+
+            {/* ================= ADD EMPLOYEE ================= */}
+
+            <Route
+              path="/add-employee"
+              element={<CreateEmployee />}
+            />
+
+            {/* ================= LEAVES ================= */}
+
+            <Route
+              path="/leaves-list"
+              element={<LeavesList />}
+            />
+
+            {/* ================= HISTORY ================= */}
+
+            <Route
+              path="/history"
+              element={<History />}
+            />
+
+            {/* ================= TASKS ================= */}
+
+            <Route
+              path="/tasks"
+              element={<SelectTask />}
+            />
+
+            {/* ================= ADD TASK ================= */}
+
+            <Route
+              path="/add-task"
+              element={<AddTask />}
+            />
+
+          </Route>
+
+        </Route>
+
+        {/* =====================================================
+            PAGE NOT FOUND
+        ===================================================== */}
+
+        <Route
+          path="*"
+          element={<Home />}
+        />
 
       </Routes>
     </BrowserRouter>
