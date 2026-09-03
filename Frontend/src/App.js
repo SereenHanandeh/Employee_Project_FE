@@ -33,7 +33,7 @@ import SelectTask from "./Pages/SelectTask";
 // ================= EMPLOYEE =================
 
 import EmployeeDashboard from "./Pages/employeeDashboard";
-import EmployeeSettings from "./pages/EmployeeSettings";
+import EmployeeSettings from "./Pages/EmployeeSettings";
 
 // ================= PROTECTION =================
 
