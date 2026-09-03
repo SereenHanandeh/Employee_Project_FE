@@ -1,8 +1,4 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // ================= GENERAL =================
 
@@ -37,6 +33,7 @@ import SelectTask from "./Pages/SelectTask";
 // ================= EMPLOYEE =================
 
 import EmployeeDashboard from "./Pages/employeeDashboard";
+import EmployeeSettings from "./pages/EmployeeSettings";
 
 // ================= PROTECTION =================
 
@@ -46,24 +43,17 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         {/* =====================================================
             الصفحة الرئيسية
         ===================================================== */}
 
-        <Route
-          path="/"
-          element={<Home />}
-        />
+        <Route path="/" element={<Home />} />
 
         {/* =====================================================
             تسجيل الدخول
         ===================================================== */}
 
-        <Route
-          path="/login"
-          element={<Login />}
-        />
+        <Route path="/login" element={<Login />} />
 
         {/* =====================================================
             PAGES FOR LOGGED-IN USERS
@@ -71,57 +61,27 @@ function App() {
         ===================================================== */}
 
         <Route
-          element={
-            <ProtectedRoute
-              allowedRoles={["admin", "employee"]}
-            />
-          }
+          element={<ProtectedRoute allowedRoles={["admin", "employee"]} />}
         >
-
           {/* ================= EVALUATION ================= */}
 
-          <Route
-            path="/step1"
-            element={<Step1 />}
-          />
+          <Route path="/step1" element={<Step1 />} />
 
-          <Route
-            path="/performance"
-            element={<Performance />}
-          />
+          <Route path="/performance" element={<Performance />} />
 
-          <Route
-            path="/personality"
-            element={<Personality />}
-          />
+          <Route path="/personality" element={<Personality />} />
 
-          <Route
-            path="/relations"
-            element={<Relations />}
-          />
+          <Route path="/relations" element={<Relations />} />
 
-          <Route
-            path="/result"
-            element={<Result />}
-          />
+          <Route path="/result" element={<Result />} />
 
-          <Route
-            path="/notes"
-            element={<Notes />}
-          />
+          <Route path="/notes" element={<Notes />} />
 
-          <Route
-            path="/print"
-            element={<Print />}
-          />
+          <Route path="/print" element={<Print />} />
 
           {/* ================= LEAVE FORM ================= */}
 
-          <Route
-            path="/leave"
-            element={<LeaveForm />}
-          />
-
+          <Route path="/leave" element={<LeaveForm />} />
         </Route>
 
         {/* =====================================================
@@ -129,19 +89,10 @@ function App() {
             Employee فقط
         ===================================================== */}
 
-        <Route
-          element={
-            <ProtectedRoute
-              allowedRoles={["employee"]}
-            />
-          }
-        >
+        <Route element={<ProtectedRoute allowedRoles={["employee"]} />}>
+          <Route path="/employee" element={<EmployeeDashboard />} />
 
-          <Route
-            path="/employee"
-            element={<EmployeeDashboard />}
-          />
-
+          <Route path="/employee/settings" element={<EmployeeSettings />} />
         </Route>
 
         {/* =====================================================
@@ -150,78 +101,43 @@ function App() {
             جميع صفحات الإدارة تستخدم DashboardLayout
         ===================================================== */}
 
-        <Route
-          element={
-            <ProtectedRoute
-              allowedRoles={["admin"]}
-            />
-          }
-        >
-
+        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route element={<DashboardLayout />}>
-
             {/* ================= DASHBOARD ================= */}
 
-            <Route
-              path="/admin-dashboard"
-              element={<Dashboard />}
-            />
+            <Route path="/admin-dashboard" element={<Dashboard />} />
 
             {/* ================= EMPLOYEES ================= */}
 
-            <Route
-              path="/employees"
-              element={<Employees />}
-            />
+            <Route path="/employees" element={<Employees />} />
 
             {/* ================= ADD EMPLOYEE ================= */}
 
-            <Route
-              path="/add-employee"
-              element={<CreateEmployee />}
-            />
+            <Route path="/add-employee" element={<CreateEmployee />} />
 
             {/* ================= LEAVES ================= */}
 
-            <Route
-              path="/leaves-list"
-              element={<LeavesList />}
-            />
+            <Route path="/leaves-list" element={<LeavesList />} />
 
             {/* ================= HISTORY ================= */}
 
-            <Route
-              path="/history"
-              element={<History />}
-            />
+            <Route path="/history" element={<History />} />
 
             {/* ================= TASKS ================= */}
 
-            <Route
-              path="/tasks"
-              element={<SelectTask />}
-            />
+            <Route path="/tasks" element={<SelectTask />} />
 
             {/* ================= ADD TASK ================= */}
 
-            <Route
-              path="/add-task"
-              element={<AddTask />}
-            />
-
+            <Route path="/add-task" element={<AddTask />} />
           </Route>
-
         </Route>
 
         {/* =====================================================
             PAGE NOT FOUND
         ===================================================== */}
 
-        <Route
-          path="*"
-          element={<Home />}
-        />
-
+        <Route path="*" element={<Home />} />
       </Routes>
     </BrowserRouter>
   );

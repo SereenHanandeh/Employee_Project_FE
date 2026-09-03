@@ -13,7 +13,10 @@ import {
   FaTimesCircle,
   FaHourglassHalf,
   FaTasks,
+  FaCog,
+  FaChevronLeft,
 } from "react-icons/fa";
+
 import "./employeeDashboard.css";
 
 export default function EmployeeDashboard() {
@@ -27,19 +30,15 @@ export default function EmployeeDashboard() {
   const [loadingLeaves, setLoadingLeaves] = useState(true);
   const [loadingTasks, setLoadingTasks] = useState(true);
 
-  // =============================
-  // LOAD DATA
-  // =============================
-
   useEffect(() => {
     fetchEmployee();
     fetchLeaves();
     fetchTasks();
   }, []);
 
-  // =============================
-  // EMPLOYEE
-  // =============================
+  // =========================================================
+  // GET EMPLOYEE
+  // =========================================================
 
   const fetchEmployee = async () => {
     try {
@@ -50,57 +49,57 @@ export default function EmployeeDashboard() {
       setEmployee(res.data);
     } catch (err) {
       console.error("Employee Error:", err);
+
+      if (err?.response?.status === 401) {
+        localStorage.removeItem("token");
+        nav("/login");
+      }
     } finally {
       setLoadingEmployee(false);
     }
   };
 
-  // =============================
-  // LEAVES
-  // =============================
+  // =========================================================
+  // GET LEAVES
+  // =========================================================
 
   const fetchLeaves = async () => {
     try {
       setLoadingLeaves(true);
 
-      // هذا Endpoint يرجع إجازات الموظف الحالي فقط
       const res = await API.get("/leaves/my-leaves");
 
       setLeaves(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Leaves Error:", err);
-
       setLeaves([]);
     } finally {
       setLoadingLeaves(false);
     }
   };
 
-  // =============================
-  // TASKS
-  // =============================
+  // =========================================================
+  // GET TASKS
+  // =========================================================
 
   const fetchTasks = async () => {
     try {
       setLoadingTasks(true);
 
-      // Backend الآن يرجع فقط Tasks
-      // المعينة للموظف الحالي
       const res = await API.get("/tasks");
 
       setTasks(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Tasks Error:", err);
-
       setTasks([]);
     } finally {
       setLoadingTasks(false);
     }
   };
 
-  // =============================
+  // =========================================================
   // LOGOUT
-  // =============================
+  // =========================================================
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -109,9 +108,9 @@ export default function EmployeeDashboard() {
     nav("/login");
   };
 
-  // =============================
+  // =========================================================
   // DATE
-  // =============================
+  // =========================================================
 
   const formatDate = (date) => {
     if (!date) return "-";
@@ -123,9 +122,9 @@ export default function EmployeeDashboard() {
     });
   };
 
-  // =============================
-  // STATUS
-  // =============================
+  // =========================================================
+  // LEAVE STATUS
+  // =========================================================
 
   const getStatus = (status) => {
     switch (status) {
@@ -152,14 +151,20 @@ export default function EmployeeDashboard() {
     }
   };
 
+  // =========================================================
+  // RENDER
+  // =========================================================
+
   return (
     <div className="employee-dashboard" dir="rtl">
 
-      {/* ============================= */}
-      {/* SIDEBAR */}
-      {/* ============================= */}
+      {/* =====================================================
+          SIDEBAR
+      ===================================================== */}
 
       <aside className="employee-sidebar">
+
+        {/* BRAND */}
 
         <div className="brand">
           <div className="brand-icon">
@@ -172,33 +177,59 @@ export default function EmployeeDashboard() {
           </div>
         </div>
 
+        {/* MENU */}
+
         <div className="sidebar-menu">
+
+          {/* DASHBOARD */}
 
           <button
             className="sidebar-btn active"
             onClick={() => nav("/employee")}
           >
             <FaClipboardList />
-            لوحة التحكم
+
+            <span>لوحة التحكم</span>
           </button>
+
+          {/* LEAVE */}
 
           <button
             className="sidebar-btn"
             onClick={() => nav("/leave")}
           >
             <FaCalendarAlt />
-            طلب إجازة
+
+            <span>طلب إجازة</span>
+          </button>
+
+          {/* SETTINGS */}
+
+          <button
+            className="sidebar-btn"
+            onClick={() => nav("/employee/settings")}
+          >
+            <FaCog />
+
+            <span>الإعدادات</span>
+
+            <FaChevronLeft className="sidebar-arrow" />
           </button>
 
         </div>
 
+        {/* USER */}
+
         <div className="sidebar-user">
 
           <div className="user-avatar">
-            <FaUser />
+            {employee?.name
+              ? employee.name.charAt(0)
+              : <FaUser />}
           </div>
 
           <div className="user-info">
+
             <span>مرحباً</span>
 
             <strong>
@@ -206,23 +237,27 @@ export default function EmployeeDashboard() {
                 ? "جاري التحميل..."
                 : employee?.name || "الموظف"}
             </strong>
+
           </div>
 
         </div>
+
+        {/* LOGOUT */}
 
         <button
           className="logout-button"
           onClick={handleLogout}
         >
           <FaSignOutAlt />
-          تسجيل الخروج
+
+          <span>تسجيل الخروج</span>
         </button>
 
       </aside>
 
-      {/* ============================= */}
-      {/* MAIN */}
-      {/* ============================= */}
+      {/* =====================================================
+          MAIN
+      ===================================================== */}
 
       <main className="employee-main">
 
@@ -231,6 +266,7 @@ export default function EmployeeDashboard() {
         <header className="dashboard-header">
 
           <div>
+
             <span className="welcome-small">
               لوحة الموظف
             </span>
@@ -243,6 +279,7 @@ export default function EmployeeDashboard() {
             <p>
               تابع مهامك وإجازاتك من مكان واحد.
             </p>
+
           </div>
 
           <button
@@ -250,14 +287,15 @@ export default function EmployeeDashboard() {
             onClick={() => nav("/leave")}
           >
             <FaPlus />
+
             طلب إجازة
           </button>
 
         </header>
 
-        {/* ============================= */}
-        {/* STATISTICS */}
-        {/* ============================= */}
+        {/* =====================================================
+            STATISTICS
+        ===================================================== */}
 
         <section className="statistics">
 
@@ -271,7 +309,9 @@ export default function EmployeeDashboard() {
               <span>المهام الموكلة</span>
 
               <strong>
-                {loadingTasks ? "..." : tasks.length}
+                {loadingTasks
+                  ? "..."
+                  : tasks.length}
               </strong>
             </div>
 
@@ -287,7 +327,9 @@ export default function EmployeeDashboard() {
               <span>طلبات الإجازة</span>
 
               <strong>
-                {loadingLeaves ? "..." : leaves.length}
+                {loadingLeaves
+                  ? "..."
+                  : leaves.length}
               </strong>
             </div>
 
@@ -305,7 +347,8 @@ export default function EmployeeDashboard() {
               <strong>
                 {
                   leaves.filter(
-                    (leave) => leave.status === "approved"
+                    (leave) =>
+                      leave.status === "approved"
                   ).length
                 }
               </strong>
@@ -325,7 +368,8 @@ export default function EmployeeDashboard() {
               <strong>
                 {
                   leaves.filter(
-                    (leave) => leave.status === "pending"
+                    (leave) =>
+                      leave.status === "pending"
                   ).length
                 }
               </strong>
@@ -335,9 +379,9 @@ export default function EmployeeDashboard() {
 
         </section>
 
-        {/* ============================= */}
-        {/* TASKS */}
-        {/* ============================= */}
+        {/* =====================================================
+            TASKS
+        ===================================================== */}
 
         <section className="dashboard-section">
 
@@ -374,7 +418,9 @@ export default function EmployeeDashboard() {
                 <FaTasks />
               </div>
 
-              <h3>لا توجد مهام حالياً</h3>
+              <h3>
+                لا توجد مهام حالياً
+              </h3>
 
               <p>
                 لم يتم تعيين أي مهام لك من قبل المسؤول.
@@ -433,15 +479,16 @@ export default function EmployeeDashboard() {
 
         </section>
 
-        {/* ============================= */}
-        {/* LEAVES */}
-        {/* ============================= */}
+        {/* =====================================================
+            LEAVES
+        ===================================================== */}
 
         <section className="dashboard-section">
 
           <div className="section-header">
 
             <div>
+
               <h2>
                 <FaCalendarAlt />
                 إجازاتي
@@ -450,6 +497,7 @@ export default function EmployeeDashboard() {
               <p>
                 جميع طلبات الإجازة الخاصة بك
               </p>
+
             </div>
 
             <button
@@ -476,7 +524,9 @@ export default function EmployeeDashboard() {
                 <FaCalendarAlt />
               </div>
 
-              <h3>لا توجد إجازات</h3>
+              <h3>
+                لا توجد إجازات
+              </h3>
 
               <p>
                 لم تقم بتقديم أي طلب إجازة حتى الآن.
@@ -498,7 +548,8 @@ export default function EmployeeDashboard() {
 
               {leaves.map((leave, index) => {
 
-                const status = getStatus(leave.status);
+                const status =
+                  getStatus(leave.status);
 
                 return (
 
@@ -520,7 +571,9 @@ export default function EmployeeDashboard() {
                       <div className="leave-date">
 
                         <span>
-                          {formatDate(leave.from_date)}
+                          {formatDate(
+                            leave.from_date
+                          )}
                         </span>
 
                         <span className="arrow">
@@ -528,14 +581,19 @@ export default function EmployeeDashboard() {
                         </span>
 
                         <span>
-                          {formatDate(leave.to_date)}
+                          {formatDate(
+                            leave.to_date
+                          )}
                         </span>
 
                       </div>
 
                       <div className="leave-days">
+
                         <FaClock />
+
                         {leave.days || 0} أيام
+
                       </div>
 
                     </div>
@@ -544,12 +602,14 @@ export default function EmployeeDashboard() {
                       className={`leave-status ${status.className}`}
                     >
                       {status.icon}
+
                       {status.text}
                     </div>
 
                   </div>
 
                 );
+
               })}
 
             </div>
