@@ -392,7 +392,7 @@ export default function LeaveForm() {
       formData.append("notes", notes.trim());
 
       if (file) {
-        formData.append("file", file);
+        formData.append("attachment", file);
       }
 
       // للتأكد من البيانات التي يتم إرسالها
