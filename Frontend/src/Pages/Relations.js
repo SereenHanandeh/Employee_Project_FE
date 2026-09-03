@@ -1,11 +1,26 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import API from "../api/api";
 
 const relationsItems = [
   { title: "العلاقات مع الرؤساء", max: 3 },
   { title: "العلاقات مع الزملاء", max: 3 },
   { title: "العلاقات مع المراجعين", max: 3 },
 ];
+
+const normalizeScores = (value) => {
+  if (!value) return {};
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+
+  return value;
+};
 
 export default function Relations() {
   const nav = useNavigate();
@@ -18,9 +33,34 @@ export default function Relations() {
     to_date,
     performance,
     personality,
+    evaluationId,
+    editMode = false,
   } = location.state || {};
 
   const [r, setR] = useState({});
+
+  const [employeeId, setEmployeeId] = useState(
+    employee_id || ""
+  );
+
+  const [employeeName, setEmployeeName] = useState(
+    name || ""
+  );
+
+  const [period, setPeriod] = useState({
+    from: from_date || "",
+    to: to_date || "",
+  });
+
+  const [loading, setLoading] = useState(
+    Boolean(editMode && evaluationId)
+  );
+
+  const [error, setError] = useState("");
+
+  // =========================================================
+  // MAX TOTAL
+  // =========================================================
 
   const maxTotal = useMemo(
     () =>
@@ -31,16 +71,25 @@ export default function Relations() {
     []
   );
 
+  // =========================================================
+  // PROGRESS
+  // =========================================================
+
   const completed = Object.keys(r).length;
 
   const progress = Math.round(
     (completed / relationsItems.length) * 100
   );
 
+  // =========================================================
+  // TOTAL
+  // =========================================================
+
   const total = useMemo(
     () =>
       Object.values(r).reduce(
-        (sum, value) => sum + Number(value || 0),
+        (sum, value) =>
+          sum + Number(value || 0),
         0
       ),
     [r]
@@ -50,11 +99,136 @@ export default function Relations() {
     (total / maxTotal) * 100
   );
 
+  // =========================================================
+  // LOAD EXISTING EVALUATION
+  // =========================================================
+
+  useEffect(() => {
+    if (!editMode || !evaluationId) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadEvaluation = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await API.get(
+          `/evaluations/${evaluationId}`
+        );
+
+        if (cancelled) return;
+
+        const data = response.data;
+
+        // -----------------------------------------------------
+        // EMPLOYEE
+        // -----------------------------------------------------
+
+        if (data.employee_id) {
+          setEmployeeId(data.employee_id);
+        }
+
+        if (data.name) {
+          setEmployeeName(data.name);
+        }
+
+        // -----------------------------------------------------
+        // DATES
+        // -----------------------------------------------------
+
+        setPeriod({
+          from:
+            from_date ||
+            data.from_date ||
+            "",
+          to:
+            to_date ||
+            data.to_date ||
+            "",
+        });
+
+        // -----------------------------------------------------
+        // RELATIONS DETAILS
+        // -----------------------------------------------------
+
+        const details = normalizeScores(
+          data.relations_details
+        );
+
+        const preparedScores = {};
+
+        relationsItems.forEach(
+          (item, index) => {
+            const value =
+              details[index] ??
+              details[String(index)];
+
+            if (
+              value !== undefined &&
+              value !== null &&
+              value !== ""
+            ) {
+              let number = Number(value);
+
+              if (!Number.isNaN(number)) {
+                if (number < 0) number = 0;
+                if (number > item.max) {
+                  number = item.max;
+                }
+
+                preparedScores[index] = number;
+              }
+            }
+          }
+        );
+
+        setR(preparedScores);
+      } catch (err) {
+        console.error(
+          "خطأ أثناء تحميل العلاقات:",
+          err.response?.data || err
+        );
+
+        if (!cancelled) {
+          setError(
+            "تعذر تحميل بيانات العلاقات الوظيفية."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadEvaluation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    editMode,
+    evaluationId,
+    from_date,
+    to_date,
+  ]);
+
+  // =========================================================
+  // CHANGE SCORE
+  // =========================================================
+
   const change = (index, value, max) => {
     if (value === "") {
-      const copy = { ...r };
-      delete copy[index];
-      setR(copy);
+      setR((prev) => {
+        const copy = { ...prev };
+        delete copy[index];
+        return copy;
+      });
+
       return;
     }
 
@@ -71,69 +245,192 @@ export default function Relations() {
     }));
   };
 
+  // =========================================================
+  // NEXT
+  // =========================================================
+
   const next = () => {
-    if (!employee_id || !from_date || !to_date) {
-      alert("بيانات الموظف أو فترة التقييم غير مكتملة!");
+    if (
+      !employeeId ||
+      !period.from ||
+      !period.to
+    ) {
+      alert(
+        "بيانات الموظف أو فترة التقييم غير مكتملة!"
+      );
       return;
     }
 
-    if (Object.keys(r).length < relationsItems.length) {
-      alert("يرجى تعبئة جميع معايير العلاقات قبل المتابعة!");
+    if (
+      Object.keys(r).length <
+      relationsItems.length
+    ) {
+      alert(
+        "يرجى تعبئة جميع معايير العلاقات قبل المتابعة!"
+      );
       return;
     }
 
     nav("/result", {
       state: {
-        employee_id,
-        name,
-        from_date,
-        to_date,
+        employee_id: employeeId,
+        name: employeeName,
+
+        from_date: period.from,
+        to_date: period.to,
+
         performance,
         personality,
         relations: r,
+
+        // مهم للتعديل
+        evaluationId,
+        editMode,
       },
     });
   };
 
+  // =========================================================
+  // LOADING
+  // =========================================================
+
+  if (loading) {
+    return (
+      <div style={styles.loadingPage}>
+        <div style={styles.loadingCard}>
+          <div style={styles.spinner} />
+
+          <h3 style={styles.loadingTitle}>
+            جاري تحميل التقييم
+          </h3>
+
+          <p style={styles.loadingText}>
+            يتم تجهيز بيانات العلاقات الوظيفية...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================
+  // ERROR
+  // =========================================================
+
+  if (error) {
+    return (
+      <div style={styles.loadingPage}>
+        <div style={styles.errorCard}>
+          <div style={styles.errorIcon}>
+            !
+          </div>
+
+          <h3 style={styles.loadingTitle}>
+            حدث خطأ
+          </h3>
+
+          <p style={styles.loadingText}>
+            {error}
+          </p>
+
+          <button
+            type="button"
+            style={styles.retryButton}
+            onClick={() =>
+              window.location.reload()
+            }
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={styles.page}>
-
-      {/* Background Decorations */}
-      <div style={styles.backgroundGlow1} />
-      <div style={styles.backgroundGlow2} />
-
+    <div
+      className="relations-page"
+      style={styles.page}
+    >
       <main style={styles.container}>
 
-        {/* ================= HEADER ================= */}
+        {/* =====================================================
+            HEADER
+        ===================================================== */}
 
-        <header style={styles.header}>
-
+        <header
+          className="relations-header"
+          style={styles.header}
+        >
           <div style={styles.headerIcon}>
             🤝
           </div>
 
-          <div>
+          <div style={{ flex: 1 }}>
             <div style={styles.badge}>
-              المرحلة الثالثة والأخيرة
+              {editMode
+                ? "تعديل التقييم"
+                : "المرحلة الثالثة والأخيرة"}
             </div>
 
-            <h1 style={styles.title}>
+            <h1
+              className="relations-title"
+              style={styles.title}
+            >
               العلاقات الوظيفية
             </h1>
 
             <p style={styles.subtitle}>
-              قيّم مستوى العلاقات والتعامل مع مختلف الأطراف
+              قيّم مستوى العلاقات والتعامل مع مختلف
+              الأطراف
             </p>
           </div>
 
+          {editMode && (
+            <div style={styles.editBadge}>
+              ✏️ تعديل
+            </div>
+          )}
         </header>
 
-        {/* ================= INFO ================= */}
+        {/* =====================================================
+            EMPLOYEE
+        ===================================================== */}
 
-        <section style={styles.infoCard}>
+        {employeeName && (
+          <section style={styles.employeeCard}>
+            <div style={styles.employeeAvatar}>
+              {employeeName
+                .trim()
+                .charAt(0)}
+            </div>
 
+            <div>
+              <span style={styles.employeeLabel}>
+                الموظف محل التقييم
+              </span>
+
+              <strong style={styles.employeeName}>
+                {employeeName}
+              </strong>
+            </div>
+
+            {editMode && (
+              <div style={styles.editStatus}>
+                يتم تعديل التقييم الحالي
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* =====================================================
+            INFO
+        ===================================================== */}
+
+        <section
+          className="relations-info"
+          style={styles.infoCard}
+        >
           <div style={styles.infoItem}>
-
             <span style={styles.infoIcon}>
               🤝
             </span>
@@ -147,13 +444,14 @@ export default function Relations() {
                 العلاقات الوظيفية
               </strong>
             </div>
-
           </div>
 
-          <div style={styles.divider} />
+          <div
+            className="relations-divider"
+            style={styles.divider}
+          />
 
           <div style={styles.infoItem}>
-
             <span style={styles.infoIcon}>
               📋
             </span>
@@ -167,13 +465,14 @@ export default function Relations() {
                 {relationsItems.length}
               </strong>
             </div>
-
           </div>
 
-          <div style={styles.divider} />
+          <div
+            className="relations-divider"
+            style={styles.divider}
+          />
 
           <div style={styles.infoItem}>
-
             <span style={styles.infoIcon}>
               🎯
             </span>
@@ -187,58 +486,56 @@ export default function Relations() {
                 {maxTotal}
               </strong>
             </div>
-
           </div>
-
         </section>
 
-        {/* ================= PROGRESS ================= */}
+        {/* =====================================================
+            PROGRESS
+        ===================================================== */}
 
         <section style={styles.progressCard}>
-
           <div style={styles.progressTop}>
-
             <div>
-
               <span style={styles.progressTitle}>
                 اكتمال تقييم العلاقات
               </span>
 
               <div style={styles.progressText}>
-                {completed === relationsItems.length
+                {completed ===
+                relationsItems.length
                   ? "تم تقييم جميع العلاقات ✓"
                   : `تم تقييم ${completed} من ${relationsItems.length} معايير`}
               </div>
-
             </div>
 
             <div style={styles.progressNumber}>
               {progress}%
             </div>
-
           </div>
 
           <div style={styles.progressTrack}>
-
             <div
               style={{
                 ...styles.progressBar,
                 width: `${progress}%`,
               }}
             />
-
           </div>
-
         </section>
 
-        {/* ================= MAIN CARD ================= */}
+        {/* =====================================================
+            MAIN CARD
+        ===================================================== */}
 
-        <section style={styles.card}>
-
-          <div style={styles.cardHeader}>
-
+        <section
+          className="relations-card"
+          style={styles.card}
+        >
+          <div
+            className="relations-card-header"
+            style={styles.cardHeader}
+          >
             <div>
-
               <h2 style={styles.sectionTitle}>
                 معايير العلاقات الوظيفية
               </h2>
@@ -246,134 +543,167 @@ export default function Relations() {
               <p style={styles.sectionSubtitle}>
                 حدد الدرجة المناسبة لكل علاقة
               </p>
-
             </div>
 
-            <div style={styles.currentScore}>
-
-              <span style={styles.currentScoreLabel}>
+            <div
+              className="relations-current-score"
+              style={styles.currentScore}
+            >
+              <span
+                style={styles.currentScoreLabel}
+              >
                 المجموع الحالي
               </span>
 
-              <strong style={styles.currentScoreValue}>
+              <strong
+                style={styles.currentScoreValue}
+              >
                 {total}
                 <small> / {maxTotal}</small>
               </strong>
-
             </div>
-
           </div>
 
-          {/* ================= ITEMS ================= */}
+          {/* =====================================================
+              ITEMS
+          ===================================================== */}
 
-          <div style={styles.itemsGrid}>
+          <div
+            className="relations-items"
+            style={styles.itemsGrid}
+          >
+            {relationsItems.map(
+              (item, index) => {
+                const value = r[index];
 
-            {relationsItems.map((item, index) => {
+                const isCompleted =
+                  value !== undefined;
 
-              const value = r[index];
+                const itemPercentage =
+                  isCompleted
+                    ? Math.round(
+                        (Number(value) /
+                          item.max) *
+                          100
+                      )
+                    : 0;
 
-              const isCompleted =
-                value !== undefined;
-
-              const itemPercentage = isCompleted
-                ? Math.round(
-                    (Number(value) / item.max) * 100
-                  )
-                : 0;
-
-              return (
-                <div
-                  key={index}
-                  style={{
-                    ...styles.item,
-                    ...(isCompleted
-                      ? styles.itemCompleted
-                      : {}),
-                  }}
-                >
-
-                  <div style={styles.itemTop}>
-
-                    <div style={styles.itemNumber}>
-                      {String(index + 1).padStart(2, "0")}
-                    </div>
-
-                    <div style={styles.itemContent}>
-
-                      <label style={styles.label}>
-                        {item.title}
-                      </label>
-
-                      <span style={styles.maxScore}>
-                        الدرجة القصوى: {item.max}
-                      </span>
-
-                    </div>
-
-                    {isCompleted && (
-                      <div style={styles.check}>
-                        ✓
-                      </div>
-                    )}
-
-                  </div>
-
-                  <div style={styles.inputRow}>
-
-                    <div style={styles.inputWrapper}>
-
-                      <input
-                        type="number"
-                        min="0"
-                        max={item.max}
-                        step="1"
-                        placeholder="0"
-                        value={value ?? ""}
-                        onChange={(e) =>
-                          change(
-                            index,
-                            e.target.value,
-                            item.max
-                          )
-                        }
-                        style={styles.input}
-                      />
-
-                      <span style={styles.inputSuffix}>
-                        / {item.max}
-                      </span>
-
-                    </div>
-
-                    <div style={styles.miniProgressTrack}>
-
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      ...styles.item,
+                      ...(isCompleted
+                        ? styles.itemCompleted
+                        : {}),
+                    }}
+                  >
+                    <div style={styles.itemTop}>
                       <div
                         style={{
-                          ...styles.miniProgress,
-                          width: `${itemPercentage}%`,
+                          ...styles.itemNumber,
+                          ...(isCompleted
+                            ? styles.itemNumberCompleted
+                            : {}),
                         }}
-                      />
+                      >
+                        {String(index + 1).padStart(
+                          2,
+                          "0"
+                        )}
+                      </div>
 
+                      <div
+                        style={styles.itemContent}
+                      >
+                        <label
+                          style={styles.label}
+                        >
+                          {item.title}
+                        </label>
+
+                        <span
+                          style={styles.maxScore}
+                        >
+                          الدرجة القصوى: {item.max}
+                        </span>
+                      </div>
+
+                      {isCompleted && (
+                        <div
+                          style={styles.check}
+                        >
+                          ✓
+                        </div>
+                      )}
                     </div>
 
-                    <span style={styles.percent}>
-                      {itemPercentage}%
-                    </span>
+                    <div style={styles.inputRow}>
+                      <div
+                        style={
+                          styles.inputWrapper
+                        }
+                      >
+                        <input
+                          type="number"
+                          min="0"
+                          max={item.max}
+                          step="1"
+                          placeholder="0"
+                          value={value ?? ""}
+                          onChange={(e) =>
+                            change(
+                              index,
+                              e.target.value,
+                              item.max
+                            )
+                          }
+                          style={styles.input}
+                        />
 
+                        <span
+                          style={
+                            styles.inputSuffix
+                          }
+                        >
+                          / {item.max}
+                        </span>
+                      </div>
+
+                      <div
+                        style={
+                          styles.miniProgressTrack
+                        }
+                      >
+                        <div
+                          style={{
+                            ...styles.miniProgress,
+                            width: `${itemPercentage}%`,
+                          }}
+                        />
+                      </div>
+
+                      <span
+                        style={styles.percent}
+                      >
+                        {itemPercentage}%
+                      </span>
+                    </div>
                   </div>
-
-                </div>
-              );
-            })}
-
+                );
+              }
+            )}
           </div>
 
-          {/* ================= TOTAL ================= */}
+          {/* =====================================================
+              TOTAL
+          ===================================================== */}
 
-          <div style={styles.totalCard}>
-
-            <div>
-
+          <div
+            className="relations-total"
+            style={styles.totalCard}
+          >
+            <div style={{ flex: 1 }}>
               <span style={styles.totalLabel}>
                 إجمالي نقاط العلاقات
               </span>
@@ -381,7 +711,6 @@ export default function Relations() {
               <span style={styles.totalHint}>
                 من أصل {maxTotal} نقاط
               </span>
-
             </div>
 
             <div style={styles.totalScore}>
@@ -392,12 +721,14 @@ export default function Relations() {
             <div style={styles.totalPercent}>
               {percentage}%
             </div>
-
           </div>
 
-          {/* ================= FINAL MESSAGE ================= */}
+          {/* =====================================================
+              SUCCESS
+          ===================================================== */}
 
-          {completed === relationsItems.length && (
+          {completed ===
+            relationsItems.length && (
             <div style={styles.successMessage}>
               <span style={styles.successIcon}>
                 ✓
@@ -409,18 +740,24 @@ export default function Relations() {
                 </strong>
 
                 <span>
-                  اضغط على الزر للانتقال إلى النتيجة النهائية
+                  اضغط على الزر للانتقال إلى
+                  النتيجة النهائية
                 </span>
               </div>
             </div>
           )}
 
-          {/* ================= ACTIONS ================= */}
+          {/* =====================================================
+              ACTIONS
+          ===================================================== */}
 
-          <div style={styles.actions}>
-
+          <div
+            className="relations-actions"
+            style={styles.actions}
+          >
             <button
               type="button"
+              className="relations-back"
               style={styles.backButton}
               onClick={() => nav(-1)}
             >
@@ -430,6 +767,7 @@ export default function Relations() {
 
             <button
               type="button"
+              className="relations-next"
               style={styles.nextButton}
               onClick={next}
             >
@@ -441,34 +779,67 @@ export default function Relations() {
                 ←
               </span>
             </button>
-
           </div>
-
         </section>
 
-        {/* ================= FOOTER ================= */}
+        {/* =====================================================
+            FOOTER
+        ===================================================== */}
 
         <footer style={styles.footer}>
           <span>🔒</span>
           بيانات التقييم محفوظة بشكل آمن
         </footer>
-
       </main>
 
-      {/* ================= RESPONSIVE ================= */}
+      {/* =====================================================
+          RESPONSIVE
+      ===================================================== */}
 
       <style>
         {`
-          @media (max-width: 700px) {
+          * {
+            box-sizing: border-box;
+          }
 
+          .relations-page {
+            direction: rtl;
+          }
+
+          .relations-page button {
+            transition:
+              transform 0.2s ease,
+              box-shadow 0.2s ease;
+          }
+
+          .relations-page button:hover {
+            transform: translateY(-1px);
+          }
+
+          .relations-page input:focus {
+            border-color: #93c5fd !important;
+            box-shadow:
+              0 0 0 4px rgba(59,130,246,0.10);
+          }
+
+          @media (max-width: 850px) {
+            .relations-items {
+              grid-template-columns:
+                repeat(2, minmax(0, 1fr)) !important;
+            }
+          }
+
+          @media (max-width: 700px) {
             .relations-items {
               grid-template-columns: 1fr !important;
             }
 
+            .relations-info {
+              flex-wrap: wrap !important;
+            }
           }
 
           @media (max-width: 600px) {
-
             .relations-page {
               padding: 20px 12px !important;
             }
@@ -523,57 +894,57 @@ export default function Relations() {
               width: 100% !important;
               justify-content: center !important;
             }
+          }
 
+          @media (max-width: 430px) {
+            .relations-header {
+              gap: 12px !important;
+            }
+
+            .relations-total {
+              gap: 12px !important;
+            }
+
+            .relations-total > div:last-child {
+              width: 100%;
+            }
           }
         `}
       </style>
 
+      <style>
+        {`
+          @keyframes relationsSpin {
+            from {
+              transform: rotate(0deg);
+            }
+
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}
+      </style>
     </div>
   );
 }
 
 /* =========================================================
-   STYLES
+   LIGHT PROFESSIONAL STYLES
 ========================================================= */
 
 const styles = {
-
   page: {
     minHeight: "100vh",
     background:
-      "linear-gradient(135deg, #07111f 0%, #0f1f35 45%, #111827 100%)",
+      "linear-gradient(135deg, #f5f8fc 0%, #eef5fb 50%, #f8faff 100%)",
     fontFamily: "'Cairo', sans-serif",
     direction: "rtl",
-    padding: "45px 20px",
+    padding: "40px 20px",
     position: "relative",
     overflow: "hidden",
     boxSizing: "border-box",
-  },
-
-  backgroundGlow1: {
-    position: "fixed",
-    width: "420px",
-    height: "420px",
-    borderRadius: "50%",
-    background:
-      "rgba(14,165,233,0.12)",
-    filter: "blur(90px)",
-    top: "-180px",
-    right: "-120px",
-    pointerEvents: "none",
-  },
-
-  backgroundGlow2: {
-    position: "fixed",
-    width: "360px",
-    height: "360px",
-    borderRadius: "50%",
-    background:
-      "rgba(37,99,235,0.10)",
-    filter: "blur(90px)",
-    bottom: "-180px",
-    left: "-100px",
-    pointerEvents: "none",
+    color: "#172033",
   },
 
   container: {
@@ -589,51 +960,116 @@ const styles = {
   header: {
     display: "flex",
     alignItems: "center",
-    gap: "20px",
-    marginBottom: "25px",
+    gap: "18px",
+    marginBottom: "20px",
   },
 
   headerIcon: {
-    width: "65px",
-    height: "65px",
-    minWidth: "65px",
+    width: "64px",
+    height: "64px",
+    minWidth: "64px",
     borderRadius: "18px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "30px",
+    fontSize: "28px",
     background:
-      "linear-gradient(135deg, #0284c7, #2563eb)",
+      "linear-gradient(135deg, #dbeafe, #e0f2fe)",
+    border: "1px solid #bfdbfe",
     boxShadow:
-      "0 12px 30px rgba(14,165,233,0.30)",
+      "0 10px 25px rgba(14,165,233,0.12)",
   },
 
   badge: {
     display: "inline-block",
     fontSize: "11px",
-    fontWeight: "700",
-    color: "#7dd3fc",
-    background:
-      "rgba(14,165,233,0.10)",
-    border:
-      "1px solid rgba(56,189,248,0.18)",
-    padding: "4px 11px",
+    fontWeight: "800",
+    color: "#0284c7",
+    background: "#f0f9ff",
+    border: "1px solid #bae6fd",
+    padding: "5px 12px",
     borderRadius: "20px",
     marginBottom: "5px",
   },
 
+  editBadge: {
+    padding: "8px 14px",
+    borderRadius: "10px",
+    background: "#fff7ed",
+    border: "1px solid #fed7aa",
+    color: "#c2410c",
+    fontSize: "12px",
+    fontWeight: "800",
+    whiteSpace: "nowrap",
+  },
+
   title: {
     margin: 0,
-    color: "#ffffff",
-    fontSize: "30px",
+    color: "#172033",
+    fontSize: "29px",
     fontWeight: "800",
     letterSpacing: "-0.5px",
   },
 
   subtitle: {
     margin: "4px 0 0",
-    color: "#94a3b8",
+    color: "#64748b",
     fontSize: "13px",
+  },
+
+  /* EMPLOYEE */
+
+  employeeCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "13px",
+    padding: "13px 17px",
+    marginBottom: "15px",
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    borderRadius: "16px",
+    boxShadow:
+      "0 5px 18px rgba(15,23,42,0.05)",
+  },
+
+  employeeAvatar: {
+    width: "43px",
+    height: "43px",
+    minWidth: "43px",
+    borderRadius: "12px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background:
+      "linear-gradient(135deg, #e0f2fe, #dbeafe)",
+    color: "#0284c7",
+    fontSize: "18px",
+    fontWeight: "800",
+  },
+
+  employeeLabel: {
+    display: "block",
+    color: "#94a3b8",
+    fontSize: "10px",
+    marginBottom: "1px",
+  },
+
+  employeeName: {
+    display: "block",
+    color: "#1e293b",
+    fontSize: "15px",
+    fontWeight: "800",
+  },
+
+  editStatus: {
+    marginRight: "auto",
+    color: "#2563eb",
+    background: "#eff6ff",
+    border: "1px solid #dbeafe",
+    borderRadius: "9px",
+    padding: "6px 10px",
+    fontSize: "10px",
+    fontWeight: "700",
   },
 
   /* INFO */
@@ -642,98 +1078,93 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-around",
-    padding: "20px 25px",
-    marginBottom: "18px",
-    borderRadius: "18px",
-    background:
-      "rgba(255,255,255,0.055)",
-    border:
-      "1px solid rgba(255,255,255,0.08)",
-    backdropFilter: "blur(15px)",
+    padding: "18px 22px",
+    marginBottom: "15px",
+    borderRadius: "17px",
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
     boxShadow:
-      "0 15px 40px rgba(0,0,0,0.18)",
+      "0 7px 24px rgba(15,23,42,0.05)",
   },
 
   infoItem: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: "11px",
   },
 
   infoIcon: {
-    width: "42px",
-    height: "42px",
+    width: "40px",
+    height: "40px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: "12px",
-    background:
-      "rgba(14,165,233,0.12)",
-    fontSize: "19px",
+    borderRadius: "11px",
+    background: "#f0f9ff",
+    border: "1px solid #e0f2fe",
+    fontSize: "18px",
   },
 
   infoLabel: {
     display: "block",
     color: "#94a3b8",
-    fontSize: "11px",
+    fontSize: "10px",
     marginBottom: "2px",
   },
 
   infoValue: {
-    color: "#f8fafc",
-    fontSize: "17px",
+    color: "#1e293b",
+    fontSize: "15px",
+    fontWeight: "800",
   },
 
   divider: {
     width: "1px",
-    height: "35px",
-    background:
-      "rgba(255,255,255,0.08)",
+    height: "32px",
+    background: "#e2e8f0",
   },
 
   /* PROGRESS */
 
   progressCard: {
-    padding: "20px 24px",
-    marginBottom: "18px",
-    borderRadius: "18px",
-    background:
-      "rgba(255,255,255,0.055)",
-    border:
-      "1px solid rgba(255,255,255,0.08)",
-    backdropFilter: "blur(15px)",
+    padding: "18px 22px",
+    marginBottom: "15px",
+    borderRadius: "17px",
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    boxShadow:
+      "0 7px 24px rgba(15,23,42,0.05)",
   },
 
   progressTop: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: "13px",
+    marginBottom: "12px",
   },
 
   progressTitle: {
     display: "block",
-    color: "#e2e8f0",
-    fontSize: "14px",
-    fontWeight: "700",
+    color: "#334155",
+    fontSize: "13px",
+    fontWeight: "800",
   },
 
   progressText: {
-    color: "#64748b",
-    fontSize: "11px",
+    color: "#94a3b8",
+    fontSize: "10px",
     marginTop: "3px",
   },
 
   progressNumber: {
-    color: "#38bdf8",
-    fontSize: "22px",
+    color: "#0284c7",
+    fontSize: "21px",
     fontWeight: "800",
   },
 
   progressTrack: {
     height: "8px",
-    background:
-      "rgba(255,255,255,0.07)",
+    background: "#eaf0f7",
     borderRadius: "20px",
     overflow: "hidden",
   },
@@ -742,22 +1173,19 @@ const styles = {
     height: "100%",
     borderRadius: "20px",
     background:
-      "linear-gradient(90deg, #0284c7, #2563eb)",
+      "linear-gradient(90deg, #38bdf8, #3b82f6)",
     transition: "width 0.3s ease",
   },
 
-  /* MAIN CARD */
+  /* CARD */
 
   card: {
-    background:
-      "rgba(255,255,255,0.065)",
-    border:
-      "1px solid rgba(255,255,255,0.09)",
-    backdropFilter: "blur(18px)",
-    borderRadius: "24px",
-    padding: "30px",
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    borderRadius: "22px",
+    padding: "28px",
     boxShadow:
-      "0 25px 70px rgba(0,0,0,0.28)",
+      "0 14px 45px rgba(15,23,42,0.07)",
   },
 
   cardHeader: {
@@ -765,45 +1193,42 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: "20px",
-    paddingBottom: "22px",
-    marginBottom: "22px",
-    borderBottom:
-      "1px solid rgba(255,255,255,0.07)",
+    paddingBottom: "20px",
+    marginBottom: "20px",
+    borderBottom: "1px solid #edf1f6",
   },
 
   sectionTitle: {
     margin: 0,
-    color: "#f8fafc",
-    fontSize: "21px",
+    color: "#1e293b",
+    fontSize: "20px",
     fontWeight: "800",
   },
 
   sectionSubtitle: {
     margin: "4px 0 0",
-    color: "#64748b",
-    fontSize: "12px",
+    color: "#94a3b8",
+    fontSize: "11px",
   },
 
   currentScore: {
     textAlign: "center",
-    padding: "10px 20px",
-    borderRadius: "14px",
-    background:
-      "rgba(14,165,233,0.09)",
-    border:
-      "1px solid rgba(56,189,248,0.14)",
+    padding: "9px 18px",
+    borderRadius: "13px",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
   },
 
   currentScoreLabel: {
     display: "block",
     color: "#94a3b8",
-    fontSize: "10px",
+    fontSize: "9px",
     marginBottom: "2px",
   },
 
   currentScoreValue: {
-    color: "#38bdf8",
-    fontSize: "20px",
+    color: "#0284c7",
+    fontSize: "19px",
     fontWeight: "800",
   },
 
@@ -819,18 +1244,15 @@ const styles = {
   item: {
     padding: "20px",
     borderRadius: "17px",
-    background:
-      "rgba(15,23,42,0.55)",
-    border:
-      "1px solid rgba(255,255,255,0.06)",
+    background: "#f8fafc",
+    border: "1px solid #e5eaf0",
     transition: "all 0.2s ease",
   },
 
   itemCompleted: {
-    border:
-      "1px solid rgba(14,165,233,0.28)",
+    border: "1px solid #bae6fd",
     background:
-      "linear-gradient(145deg, rgba(7,89,133,0.18), rgba(15,23,42,0.65))",
+      "linear-gradient(145deg, #f8fdff, #f1f7ff)",
   },
 
   itemTop: {
@@ -848,13 +1270,17 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    color: "#7dd3fc",
+    color: "#64748b",
     fontSize: "11px",
     fontWeight: "800",
-    background:
-      "rgba(14,165,233,0.10)",
-    border:
-      "1px solid rgba(56,189,248,0.14)",
+    background: "#eef2f7",
+    border: "1px solid #e2e8f0",
+  },
+
+  itemNumberCompleted: {
+    color: "#0284c7",
+    background: "#f0f9ff",
+    border: "1px solid #bae6fd",
   },
 
   itemContent: {
@@ -863,7 +1289,7 @@ const styles = {
 
   label: {
     display: "block",
-    color: "#e2e8f0",
+    color: "#334155",
     fontSize: "13px",
     fontWeight: "700",
     lineHeight: "1.7",
@@ -871,7 +1297,7 @@ const styles = {
 
   maxScore: {
     display: "block",
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "10px",
     marginTop: "2px",
   },
@@ -883,9 +1309,9 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    color: "#bae6fd",
-    background:
-      "rgba(14,165,233,0.18)",
+    color: "#16a34a",
+    background: "#f0fdf4",
+    border: "1px solid #bbf7d0",
     fontSize: "12px",
     fontWeight: "800",
   },
@@ -907,25 +1333,24 @@ const styles = {
     boxSizing: "border-box",
     padding: "11px 38px 11px 10px",
     borderRadius: "11px",
-    border:
-      "1px solid rgba(255,255,255,0.10)",
-    background:
-      "rgba(255,255,255,0.045)",
-    color: "#ffffff",
+    border: "1px solid #dbe2ea",
+    background: "#ffffff",
+    color: "#1e293b",
     fontSize: "15px",
     fontWeight: "700",
     outline: "none",
     textAlign: "center",
     fontFamily: "'Cairo', sans-serif",
+    transition:
+      "border-color 0.2s ease, box-shadow 0.2s ease",
   },
 
   inputSuffix: {
     position: "absolute",
     right: "8px",
     top: "50%",
-    transform:
-      "translateY(-50%)",
-    color: "#64748b",
+    transform: "translateY(-50%)",
+    color: "#94a3b8",
     fontSize: "10px",
     pointerEvents: "none",
   },
@@ -934,8 +1359,7 @@ const styles = {
     flex: 1,
     height: "6px",
     borderRadius: "20px",
-    background:
-      "rgba(255,255,255,0.06)",
+    background: "#e7edf4",
     overflow: "hidden",
   },
 
@@ -943,9 +1367,8 @@ const styles = {
     height: "100%",
     borderRadius: "20px",
     background:
-      "linear-gradient(90deg, #0284c7, #2563eb)",
-    transition:
-      "width 0.25s ease",
+      "linear-gradient(90deg, #38bdf8, #3b82f6)",
+    transition: "width 0.25s ease",
   },
 
   percent: {
@@ -965,21 +1388,20 @@ const styles = {
     padding: "20px 22px",
     borderRadius: "17px",
     background:
-      "linear-gradient(135deg, rgba(14,165,233,0.12), rgba(37,99,235,0.08))",
-    border:
-      "1px solid rgba(56,189,248,0.15)",
+      "linear-gradient(135deg, #f0f9ff, #eff6ff)",
+    border: "1px solid #dbeafe",
   },
 
   totalLabel: {
     display: "block",
-    color: "#e2e8f0",
+    color: "#334155",
     fontSize: "14px",
     fontWeight: "800",
   },
 
   totalHint: {
     display: "block",
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "10px",
     marginTop: "3px",
   },
@@ -989,6 +1411,7 @@ const styles = {
     display: "flex",
     alignItems: "baseline",
     gap: "3px",
+    color: "#64748b",
   },
 
   totalPercent: {
@@ -996,9 +1419,9 @@ const styles = {
     textAlign: "center",
     padding: "7px 10px",
     borderRadius: "9px",
-    color: "#bae6fd",
-    background:
-      "rgba(14,165,233,0.12)",
+    color: "#0284c7",
+    background: "#ffffff",
+    border: "1px solid #bae6fd",
     fontSize: "12px",
     fontWeight: "800",
   },
@@ -1012,10 +1435,8 @@ const styles = {
     marginTop: "15px",
     padding: "13px 16px",
     borderRadius: "13px",
-    background:
-      "rgba(34,197,94,0.07)",
-    border:
-      "1px solid rgba(34,197,94,0.15)",
+    background: "#f0fdf4",
+    border: "1px solid #bbf7d0",
   },
 
   successIcon: {
@@ -1026,9 +1447,8 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background:
-      "rgba(34,197,94,0.15)",
-    color: "#86efac",
+    background: "#dcfce7",
+    color: "#16a34a",
     fontWeight: "800",
   },
 
@@ -1044,11 +1464,9 @@ const styles = {
   backButton: {
     padding: "13px 25px",
     borderRadius: "12px",
-    border:
-      "1px solid rgba(255,255,255,0.09)",
-    background:
-      "rgba(255,255,255,0.045)",
-    color: "#cbd5e1",
+    border: "1px solid #dbe2ea",
+    background: "#ffffff",
+    color: "#475569",
     cursor: "pointer",
     fontFamily: "'Cairo', sans-serif",
     fontWeight: "700",
@@ -1071,7 +1489,7 @@ const styles = {
     fontWeight: "800",
     fontSize: "13px",
     boxShadow:
-      "0 10px 25px rgba(14,165,233,0.25)",
+      "0 10px 25px rgba(37,99,235,0.18)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -1084,8 +1502,98 @@ const styles = {
 
   footer: {
     textAlign: "center",
-    color: "#475569",
+    color: "#94a3b8",
     fontSize: "10px",
     marginTop: "18px",
+  },
+
+  /* LOADING */
+
+  loadingPage: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background:
+      "linear-gradient(135deg, #f5f8fc, #eef5fb)",
+    fontFamily: "'Cairo', sans-serif",
+    direction: "rtl",
+    padding: "20px",
+  },
+
+  loadingCard: {
+    width: "100%",
+    maxWidth: "360px",
+    textAlign: "center",
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    borderRadius: "20px",
+    padding: "35px 25px",
+    boxShadow:
+      "0 15px 40px rgba(15,23,42,0.08)",
+  },
+
+  errorCard: {
+    width: "100%",
+    maxWidth: "400px",
+    textAlign: "center",
+    background: "#ffffff",
+    border: "1px solid #fecaca",
+    borderRadius: "20px",
+    padding: "35px 25px",
+    boxShadow:
+      "0 15px 40px rgba(15,23,42,0.08)",
+  },
+
+  spinner: {
+    width: "42px",
+    height: "42px",
+    borderRadius: "50%",
+    border: "4px solid #e0f2fe",
+    borderTopColor: "#0284c7",
+    margin: "0 auto 18px",
+    animation:
+      "relationsSpin 0.8s linear infinite",
+  },
+
+  errorIcon: {
+    width: "45px",
+    height: "45px",
+    borderRadius: "50%",
+    background: "#fef2f2",
+    border: "1px solid #fecaca",
+    color: "#dc2626",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 15px",
+    fontSize: "22px",
+    fontWeight: "800",
+  },
+
+  loadingTitle: {
+    margin: 0,
+    color: "#1e293b",
+    fontSize: "17px",
+    fontWeight: "800",
+  },
+
+  loadingText: {
+    margin: "7px 0 0",
+    color: "#94a3b8",
+    fontSize: "11px",
+    lineHeight: "1.8",
+  },
+
+  retryButton: {
+    marginTop: "20px",
+    padding: "10px 22px",
+    borderRadius: "10px",
+    border: "none",
+    background: "#0284c7",
+    color: "#ffffff",
+    fontFamily: "'Cairo', sans-serif",
+    fontWeight: "700",
+    cursor: "pointer",
   },
 };

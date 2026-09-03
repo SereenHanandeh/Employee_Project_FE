@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
@@ -45,14 +44,20 @@ export default function History() {
   };
 
   // =====================================================
-  // NAVIGATION
+  // ADD NEW EVALUATION
   // =====================================================
 
   const goToAddEvaluation = () => {
-    nav("/step1");
+    nav("/performance");
   };
 
+  // =====================================================
+  // VIEW REPORT
+  // =====================================================
+
   const viewReport = (id) => {
+    if (!id) return;
+
     nav("/print", {
       state: {
         evaluationId: id,
@@ -64,13 +69,35 @@ export default function History() {
   // EDIT EVALUATION
   // =====================================================
 
-  const editEvaluation = (id) => {
-    if (!id) return;
+  const editEvaluation = (evaluation) => {
+    if (!evaluation?.evaluation_id) return;
 
-    nav("/step1", {
+    /*
+      نبدأ من صفحة Performance
+      ونرسل evaluationId + editMode
+    */
+
+    nav("/performance", {
       state: {
-        evaluationId: id,
+        evaluationId: evaluation.evaluation_id,
         editMode: true,
+
+        employee_id: evaluation.employee_id,
+        name: evaluation.name,
+
+        from_date: evaluation.from_date,
+        to_date: evaluation.to_date,
+
+        performance:
+          evaluation.performance_details || {},
+
+        personality:
+          evaluation.personality_details || {},
+
+        relations:
+          evaluation.relations_details || {},
+
+        notes: evaluation.notes || "",
       },
     });
   };
@@ -95,7 +122,10 @@ export default function History() {
 
       setDeleteId(null);
     } catch (err) {
-      console.error("Delete Evaluation Error:", err);
+      console.error(
+        "Delete Evaluation Error:",
+        err
+      );
 
       alert(
         err?.response?.data?.message ||
@@ -127,56 +157,56 @@ export default function History() {
   const gradeStyle = (grade) => {
     const value = normalizeGrade(grade);
 
-    if (!value) {
-      return {
-        background: "rgba(148, 163, 184, 0.12)",
-        color: "#94a3b8",
-        border:
-          "1px solid rgba(148, 163, 184, 0.18)",
-      };
-    }
-
     if (value.includes("ممتاز")) {
       return {
-        background: "rgba(34, 197, 94, 0.12)",
+        background: "rgba(34,197,94,.12)",
         color: "#16a34a",
         border:
-          "1px solid rgba(34, 197, 94, 0.22)",
+          "1px solid rgba(34,197,94,.22)",
       };
     }
 
     if (value.includes("جيد جدا")) {
       return {
-        background: "rgba(59, 130, 246, 0.12)",
+        background: "rgba(59,130,246,.12)",
         color: "#2563eb",
         border:
-          "1px solid rgba(59, 130, 246, 0.22)",
+          "1px solid rgba(59,130,246,.22)",
       };
     }
 
     if (value.includes("جيد")) {
       return {
-        background: "rgba(245, 158, 11, 0.12)",
+        background: "rgba(245,158,11,.12)",
         color: "#d97706",
         border:
-          "1px solid rgba(245, 158, 11, 0.22)",
+          "1px solid rgba(245,158,11,.22)",
       };
     }
 
     if (value.includes("مقبول")) {
       return {
-        background: "rgba(249, 115, 22, 0.12)",
+        background: "rgba(249,115,22,.12)",
         color: "#ea580c",
         border:
-          "1px solid rgba(249, 115, 22, 0.22)",
+          "1px solid rgba(249,115,22,.22)",
+      };
+    }
+
+    if (value.includes("ضعيف")) {
+      return {
+        background: "rgba(239,68,68,.12)",
+        color: "#dc2626",
+        border:
+          "1px solid rgba(239,68,68,.22)",
       };
     }
 
     return {
-      background: "rgba(239, 68, 68, 0.12)",
-      color: "#dc2626",
+      background: "rgba(148,163,184,.12)",
+      color: "#94a3b8",
       border:
-        "1px solid rgba(239, 68, 68, 0.22)",
+        "1px solid rgba(148,163,184,.18)",
     };
   };
 
@@ -184,13 +214,13 @@ export default function History() {
   // SCORE COLOR
   // =====================================================
 
-  const scoreColor = (total) => {
-    const score = Number(total || 0);
+  const scoreColor = (percentage) => {
+    const score = Number(percentage || 0);
 
     if (score >= 90) return "#16a34a";
-    if (score >= 80) return "#2563eb";
-    if (score >= 70) return "#d97706";
-    if (score >= 60) return "#ea580c";
+    if (score >= 75) return "#2563eb";
+    if (score >= 60) return "#d97706";
+    if (score >= 50) return "#ea580c";
 
     return "#dc2626";
   };
@@ -216,10 +246,12 @@ export default function History() {
 
     // GRADE FILTER
     if (gradeFilter !== "الكل") {
-      const filter = normalizeGrade(gradeFilter);
+      const filter =
+        normalizeGrade(gradeFilter);
 
       result = result.filter((item) => {
-        const grade = normalizeGrade(item.grade);
+        const grade =
+          normalizeGrade(item.grade);
 
         return grade.includes(filter);
       });
@@ -243,15 +275,15 @@ export default function History() {
 
       if (sortOrder === "highest") {
         return (
-          Number(b.total || 0) -
-          Number(a.total || 0)
+          Number(b.percentage || b.total || 0) -
+          Number(a.percentage || a.total || 0)
         );
       }
 
       if (sortOrder === "lowest") {
         return (
-          Number(a.total || 0) -
-          Number(b.total || 0)
+          Number(a.percentage || a.total || 0) -
+          Number(b.percentage || b.total || 0)
         );
       }
 
@@ -278,22 +310,33 @@ export default function History() {
         ? Math.round(
             data.reduce(
               (sum, item) =>
-                sum + Number(item.total || 0),
+                sum +
+                Number(
+                  item.percentage ||
+                    item.total ||
+                    0
+                ),
               0
             ) / total
           )
         : 0;
 
     const excellent = data.filter((item) =>
-      normalizeGrade(item.grade).includes("ممتاز")
+      normalizeGrade(item.grade).includes(
+        "ممتاز"
+      )
     ).length;
 
     const veryGood = data.filter((item) =>
-      normalizeGrade(item.grade).includes("جيد جدا")
+      normalizeGrade(item.grade).includes(
+        "جيد جدا"
+      )
     ).length;
 
     const good = data.filter((item) => {
-      const grade = normalizeGrade(item.grade);
+      const grade = normalizeGrade(
+        item.grade
+      );
 
       return (
         grade.includes("جيد") &&
@@ -301,12 +344,26 @@ export default function History() {
       );
     }).length;
 
+    const acceptable = data.filter((item) =>
+      normalizeGrade(item.grade).includes(
+        "مقبول"
+      )
+    ).length;
+
+    const weak = data.filter((item) =>
+      normalizeGrade(item.grade).includes(
+        "ضعيف"
+      )
+    ).length;
+
     return {
       total,
       average,
       excellent,
       veryGood,
       good,
+      acceptable,
+      weak,
     };
   }, [data]);
 
@@ -371,7 +428,6 @@ export default function History() {
       ================================================= */}
 
       <div className="history-page-header">
-
         <div className="history-heading">
 
           <div className="history-breadcrumb">
@@ -387,7 +443,6 @@ export default function History() {
           <p>
             إدارة ومتابعة جميع تقييمات الموظفين
           </p>
-
         </div>
 
         <button
@@ -398,7 +453,6 @@ export default function History() {
           <span>+</span>
           إضافة تقييم جديد
         </button>
-
       </div>
 
       {/* =================================================
@@ -407,19 +461,13 @@ export default function History() {
 
       <div className="history-stats">
 
-        {/* TOTAL */}
-
         <div className="history-stat-card">
-
           <div className="history-stat-icon blue">
             📊
           </div>
 
           <div className="history-stat-content">
-
-            <span>
-              إجمالي التقييمات
-            </span>
+            <span>إجمالي التقييمات</span>
 
             <strong>
               {statistics.total}
@@ -428,24 +476,16 @@ export default function History() {
             <small>
               جميع التقييمات
             </small>
-
           </div>
-
         </div>
 
-        {/* AVERAGE */}
-
         <div className="history-stat-card">
-
           <div className="history-stat-icon purple">
             %
           </div>
 
           <div className="history-stat-content">
-
-            <span>
-              متوسط التقييم
-            </span>
+            <span>متوسط التقييم</span>
 
             <strong>
               {statistics.average}%
@@ -454,50 +494,34 @@ export default function History() {
             <small>
               متوسط النتائج
             </small>
-
           </div>
-
         </div>
 
-        {/* EXCELLENT */}
-
         <div className="history-stat-card">
-
           <div className="history-stat-icon green">
             ★
           </div>
 
           <div className="history-stat-content">
-
-            <span>
-              تقييم ممتاز
-            </span>
+            <span>ممتاز</span>
 
             <strong>
               {statistics.excellent}
             </strong>
 
             <small>
-              أداء ممتاز
+              تقييم ممتاز
             </small>
-
           </div>
-
         </div>
 
-        {/* VERY GOOD */}
-
         <div className="history-stat-card">
-
-          <div className="history-stat-icon orange">
+          <div className="history-stat-icon blue">
             ✓
           </div>
 
           <div className="history-stat-content">
-
-            <span>
-              جيد جدًا
-            </span>
+            <span>جيد جدًا</span>
 
             <strong>
               {statistics.veryGood}
@@ -506,9 +530,61 @@ export default function History() {
             <small>
               أداء جيد جدًا
             </small>
+          </div>
+        </div>
 
+        <div className="history-stat-card">
+          <div className="history-stat-icon orange">
+            ✓
           </div>
 
+          <div className="history-stat-content">
+            <span>جيد</span>
+
+            <strong>
+              {statistics.good}
+            </strong>
+
+            <small>
+              أداء جيد
+            </small>
+          </div>
+        </div>
+
+        <div className="history-stat-card">
+          <div className="history-stat-icon orange">
+            !
+          </div>
+
+          <div className="history-stat-content">
+            <span>مقبول</span>
+
+            <strong>
+              {statistics.acceptable}
+            </strong>
+
+            <small>
+              أداء مقبول
+            </small>
+          </div>
+        </div>
+
+        <div className="history-stat-card">
+          <div className="history-stat-icon red">
+            !
+          </div>
+
+          <div className="history-stat-content">
+            <span>ضعيف</span>
+
+            <strong>
+              {statistics.weak}
+            </strong>
+
+            <small>
+              يحتاج إلى تحسين
+            </small>
+          </div>
         </div>
 
       </div>
@@ -518,8 +594,6 @@ export default function History() {
       ================================================= */}
 
       <div className="history-filter-card">
-
-        {/* SEARCH */}
 
         <div className="history-search">
 
@@ -545,10 +619,7 @@ export default function History() {
               ×
             </button>
           )}
-
         </div>
-
-        {/* GRADE */}
 
         <select
           value={gradeFilter}
@@ -576,9 +647,11 @@ export default function History() {
           <option value="مقبول">
             مقبول
           </option>
-        </select>
 
-        {/* SORT */}
+          <option value="ضعيف">
+            ضعيف
+          </option>
+        </select>
 
         <select
           value={sortOrder}
@@ -628,25 +701,22 @@ export default function History() {
           {(search ||
             gradeFilter !== "الكل" ||
             sortOrder !== "newest") && (
-
             <button
               onClick={resetFilters}
               type="button"
             >
               إعادة ضبط الفلاتر
             </button>
-
           )}
 
         </div>
       )}
 
       {/* =================================================
-          EMPTY - NO DATA
+          EMPTY
       ================================================= */}
 
       {data.length === 0 ? (
-
         <div className="history-empty">
 
           <div className="history-empty-icon">
@@ -672,10 +742,6 @@ export default function History() {
         </div>
 
       ) : filteredData.length === 0 ? (
-
-        /* =================================================
-           EMPTY - FILTER
-        ================================================= */
 
         <div className="history-empty">
 
@@ -712,11 +778,14 @@ export default function History() {
 
           {filteredData.map((evaluation) => {
 
-            const rawScore =
-              Number(evaluation.total || 0);
+            const percentage = Number(
+              evaluation.percentage ??
+                evaluation.total ??
+                0
+            );
 
             const score = Math.min(
-              Math.max(rawScore, 0),
+              Math.max(percentage, 0),
               100
             );
 
@@ -725,7 +794,6 @@ export default function History() {
               "موظف غير معروف";
 
             return (
-
               <div
                 key={evaluation.evaluation_id}
                 className="history-card"
@@ -738,11 +806,9 @@ export default function History() {
                   <div className="history-employee">
 
                     <div className="history-avatar">
-
                       {String(employeeName)
                         .trim()
                         .charAt(0)}
-
                     </div>
 
                     <div className="history-name-area">
@@ -786,12 +852,10 @@ export default function History() {
                     <strong
                       style={{
                         color:
-                          scoreColor(
-                            evaluation.total
-                          ),
+                          scoreColor(score),
                       }}
                     >
-                      {evaluation.total || 0}
+                      {score}
                       <small>%</small>
                     </strong>
 
@@ -805,9 +869,7 @@ export default function History() {
                         style={{
                           width: `${score}%`,
                           background:
-                            scoreColor(
-                              evaluation.total
-                            ),
+                            scoreColor(score),
                         }}
                       />
 
@@ -825,8 +887,6 @@ export default function History() {
 
                 <div className="history-info">
 
-                  {/* PERIOD */}
-
                   <div className="history-info-row">
 
                     <div className="history-info-icon">
@@ -840,16 +900,16 @@ export default function History() {
                       </span>
 
                       <strong>
-                        {evaluation.from_date || "-"}
+                        {evaluation.from_date ||
+                          "-"}
                         <b> ← </b>
-                        {evaluation.to_date || "-"}
+                        {evaluation.to_date ||
+                          "-"}
                       </strong>
 
                     </div>
 
                   </div>
-
-                  {/* CREATED */}
 
                   <div className="history-info-row">
 
@@ -879,21 +939,17 @@ export default function History() {
 
                 <div className="history-actions">
 
-                  {/* EDIT */}
-
                   <button
                     className="history-edit-btn"
                     onClick={() =>
                       editEvaluation(
-                        evaluation.evaluation_id
+                        evaluation
                       )
                     }
                     type="button"
                   >
-                    ✏️ تعديل
+                    ✏️ تعديل التقييم
                   </button>
-
-                  {/* VIEW */}
 
                   <button
                     className="history-view-btn"
@@ -906,8 +962,6 @@ export default function History() {
                   >
                     📄 عرض التقرير
                   </button>
-
-                  {/* DELETE */}
 
                   <button
                     className="history-delete-btn"
@@ -924,12 +978,10 @@ export default function History() {
                 </div>
 
               </div>
-
             );
           })}
 
         </div>
-
       )}
 
       {/* =================================================

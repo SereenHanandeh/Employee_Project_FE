@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
 
 const items = [
@@ -25,36 +25,99 @@ export default function Performance() {
   const nav = useNavigate();
   const location = useLocation();
 
-  const { employee_id, from_date, to_date } = location.state || {};
+  const state = location.state || {};
 
-  const [scores, setScores] = useState({});
-  const [loading] = useState(false);
+  const {
+    employee_id,
+    name,
+    from_date,
+    to_date,
+    evaluationId,
+    editMode,
+    performance: oldPerformance,
+  } = state;
+
+  // =====================================================
+  // INITIAL SCORES
+  // =====================================================
+
+  const initialScores = useMemo(() => {
+    if (!editMode || !oldPerformance) {
+      return {};
+    }
+
+    const normalized = {};
+
+    Object.entries(oldPerformance).forEach(
+      ([key, value]) => {
+        const numericValue = Number(value);
+
+        if (!Number.isNaN(numericValue)) {
+          normalized[key] = numericValue;
+        }
+      }
+    );
+
+    return normalized;
+  }, [editMode, oldPerformance]);
+
+  const [scores, setScores] =
+    useState(initialScores);
+
+  // =====================================================
+  // MAX TOTAL
+  // =====================================================
 
   const maxTotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.max, 0),
+    () =>
+      items.reduce(
+        (sum, item) => sum + item.max,
+        0
+      ),
     []
   );
+
+  // =====================================================
+  // TOTAL
+  // =====================================================
 
   const total = useMemo(
     () =>
       Object.values(scores).reduce(
-        (sum, value) => sum + Number(value || 0),
+        (sum, value) =>
+          sum + Number(value || 0),
         0
       ),
     [scores]
   );
 
-  const completed = Object.keys(scores).length;
+  // =====================================================
+  // PROGRESS
+  // =====================================================
 
-  const progress = Math.round((completed / items.length) * 100);
+  const completed =
+    Object.keys(scores).length;
 
-  const percentage = Math.round((total / maxTotal) * 100);
+  const progress = Math.round(
+    (completed / items.length) * 100
+  );
+
+  const percentage = Math.round(
+    (total / maxTotal) * 100
+  );
+
+  // =====================================================
+  // CHANGE SCORE
+  // =====================================================
 
   const change = (index, value, max) => {
     if (value === "") {
-      const copy = { ...scores };
-      delete copy[index];
-      setScores(copy);
+      setScores((prev) => {
+        const copy = { ...prev };
+        delete copy[index];
+        return copy;
+      });
+
       return;
     }
 
@@ -71,26 +134,56 @@ export default function Performance() {
     }));
   };
 
+  // =====================================================
+  // NEXT
+  // =====================================================
+
   const next = () => {
     if (!employee_id || !from_date || !to_date) {
-      alert("بيانات الموظف أو فترة التقييم غير مكتملة!");
+      alert(
+        "بيانات الموظف أو فترة التقييم غير مكتملة!"
+      );
+
       return;
     }
 
-    if (Object.keys(scores).length < items.length) {
-      alert("يرجى تعبئة جميع حقول التقييم قبل المتابعة.");
+    if (
+      Object.keys(scores).length <
+      items.length
+    ) {
+      alert(
+        "يرجى تعبئة جميع حقول التقييم قبل المتابعة."
+      );
+
       return;
     }
 
     nav("/personality", {
       state: {
         employee_id,
+        name,
         from_date,
         to_date,
+
         performance: scores,
+
+        evaluationId,
+        editMode,
       },
     });
   };
+
+  // =====================================================
+  // BACK
+  // =====================================================
+
+  const goBack = () => {
+    nav(-1);
+  };
+
+  // =====================================================
+  // UI
+  // =====================================================
 
   return (
     <div style={styles.page}>
@@ -98,141 +191,333 @@ export default function Performance() {
       <div style={styles.backgroundGlow2} />
 
       <main style={styles.container}>
-        {/* HEADER */}
+
+        {/* =================================================
+            HEADER
+        ================================================= */}
+
         <header style={styles.header}>
-          <div style={styles.headerIcon}>📊</div>
 
-          <div>
-            <div style={styles.badge}>نظام تقييم الموظفين</div>
+          <div style={styles.headerIcon}>
+            📊
+          </div>
 
-            <h1 style={styles.title}>تقييم الأداء الوظيفي</h1>
+          <div style={styles.headerContent}>
+
+            <div style={styles.badge}>
+              {editMode
+                ? "تعديل تقييم الموظف"
+                : "نظام تقييم الموظفين"}
+            </div>
+
+            <h1 style={styles.title}>
+              {editMode
+                ? "تعديل تقييم الأداء الوظيفي"
+                : "تقييم الأداء الوظيفي"}
+            </h1>
 
             <p style={styles.subtitle}>
-              يرجى تقييم مستوى أداء الموظف في كل معيار بدقة
+              {editMode
+                ? "قم بمراجعة وتعديل درجات تقييم الموظف"
+                : "يرجى تقييم مستوى أداء الموظف في كل معيار بدقة"}
             </p>
+
           </div>
+
         </header>
 
-        {/* INFO CARD */}
+        {/* =================================================
+            EMPLOYEE INFO
+        ================================================= */}
+
+        {name && (
+          <section style={styles.employeeCard}>
+
+            <div style={styles.employeeAvatar}>
+              {String(name)
+                .trim()
+                .charAt(0)}
+            </div>
+
+            <div style={styles.employeeDetails}>
+
+              <span style={styles.employeeLabel}>
+                الموظف
+              </span>
+
+              <strong style={styles.employeeName}>
+                {name}
+              </strong>
+
+            </div>
+
+            {evaluationId && (
+              <div style={styles.evaluationBadge}>
+                <span>
+                  رقم التقييم
+                </span>
+
+                <strong>
+                  #{evaluationId}
+                </strong>
+              </div>
+            )}
+
+          </section>
+        )}
+
+        {/* =================================================
+            INFO
+        ================================================= */}
+
         <section style={styles.infoCard}>
+
           <div style={styles.infoItem}>
-            <span style={styles.infoIcon}>📋</span>
+
+            <span style={styles.infoIcon}>
+              📋
+            </span>
 
             <div>
-              <span style={styles.infoLabel}>عدد المعايير</span>
-              <strong style={styles.infoValue}>{items.length}</strong>
+              <span style={styles.infoLabel}>
+                عدد المعايير
+              </span>
+
+              <strong style={styles.infoValue}>
+                {items.length}
+              </strong>
             </div>
+
           </div>
 
           <div style={styles.divider} />
 
           <div style={styles.infoItem}>
-            <span style={styles.infoIcon}>🎯</span>
+
+            <span style={styles.infoIcon}>
+              🎯
+            </span>
 
             <div>
-              <span style={styles.infoLabel}>الدرجة القصوى</span>
-              <strong style={styles.infoValue}>{maxTotal}</strong>
+              <span style={styles.infoLabel}>
+                الدرجة القصوى
+              </span>
+
+              <strong style={styles.infoValue}>
+                {maxTotal}
+              </strong>
             </div>
+
           </div>
 
           <div style={styles.divider} />
 
           <div style={styles.infoItem}>
-            <span style={styles.infoIcon}>✅</span>
+
+            <span style={styles.infoIcon}>
+              ✅
+            </span>
 
             <div>
-              <span style={styles.infoLabel}>تم التقييم</span>
+              <span style={styles.infoLabel}>
+                تم التقييم
+              </span>
+
               <strong style={styles.infoValue}>
                 {completed} / {items.length}
               </strong>
             </div>
+
           </div>
+
+          <div style={styles.divider} />
+
+          <div style={styles.infoItem}>
+
+            <span style={styles.infoIcon}>
+              📈
+            </span>
+
+            <div>
+              <span style={styles.infoLabel}>
+                النتيجة الحالية
+              </span>
+
+              <strong
+                style={{
+                  ...styles.infoValue,
+                  color:
+                    percentage >= 75
+                      ? "#16a34a"
+                      : percentage >= 60
+                      ? "#d97706"
+                      : "#dc2626",
+                }}
+              >
+                {percentage}%
+              </strong>
+            </div>
+
+          </div>
+
         </section>
 
-        {/* PROGRESS */}
+        {/* =================================================
+            PROGRESS
+        ================================================= */}
+
         <section style={styles.progressCard}>
+
           <div style={styles.progressTop}>
+
             <div>
-              <span style={styles.progressTitle}>نسبة اكتمال التقييم</span>
+
+              <span style={styles.progressTitle}>
+                نسبة اكتمال التقييم
+              </span>
 
               <div style={styles.progressText}>
                 {completed === items.length
                   ? "اكتمل التقييم بالكامل ✓"
                   : `تم تقييم ${completed} من ${items.length} معيار`}
               </div>
+
             </div>
 
-            <div style={styles.progressNumber}>{progress}%</div>
+            <div style={styles.progressNumber}>
+              {progress}%
+            </div>
+
           </div>
 
           <div style={styles.progressTrack}>
+
             <div
               style={{
                 ...styles.progressBar,
                 width: `${progress}%`,
               }}
             />
+
           </div>
+
         </section>
 
-        {/* EVALUATION */}
+        {/* =================================================
+            MAIN CARD
+        ================================================= */}
+
         <section style={styles.card}>
+
           <div style={styles.cardHeader}>
+
             <div>
-              <h2 style={styles.sectionTitle}>معايير الأداء</h2>
+
+              <div style={styles.sectionBadge}>
+                القسم الأول
+              </div>
+
+              <h2 style={styles.sectionTitle}>
+                معايير الأداء
+              </h2>
 
               <p style={styles.sectionSubtitle}>
                 أدخل الدرجة المناسبة لكل معيار
               </p>
+
             </div>
 
             <div style={styles.currentScore}>
-              <span>المجموع الحالي</span>
+
+              <span>
+                المجموع الحالي
+              </span>
+
               <strong>
                 {total}
-                <small> / {maxTotal}</small>
+                <small>
+                  {" "}
+                  / {maxTotal}
+                </small>
               </strong>
+
             </div>
+
           </div>
 
+          {/* =================================================
+              ITEMS
+          ================================================= */}
+
           <div style={styles.itemsGrid}>
+
             {items.map((item, index) => {
+
               const value = scores[index];
 
-              const isCompleted = value !== undefined;
+              const isCompleted =
+                value !== undefined;
 
-              const itemPercentage = isCompleted
-                ? Math.round((Number(value) / item.max) * 100)
-                : 0;
+              const itemPercentage =
+                isCompleted
+                  ? Math.round(
+                      (Number(value) /
+                        item.max) *
+                        100
+                    )
+                  : 0;
 
               return (
                 <div
                   key={index}
                   style={{
                     ...styles.item,
-                    ...(isCompleted ? styles.itemCompleted : {}),
+                    ...(isCompleted
+                      ? styles.itemCompleted
+                      : {}),
                   }}
                 >
+
                   <div style={styles.itemTop}>
+
                     <div style={styles.itemNumber}>
-                      {String(index + 1).padStart(2, "0")}
+                      {String(index + 1).padStart(
+                        2,
+                        "0"
+                      )}
                     </div>
 
                     <div style={styles.itemContent}>
-                      <label style={styles.label}>{item.title}</label>
 
-                      <span style={styles.maxScore}>
-                        الدرجة القصوى: {item.max}
+                      <label
+                        style={styles.label}
+                      >
+                        {item.title}
+                      </label>
+
+                      <span
+                        style={styles.maxScore}
+                      >
+                        الدرجة القصوى:{" "}
+                        {item.max}
                       </span>
+
                     </div>
 
                     {isCompleted && (
-                      <div style={styles.check}>✓</div>
+                      <div style={styles.check}>
+                        ✓
+                      </div>
                     )}
+
                   </div>
 
                   <div style={styles.inputRow}>
-                    <div style={styles.inputWrapper}>
+
+                    <div
+                      style={styles.inputWrapper}
+                    >
+
                       <input
                         type="number"
                         min="0"
@@ -241,60 +526,96 @@ export default function Performance() {
                         placeholder="0"
                         value={value ?? ""}
                         onChange={(e) =>
-                          change(index, e.target.value, item.max)
+                          change(
+                            index,
+                            e.target.value,
+                            item.max
+                          )
                         }
                         style={styles.input}
                       />
 
-                      <span style={styles.inputSuffix}>
+                      <span
+                        style={styles.inputSuffix}
+                      >
                         / {item.max}
                       </span>
+
                     </div>
 
-                    <div style={styles.miniProgressTrack}>
+                    <div
+                      style={
+                        styles.miniProgressTrack
+                      }
+                    >
+
                       <div
                         style={{
                           ...styles.miniProgress,
                           width: `${itemPercentage}%`,
                         }}
                       />
+
                     </div>
 
                     <span style={styles.percent}>
                       {itemPercentage}%
                     </span>
+
                   </div>
+
                 </div>
               );
             })}
+
           </div>
 
-          {/* TOTAL */}
+          {/* =================================================
+              TOTAL
+          ================================================= */}
+
           <div style={styles.totalCard}>
-            <div>
-              <span style={styles.totalLabel}>إجمالي نقاط الأداء</span>
+
+            <div style={styles.totalInfo}>
+
+              <span style={styles.totalLabel}>
+                إجمالي نقاط الأداء
+              </span>
 
               <span style={styles.totalHint}>
                 من أصل {maxTotal} نقطة
               </span>
+
             </div>
 
             <div style={styles.totalScore}>
-              <strong>{total}</strong>
-              <span>/ {maxTotal}</span>
+
+              <strong>
+                {total}
+              </strong>
+
+              <span>
+                / {maxTotal}
+              </span>
+
             </div>
 
             <div style={styles.totalPercent}>
               {percentage}%
             </div>
+
           </div>
 
-          {/* ACTIONS */}
+          {/* =================================================
+              ACTIONS
+          ================================================= */}
+
           <div style={styles.actions}>
+
             <button
               type="button"
               style={styles.backButton}
-              onClick={() => nav(-1)}
+              onClick={goBack}
             >
               <span>→</span>
               رجوع
@@ -302,23 +623,29 @@ export default function Performance() {
 
             <button
               type="button"
-              style={{
-                ...styles.nextButton,
-                ...(loading ? styles.disabled : {}),
-              }}
+              style={styles.nextButton}
               onClick={next}
-              disabled={loading}
             >
-              <span>التالي</span>
-              <span style={styles.arrow}>←</span>
+              <span>
+                {editMode
+                  ? "متابعة التعديل"
+                  : "التالي"}
+              </span>
+
+              <span style={styles.arrow}>
+                ←
+              </span>
             </button>
+
           </div>
+
         </section>
 
         <footer style={styles.footer}>
           <span>🔒</span>
           جميع بيانات التقييم محفوظة بشكل آمن
         </footer>
+
       </main>
     </div>
   );
@@ -332,10 +659,10 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "linear-gradient(135deg, #07111f 0%, #0f1f35 45%, #111827 100%)",
+      "linear-gradient(135deg, #f8fafc 0%, #eef4ff 50%, #f5f3ff 100%)",
     fontFamily: "'Cairo', sans-serif",
     direction: "rtl",
-    padding: "45px 20px",
+    padding: "40px 20px",
     position: "relative",
     overflow: "hidden",
     boxSizing: "border-box",
@@ -346,8 +673,9 @@ const styles = {
     width: "420px",
     height: "420px",
     borderRadius: "50%",
-    background: "rgba(59, 130, 246, 0.12)",
-    filter: "blur(90px)",
+    background:
+      "rgba(59, 130, 246, 0.10)",
+    filter: "blur(100px)",
     top: "-180px",
     right: "-120px",
     pointerEvents: "none",
@@ -355,11 +683,12 @@ const styles = {
 
   backgroundGlow2: {
     position: "fixed",
-    width: "360px",
-    height: "360px",
+    width: "380px",
+    height: "380px",
     borderRadius: "50%",
-    background: "rgba(99, 102, 241, 0.10)",
-    filter: "blur(90px)",
+    background:
+      "rgba(139, 92, 246, 0.08)",
+    filter: "blur(100px)",
     bottom: "-180px",
     left: "-100px",
     pointerEvents: "none",
@@ -367,7 +696,7 @@ const styles = {
 
   container: {
     width: "100%",
-    maxWidth: "1100px",
+    maxWidth: "1120px",
     margin: "0 auto",
     position: "relative",
     zIndex: 2,
@@ -378,49 +707,117 @@ const styles = {
   header: {
     display: "flex",
     alignItems: "center",
-    gap: "20px",
-    marginBottom: "25px",
+    gap: "18px",
+    marginBottom: "22px",
   },
 
   headerIcon: {
-    width: "65px",
-    height: "65px",
-    minWidth: "65px",
+    width: "62px",
+    height: "62px",
+    minWidth: "62px",
     borderRadius: "18px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "30px",
+    fontSize: "28px",
     background:
       "linear-gradient(135deg, #2563eb, #4f46e5)",
     boxShadow:
-      "0 12px 30px rgba(37,99,235,0.35)",
+      "0 12px 30px rgba(37,99,235,0.20)",
+  },
+
+  headerContent: {
+    flex: 1,
   },
 
   badge: {
     display: "inline-block",
     fontSize: "11px",
-    fontWeight: "700",
-    color: "#93c5fd",
-    background: "rgba(59,130,246,0.10)",
-    border: "1px solid rgba(96,165,250,0.18)",
-    padding: "4px 10px",
+    fontWeight: "800",
+    color: "#2563eb",
+    background: "#eff6ff",
+    border:
+      "1px solid #dbeafe",
+    padding: "5px 12px",
     borderRadius: "20px",
     marginBottom: "5px",
   },
 
   title: {
     margin: 0,
-    color: "#ffffff",
-    fontSize: "30px",
+    color: "#172033",
+    fontSize: "29px",
     fontWeight: "800",
     letterSpacing: "-0.5px",
   },
 
   subtitle: {
     margin: "4px 0 0",
-    color: "#94a3b8",
+    color: "#64748b",
     fontSize: "13px",
+  },
+
+  /* EMPLOYEE */
+
+  employeeCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+    padding: "15px 18px",
+    marginBottom: "15px",
+    borderRadius: "18px",
+    background: "rgba(255,255,255,0.88)",
+    border:
+      "1px solid #e2e8f0",
+    boxShadow:
+      "0 8px 25px rgba(15,23,42,0.06)",
+  },
+
+  employeeAvatar: {
+    width: "48px",
+    height: "48px",
+    borderRadius: "14px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background:
+      "linear-gradient(135deg, #2563eb, #6366f1)",
+    color: "#ffffff",
+    fontSize: "20px",
+    fontWeight: "800",
+  },
+
+  employeeDetails: {
+    flex: 1,
+  },
+
+  employeeLabel: {
+    display: "block",
+    color: "#94a3b8",
+    fontSize: "10px",
+    marginBottom: "1px",
+  },
+
+  employeeName: {
+    color: "#172033",
+    fontSize: "15px",
+    fontWeight: "800",
+  },
+
+  evaluationBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px 13px",
+    borderRadius: "10px",
+    background: "#f8fafc",
+    border:
+      "1px solid #e2e8f0",
+  },
+
+  evaluationBadgeSpan: {
+    color: "#94a3b8",
+    fontSize: "10px",
   },
 
   /* INFO */
@@ -429,90 +826,96 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-around",
-    padding: "20px 25px",
-    marginBottom: "18px",
+    padding: "18px 20px",
+    marginBottom: "15px",
     borderRadius: "18px",
-    background: "rgba(255,255,255,0.055)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    backdropFilter: "blur(15px)",
-    boxShadow: "0 15px 40px rgba(0,0,0,0.18)",
+    background:
+      "rgba(255,255,255,0.90)",
+    border:
+      "1px solid #e2e8f0",
+    boxShadow:
+      "0 8px 25px rgba(15,23,42,0.05)",
   },
 
   infoItem: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: "11px",
   },
 
   infoIcon: {
-    width: "42px",
-    height: "42px",
+    width: "40px",
+    height: "40px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: "12px",
-    background: "rgba(59,130,246,0.12)",
-    fontSize: "19px",
+    background: "#eff6ff",
+    fontSize: "18px",
   },
 
   infoLabel: {
     display: "block",
     color: "#94a3b8",
-    fontSize: "11px",
+    fontSize: "10px",
     marginBottom: "2px",
   },
 
   infoValue: {
-    color: "#f8fafc",
-    fontSize: "17px",
+    color: "#172033",
+    fontSize: "16px",
+    fontWeight: "800",
   },
 
   divider: {
     width: "1px",
-    height: "35px",
-    background: "rgba(255,255,255,0.08)",
+    height: "34px",
+    background: "#e2e8f0",
   },
 
   /* PROGRESS */
 
   progressCard: {
-    padding: "20px 24px",
-    marginBottom: "18px",
+    padding: "18px 22px",
+    marginBottom: "15px",
     borderRadius: "18px",
-    background: "rgba(255,255,255,0.055)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    backdropFilter: "blur(15px)",
+    background:
+      "rgba(255,255,255,0.90)",
+    border:
+      "1px solid #e2e8f0",
+    boxShadow:
+      "0 8px 25px rgba(15,23,42,0.05)",
   },
 
   progressTop: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: "13px",
+    marginBottom: "11px",
   },
 
   progressTitle: {
     display: "block",
-    color: "#e2e8f0",
-    fontSize: "14px",
-    fontWeight: "700",
+    color: "#334155",
+    fontSize: "13px",
+    fontWeight: "800",
   },
 
   progressText: {
-    color: "#64748b",
-    fontSize: "11px",
+    color: "#94a3b8",
+    fontSize: "10px",
     marginTop: "3px",
   },
 
   progressNumber: {
-    color: "#60a5fa",
-    fontSize: "22px",
-    fontWeight: "800",
+    color: "#2563eb",
+    fontSize: "21px",
+    fontWeight: "900",
   },
 
   progressTrack: {
     height: "8px",
-    background: "rgba(255,255,255,0.07)",
+    background: "#e8eef7",
     borderRadius: "20px",
     overflow: "hidden",
   },
@@ -522,19 +925,20 @@ const styles = {
     borderRadius: "20px",
     background:
       "linear-gradient(90deg, #2563eb, #6366f1)",
-    transition: "width 0.3s ease",
+    transition: "width .3s ease",
   },
 
-  /* MAIN CARD */
+  /* CARD */
 
   card: {
-    background: "rgba(255,255,255,0.065)",
-    border: "1px solid rgba(255,255,255,0.09)",
-    backdropFilter: "blur(18px)",
-    borderRadius: "24px",
-    padding: "30px",
+    background:
+      "rgba(255,255,255,0.94)",
+    border:
+      "1px solid #e2e8f0",
+    borderRadius: "22px",
+    padding: "28px",
     boxShadow:
-      "0 25px 70px rgba(0,0,0,0.28)",
+      "0 20px 55px rgba(15,23,42,0.08)",
   },
 
   cardHeader: {
@@ -542,48 +946,57 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: "20px",
-    paddingBottom: "22px",
-    marginBottom: "22px",
+    paddingBottom: "20px",
+    marginBottom: "20px",
     borderBottom:
-      "1px solid rgba(255,255,255,0.07)",
+      "1px solid #eef2f7",
+  },
+
+  sectionBadge: {
+    display: "inline-block",
+    color: "#2563eb",
+    background: "#eff6ff",
+    border:
+      "1px solid #dbeafe",
+    padding: "4px 10px",
+    borderRadius: "20px",
+    fontSize: "9px",
+    fontWeight: "800",
+    marginBottom: "6px",
   },
 
   sectionTitle: {
     margin: 0,
-    color: "#f8fafc",
-    fontSize: "21px",
-    fontWeight: "800",
+    color: "#172033",
+    fontSize: "20px",
+    fontWeight: "900",
   },
 
   sectionSubtitle: {
     margin: "4px 0 0",
-    color: "#64748b",
-    fontSize: "12px",
+    color: "#94a3b8",
+    fontSize: "11px",
   },
 
   currentScore: {
     textAlign: "center",
     padding: "10px 18px",
     borderRadius: "14px",
-    background: "rgba(59,130,246,0.09)",
-    border: "1px solid rgba(59,130,246,0.14)",
+    background: "#f8fafc",
+    border:
+      "1px solid #e2e8f0",
   },
 
   currentScoreSpan: {
-    color: "#64748b",
-  },
-
-  currentScore: {
-    textAlign: "center",
-    padding: "10px 18px",
-    borderRadius: "14px",
-    background: "rgba(59,130,246,0.09)",
-    border: "1px solid rgba(59,130,246,0.14)",
-  },
-
-  currentScore: {
+    display: "block",
     color: "#94a3b8",
-    fontSize: "11px",
+    fontSize: "10px",
+  },
+
+  currentScoreStrong: {
+    color: "#2563eb",
+    fontSize: "20px",
+    fontWeight: "900",
   },
 
   /* ITEMS */
@@ -592,46 +1005,46 @@ const styles = {
     display: "grid",
     gridTemplateColumns:
       "repeat(2, minmax(0, 1fr))",
-    gap: "14px",
+    gap: "13px",
   },
 
   item: {
-    padding: "18px",
-    borderRadius: "17px",
-    background: "rgba(15,23,42,0.55)",
-    border: "1px solid rgba(255,255,255,0.06)",
-    transition: "all 0.2s ease",
+    padding: "17px",
+    borderRadius: "16px",
+    background: "#f8fafc",
+    border:
+      "1px solid #e5eaf1",
+    transition: "all .2s ease",
   },
 
   itemCompleted: {
     border:
-      "1px solid rgba(59,130,246,0.25)",
+      "1px solid #bfdbfe",
     background:
-      "linear-gradient(145deg, rgba(30,58,138,0.18), rgba(15,23,42,0.65))",
+      "linear-gradient(145deg, #f8fbff, #eff6ff)",
   },
 
   itemTop: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
-    marginBottom: "15px",
+    gap: "11px",
+    marginBottom: "13px",
   },
 
   itemNumber: {
-    width: "36px",
-    height: "36px",
-    minWidth: "36px",
+    width: "35px",
+    height: "35px",
+    minWidth: "35px",
     borderRadius: "10px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    color: "#93c5fd",
-    fontSize: "11px",
-    fontWeight: "800",
-    background:
-      "rgba(59,130,246,0.10)",
+    color: "#2563eb",
+    fontSize: "10px",
+    fontWeight: "900",
+    background: "#eff6ff",
     border:
-      "1px solid rgba(59,130,246,0.14)",
+      "1px solid #dbeafe",
   },
 
   itemContent: {
@@ -640,36 +1053,36 @@ const styles = {
 
   label: {
     display: "block",
-    color: "#e2e8f0",
-    fontSize: "13px",
-    fontWeight: "700",
+    color: "#334155",
+    fontSize: "12px",
+    fontWeight: "800",
     lineHeight: "1.7",
   },
 
   maxScore: {
     display: "block",
-    color: "#64748b",
-    fontSize: "10px",
+    color: "#94a3b8",
+    fontSize: "9px",
     marginTop: "1px",
   },
 
   check: {
-    width: "23px",
-    height: "23px",
+    width: "22px",
+    height: "22px",
     borderRadius: "50%",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    color: "#bfdbfe",
-    background: "rgba(59,130,246,0.18)",
-    fontSize: "12px",
-    fontWeight: "800",
+    color: "#16a34a",
+    background: "#dcfce7",
+    fontSize: "11px",
+    fontWeight: "900",
   },
 
   inputRow: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "9px",
   },
 
   inputWrapper: {
@@ -681,14 +1094,14 @@ const styles = {
   input: {
     width: "100%",
     boxSizing: "border-box",
-    padding: "11px 42px 11px 12px",
-    borderRadius: "11px",
+    padding: "10px 40px 10px 10px",
+    borderRadius: "10px",
     border:
-      "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.045)",
-    color: "#ffffff",
-    fontSize: "15px",
-    fontWeight: "700",
+      "1px solid #dbe3ee",
+    background: "#ffffff",
+    color: "#172033",
+    fontSize: "14px",
+    fontWeight: "800",
     outline: "none",
     textAlign: "center",
     fontFamily: "'Cairo', sans-serif",
@@ -698,9 +1111,10 @@ const styles = {
     position: "absolute",
     right: "9px",
     top: "50%",
-    transform: "translateY(-50%)",
-    color: "#64748b",
-    fontSize: "10px",
+    transform:
+      "translateY(-50%)",
+    color: "#94a3b8",
+    fontSize: "9px",
     pointerEvents: "none",
   },
 
@@ -708,7 +1122,7 @@ const styles = {
     flex: 1,
     height: "6px",
     borderRadius: "20px",
-    background: "rgba(255,255,255,0.06)",
+    background: "#e5eaf1",
     overflow: "hidden",
   },
 
@@ -717,13 +1131,13 @@ const styles = {
     borderRadius: "20px",
     background:
       "linear-gradient(90deg, #3b82f6, #6366f1)",
-    transition: "width 0.25s ease",
+    transition: "width .25s ease",
   },
 
   percent: {
     width: "38px",
     color: "#64748b",
-    fontSize: "10px",
+    fontSize: "9px",
     textAlign: "left",
   },
 
@@ -733,38 +1147,41 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "20px",
-    marginTop: "25px",
-    padding: "20px 22px",
-    borderRadius: "17px",
+    marginTop: "23px",
+    padding: "19px 21px",
+    borderRadius: "16px",
     background:
-      "linear-gradient(135deg, rgba(37,99,235,0.12), rgba(79,70,229,0.08))",
+      "linear-gradient(135deg, #eff6ff, #f5f3ff)",
     border:
-      "1px solid rgba(96,165,250,0.15)",
+      "1px solid #dbeafe",
+  },
+
+  totalInfo: {
+    flex: 1,
   },
 
   totalLabel: {
     display: "block",
-    color: "#e2e8f0",
-    fontSize: "14px",
-    fontWeight: "800",
+    color: "#334155",
+    fontSize: "13px",
+    fontWeight: "900",
   },
 
   totalHint: {
     display: "block",
-    color: "#64748b",
-    fontSize: "10px",
+    color: "#94a3b8",
+    fontSize: "9px",
     marginTop: "3px",
   },
 
   totalScore: {
-    marginRight: "auto",
     display: "flex",
     alignItems: "baseline",
     gap: "3px",
   },
 
   totalScoreStrong: {
-    color: "#60a5fa",
+    color: "#2563eb",
   },
 
   totalPercent: {
@@ -772,10 +1189,12 @@ const styles = {
     textAlign: "center",
     padding: "7px 10px",
     borderRadius: "9px",
-    color: "#bfdbfe",
-    background: "rgba(59,130,246,0.12)",
+    color: "#2563eb",
+    background: "#ffffff",
+    border:
+      "1px solid #dbeafe",
     fontSize: "12px",
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
   /* ACTIONS */
@@ -784,18 +1203,19 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     gap: "15px",
-    marginTop: "25px",
+    marginTop: "24px",
   },
 
   backButton: {
-    padding: "13px 25px",
-    borderRadius: "12px",
-    border: "1px solid rgba(255,255,255,0.09)",
-    background: "rgba(255,255,255,0.045)",
-    color: "#cbd5e1",
+    padding: "13px 24px",
+    borderRadius: "11px",
+    border:
+      "1px solid #e2e8f0",
+    background: "#ffffff",
+    color: "#64748b",
     cursor: "pointer",
     fontFamily: "'Cairo', sans-serif",
-    fontWeight: "700",
+    fontWeight: "800",
     display: "flex",
     alignItems: "center",
     gap: "8px",
@@ -803,19 +1223,19 @@ const styles = {
 
   nextButton: {
     flex: 1,
-    maxWidth: "260px",
+    maxWidth: "280px",
     padding: "14px 25px",
-    borderRadius: "12px",
+    borderRadius: "11px",
     border: "none",
     background:
       "linear-gradient(135deg, #2563eb, #4f46e5)",
     color: "#ffffff",
     cursor: "pointer",
     fontFamily: "'Cairo', sans-serif",
-    fontWeight: "800",
-    fontSize: "14px",
+    fontWeight: "900",
+    fontSize: "13px",
     boxShadow:
-      "0 10px 25px rgba(37,99,235,0.25)",
+      "0 10px 25px rgba(37,99,235,.18)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -826,16 +1246,11 @@ const styles = {
     fontSize: "18px",
   },
 
-  disabled: {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  },
-
   footer: {
     textAlign: "center",
-    color: "#475569",
-    fontSize: "10px",
-    marginTop: "18px",
+    color: "#94a3b8",
+    fontSize: "9px",
+    marginTop: "17px",
   },
 };
 
@@ -844,31 +1259,27 @@ const styles = {
 ========================================================= */
 
 if (typeof document !== "undefined") {
-  const styleId = "performance-responsive-style";
+  const styleId =
+    "performance-responsive-style";
 
   if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
+    const style =
+      document.createElement("style");
 
     style.id = styleId;
 
     style.innerHTML = `
-      @media (max-width: 800px) {
-        .performance-page {
-          padding: 25px 12px !important;
-        }
-      }
-
-      @media (max-width: 700px) {
+      @media (max-width: 900px) {
         .performance-items {
           grid-template-columns: 1fr !important;
         }
       }
 
-      @media (max-width: 600px) {
+      @media (max-width: 700px) {
         .performance-info {
           flex-direction: column !important;
           align-items: stretch !important;
-          gap: 15px !important;
+          gap: 14px !important;
         }
 
         .performance-divider {
@@ -879,13 +1290,19 @@ if (typeof document !== "undefined") {
         .performance-card {
           padding: 20px !important;
         }
+      }
+
+      @media (max-width: 600px) {
+        .performance-page {
+          padding: 20px 12px !important;
+        }
 
         .performance-header {
           align-items: flex-start !important;
         }
 
         .performance-title {
-          font-size: 23px !important;
+          font-size: 22px !important;
         }
 
         .performance-total {
@@ -904,6 +1321,10 @@ if (typeof document !== "undefined") {
         .performance-back {
           width: 100% !important;
           justify-content: center !important;
+        }
+
+        .performance-employee {
+          flex-wrap: wrap !important;
         }
       }
     `;

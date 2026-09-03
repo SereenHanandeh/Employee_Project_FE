@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import API from "../api/api";
 
 export default function Notes() {
@@ -10,14 +10,46 @@ export default function Notes() {
   const employeeId = state?.employee_id;
   const employeeName = state?.name;
   const grade = state?.grade;
+  const editMode = state?.editMode || false;
 
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(state?.notes || "");
   const [loading, setLoading] = useState(false);
 
   // =========================================================
-  // حفظ الملاحظات والانتقال للطباعة
+  // تحميل الملاحظات الموجودة في حالة التعديل
   // =========================================================
+  useEffect(() => {
+    if (!editMode || !evaluationId) return;
 
+    const loadEvaluation = async () => {
+      try {
+        setLoading(true);
+
+        const response = await API.get(
+          `/evaluations/${evaluationId}`
+        );
+
+        const data = response.data;
+
+        if (data?.notes) {
+          setNotes(data.notes);
+        }
+      } catch (err) {
+        console.error(
+          "Error loading evaluation notes:",
+          err.response?.data || err
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEvaluation();
+  }, [editMode, evaluationId]);
+
+  // =========================================================
+  // حفظ الملاحظات
+  // =========================================================
   const next = async () => {
     if (notes.trim() === "") {
       alert("يرجى إدخال بعض الملاحظات قبل المتابعة!");
@@ -35,8 +67,10 @@ export default function Notes() {
       const token = localStorage.getItem("token");
 
       await API.put(
-        `/evaluations/${evaluationId}`,
-        { notes: notes.trim() },
+        `/evaluations/${evaluationId}/notes`,
+        {
+          notes: notes.trim(),
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -44,45 +78,61 @@ export default function Notes() {
         }
       );
 
-      alert("تم حفظ الملاحظات بنجاح ✅");
+      alert(
+        editMode
+          ? "تم تحديث الملاحظات بنجاح ✅"
+          : "تم حفظ الملاحظات بنجاح ✅"
+      );
 
-      // إرسال ID لصفحة الطباعة
+      // =====================================================
+      // الانتقال للطباعة مع الحفاظ على البيانات
+      // =====================================================
       nav("/print", {
         state: {
           evaluationId,
+          employee_id: employeeId,
+          name: employeeName,
+          grade,
+          editMode,
         },
       });
     } catch (err) {
-      console.error("Error saving notes:", err);
-      alert("حدث خطأ أثناء حفظ الملاحظات");
+      console.error(
+        "Error saving notes:",
+        err.response?.data || err
+      );
+
+      console.error("Status:", err.response?.status);
+
+      alert(
+        err.response?.data?.message ||
+          "حدث خطأ أثناء حفظ الملاحظات"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================================================
-  // عدد الأحرف
-  // =========================================================
-
   const characterCount = notes.length;
 
   return (
     <div style={styles.page}>
-      {/* خلفيات زخرفية */}
-      <div style={styles.glowTop}></div>
-      <div style={styles.glowBottom}></div>
+      {/* =====================================================
+          خلفيات خفيفة
+      ===================================================== */}
+      <div style={styles.softCircleTop} />
+      <div style={styles.softCircleBottom} />
 
-      <div style={styles.container}>
-        {/* ================================================= */}
-        {/* HEADER */}
-        {/* ================================================= */}
-
-        <div style={styles.header}>
+      <main style={styles.container}>
+        {/* =====================================================
+            HEADER
+        ===================================================== */}
+        <header className="notes-header" style={styles.header}>
           <div style={styles.headerIcon}>📝</div>
 
           <div style={styles.headerContent}>
             <div style={styles.badge}>
-              الخطوة الأخيرة
+              {editMode ? "تعديل التقييم" : "الخطوة الأخيرة"}
             </div>
 
             <h1 style={styles.heading}>
@@ -90,20 +140,22 @@ export default function Notes() {
             </h1>
 
             <p style={styles.subheading}>
-              أضف ملاحظاتك وتوصياتك قبل إصدار نموذج التقييم
+              {editMode
+                ? "قم بتعديل الملاحظات ثم احفظ التغييرات"
+                : "أضف ملاحظاتك وتوصياتك قبل إصدار نموذج التقييم"}
             </p>
           </div>
-        </div>
+        </header>
 
-        {/* ================================================= */}
-        {/* EMPLOYEE INFO */}
-        {/* ================================================= */}
-
+        {/* =====================================================
+            EMPLOYEE INFO
+        ===================================================== */}
         {(employeeName || employeeId || grade) && (
-          <div style={styles.employeeCard}>
-            <div style={styles.employeeIcon}>
-              👤
-            </div>
+          <section
+            className="employee-card"
+            style={styles.employeeCard}
+          >
+            <div style={styles.employeeIcon}>👤</div>
 
             <div style={styles.employeeInfo}>
               <span style={styles.label}>
@@ -111,7 +163,8 @@ export default function Notes() {
               </span>
 
               <strong style={styles.employeeName}>
-                {employeeName || `الموظف رقم ${employeeId}`}
+                {employeeName ||
+                  `الموظف رقم ${employeeId}`}
               </strong>
 
               {employeeId && (
@@ -126,19 +179,40 @@ export default function Notes() {
                 ⭐ {grade}
               </div>
             )}
+          </section>
+        )}
+
+        {/* =====================================================
+            EDIT MODE NOTICE
+        ===================================================== */}
+        {editMode && (
+          <div style={styles.editNotice}>
+            <div style={styles.editNoticeIcon}>✏️</div>
+
+            <div>
+              <strong style={styles.editNoticeTitle}>
+                وضع تعديل التقييم
+              </strong>
+
+              <p style={styles.editNoticeText}>
+                أنت تقوم بتعديل تقييم سابق. بعد حفظ
+                الملاحظات سيتم تحديث التقييم الحالي
+                بدلًا من إنشاء تقييم جديد.
+              </p>
+            </div>
           </div>
         )}
 
-        {/* ================================================= */}
-        {/* NOTES CARD */}
-        {/* ================================================= */}
-
-        <div style={styles.notesCard}>
-          <div style={styles.notesHeader}>
+        {/* =====================================================
+            NOTES CARD
+        ===================================================== */}
+        <section className="notes-card" style={styles.notesCard}>
+          <div
+            className="notes-header-row"
+            style={styles.notesHeader}
+          >
             <div style={styles.notesTitleWrapper}>
-              <div style={styles.notesIcon}>
-                ✍️
-              </div>
+              <div style={styles.notesIcon}>✍️</div>
 
               <div>
                 <h2 style={styles.notesTitle}>
@@ -156,21 +230,24 @@ export default function Notes() {
             </div>
           </div>
 
-          {/* ================================================= */}
-          {/* TEXTAREA */}
-          {/* ================================================= */}
-
+          {/* ===================================================
+              TEXTAREA
+          =================================================== */}
           <div style={styles.textareaWrapper}>
             <textarea
               rows="10"
-              style={styles.textarea}
-              placeholder="اكتب ملاحظاتك هنا...
+              style={{
+                ...styles.textarea,
+                opacity: loading ? 0.7 : 1,
+              }}
+              placeholder={`اكتب ملاحظاتك هنا...
 
 مثال:
+
 - نقاط القوة لدى الموظف
 - الجوانب التي تحتاج إلى تطوير
 - التوصيات المستقبلية
-- أي ملاحظات إضافية مهمة"
+- أي ملاحظات إضافية مهمة`}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               disabled={loading}
@@ -186,24 +263,21 @@ export default function Notes() {
                   ...styles.counter,
                   color:
                     characterCount > 0
-                      ? "#60a5fa"
-                      : "#64748b",
+                      ? "#2563eb"
+                      : "#94a3b8",
                 }}
               >
                 {characterCount} حرف
               </span>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* ================================================= */}
-        {/* INFO BOX */}
-        {/* ================================================= */}
-
+        {/* =====================================================
+            INFO BOX
+        ===================================================== */}
         <div style={styles.infoBox}>
-          <div style={styles.infoIcon}>
-            ℹ️
-          </div>
+          <div style={styles.infoIcon}>ℹ️</div>
 
           <div>
             <strong style={styles.infoTitle}>
@@ -211,21 +285,22 @@ export default function Notes() {
             </strong>
 
             <p style={styles.infoText}>
-              بعد حفظ الملاحظات سيتم الانتقال إلى صفحة الطباعة
-              لإصدار نموذج التقييم النهائي.
+              {editMode
+                ? "بعد حفظ الملاحظات سيتم تحديث التقييم الحالي، ثم الانتقال إلى صفحة الطباعة."
+                : "بعد حفظ الملاحظات سيتم الانتقال إلى صفحة الطباعة لإصدار نموذج التقييم النهائي."}
             </p>
           </div>
         </div>
 
-        {/* ================================================= */}
-        {/* ACTIONS */}
-        {/* ================================================= */}
-
-        <div style={styles.actions}>
+        {/* =====================================================
+            ACTIONS
+        ===================================================== */}
+        <div className="notes-actions" style={styles.actions}>
           <button
+            type="button"
             style={{
               ...styles.button,
-              opacity: loading ? 0.7 : 1,
+              opacity: loading ? 0.65 : 1,
               cursor: loading
                 ? "not-allowed"
                 : "pointer",
@@ -234,12 +309,14 @@ export default function Notes() {
             disabled={loading}
           >
             <span style={styles.buttonIcon}>
-              {loading ? "⏳" : "🖨️"}
+              {loading ? "⏳" : editMode ? "💾" : "🖨️"}
             </span>
 
             <span>
               {loading
-                ? "جارٍ حفظ الملاحظات..."
+                ? "جارٍ الحفظ..."
+                : editMode
+                ? "حفظ التعديلات والانتقال للطباعة"
                 : "حفظ الملاحظات والانتقال للطباعة"}
             </span>
 
@@ -251,6 +328,7 @@ export default function Notes() {
           </button>
 
           <button
+            type="button"
             style={styles.backButton}
             onClick={() => nav(-1)}
             disabled={loading}
@@ -260,17 +338,18 @@ export default function Notes() {
           </button>
         </div>
 
-        {/* ================================================= */}
-        {/* FOOTER */}
-        {/* ================================================= */}
-
-        <div style={styles.footer}>
+        {/* =====================================================
+            FOOTER
+        ===================================================== */}
+        <footer style={styles.footer}>
           <span>🔒</span>
           جميع البيانات محفوظة ضمن نظام التقييم
-        </div>
-      </div>
+        </footer>
+      </main>
 
-      {/* Responsive */}
+      {/* =====================================================
+          RESPONSIVE
+      ===================================================== */}
       <style>
         {`
           * {
@@ -280,6 +359,7 @@ export default function Notes() {
           body {
             margin: 0;
             font-family: "Cairo", "Tajawal", Arial, sans-serif;
+            background: #f5f7fb;
           }
 
           button,
@@ -288,15 +368,18 @@ export default function Notes() {
           }
 
           textarea::placeholder {
-            color: #64748b;
+            color: #94a3b8;
             opacity: 1;
           }
 
           textarea:focus {
-            border-color: rgba(56, 189, 248, 0.65) !important;
+            border-color: #93c5fd !important;
+
             box-shadow:
-              0 0 0 4px rgba(56, 189, 248, 0.08),
-              0 10px 30px rgba(0, 0, 0, 0.15);
+              0 0 0 4px rgba(59, 130, 246, 0.08),
+              0 8px 25px rgba(15, 23, 42, 0.06);
+
+            background: #ffffff !important;
           }
 
           button:not(:disabled):hover {
@@ -307,10 +390,48 @@ export default function Notes() {
             .notes-page-container {
               padding: 20px 14px !important;
             }
+
+            .notes-header {
+              gap: 13px !important;
+            }
+
+            .notes-header h1 {
+              font-size: 23px !important;
+            }
+
+            .notes-card {
+              padding: 20px !important;
+            }
+
+            .notes-header-row {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+            }
+
+            .notes-actions {
+              gap: 10px !important;
+            }
           }
 
           @media (max-width: 500px) {
-            .employee-card-mobile {
+            .employee-card {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+            }
+
+            .employee-card > div:last-child {
+              width: 100%;
+            }
+
+            .notes-header {
+              align-items: flex-start !important;
+            }
+
+            .notes-header > div:last-child {
+              display: none;
+            }
+
+            .textarea-footer {
               flex-direction: column !important;
               align-items: flex-start !important;
             }
@@ -326,41 +447,50 @@ export default function Notes() {
 // =========================================================
 
 const styles = {
+  // =========================================================
+  // PAGE
+  // =========================================================
   page: {
     minHeight: "100vh",
     padding: "40px 20px 70px",
     display: "flex",
     justifyContent: "center",
     alignItems: "flex-start",
+
     background:
-      "radial-gradient(circle at top right, rgba(37,99,235,.18), transparent 35%), radial-gradient(circle at bottom left, rgba(99,102,241,.15), transparent 35%), linear-gradient(135deg, #07111f, #0f172a 55%, #111827)",
+      "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #eef4ff 100%)",
+
     position: "relative",
     overflow: "hidden",
+
     direction: "rtl",
-    color: "#fff",
+    color: "#172033",
+
+    fontFamily:
+      "'Cairo', 'Tajawal', Arial, sans-serif",
   },
 
-  glowTop: {
+  softCircleTop: {
     position: "fixed",
-    width: "300px",
-    height: "300px",
+    width: "360px",
+    height: "360px",
     borderRadius: "50%",
-    background: "rgba(14,165,233,.09)",
-    filter: "blur(90px)",
-    top: "-120px",
-    right: "-80px",
+    background: "rgba(59,130,246,0.08)",
+    filter: "blur(70px)",
+    top: "-180px",
+    right: "-130px",
     pointerEvents: "none",
   },
 
-  glowBottom: {
+  softCircleBottom: {
     position: "fixed",
-    width: "300px",
-    height: "300px",
+    width: "320px",
+    height: "320px",
     borderRadius: "50%",
-    background: "rgba(99,102,241,.09)",
-    filter: "blur(90px)",
-    bottom: "-120px",
-    left: "-80px",
+    background: "rgba(99,102,241,0.06)",
+    filter: "blur(70px)",
+    bottom: "-160px",
+    left: "-120px",
     pointerEvents: "none",
   },
 
@@ -374,27 +504,32 @@ const styles = {
   // =========================================================
   // HEADER
   // =========================================================
-
   header: {
     display: "flex",
     alignItems: "center",
     gap: "18px",
-    marginBottom: "25px",
+    marginBottom: "24px",
   },
 
   headerIcon: {
-    width: "65px",
-    height: "65px",
-    borderRadius: "20px",
+    width: "64px",
+    height: "64px",
+    minWidth: "64px",
+    borderRadius: "18px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "29px",
-    flexShrink: 0,
+
+    fontSize: "28px",
+
     background:
-      "linear-gradient(135deg, #0ea5e9, #4f46e5)",
+      "linear-gradient(135deg, #dbeafe, #e0e7ff)",
+
+    border: "1px solid #bfdbfe",
+
     boxShadow:
-      "0 15px 35px rgba(37,99,235,.25)",
+      "0 10px 25px rgba(59,130,246,0.10)",
   },
 
   headerContent: {
@@ -405,61 +540,68 @@ const styles = {
     display: "inline-flex",
     padding: "5px 12px",
     borderRadius: "30px",
+
     fontSize: "11px",
-    fontWeight: "700",
-    color: "#93c5fd",
-    background: "rgba(59,130,246,.12)",
-    border:
-      "1px solid rgba(96,165,250,.20)",
-    marginBottom: "6px",
+    fontWeight: "800",
+
+    color: "#2563eb",
+
+    background: "#eff6ff",
+    border: "1px solid #dbeafe",
+
+    marginBottom: "5px",
   },
 
   heading: {
     margin: 0,
-    color: "#f8fafc",
+    color: "#172033",
     fontSize: "28px",
     fontWeight: "800",
-    letterSpacing: "-.5px",
+    letterSpacing: "-0.5px",
   },
 
   subheading: {
     margin: "5px 0 0",
-    color: "#94a3b8",
+    color: "#64748b",
     fontSize: "13px",
   },
 
   // =========================================================
   // EMPLOYEE
   // =========================================================
-
   employeeCard: {
     display: "flex",
     alignItems: "center",
     gap: "15px",
-    padding: "18px 20px",
-    marginBottom: "16px",
-    borderRadius: "20px",
-    background:
-      "linear-gradient(135deg, rgba(30,41,59,.85), rgba(15,23,42,.75))",
-    border:
-      "1px solid rgba(148,163,184,.12)",
+
+    padding: "17px 20px",
+    marginBottom: "15px",
+
+    borderRadius: "18px",
+
+    background: "#ffffff",
+
+    border: "1px solid #e2e8f0",
+
     boxShadow:
-      "0 15px 40px rgba(0,0,0,.18)",
+      "0 8px 25px rgba(15,23,42,0.05)",
   },
 
   employeeIcon: {
-    width: "52px",
-    height: "52px",
-    borderRadius: "16px",
+    width: "50px",
+    height: "50px",
+    minWidth: "50px",
+
+    borderRadius: "15px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "23px",
-    background:
-      "linear-gradient(135deg, rgba(14,165,233,.15), rgba(79,70,229,.15))",
-    border:
-      "1px solid rgba(96,165,250,.14)",
-    flexShrink: 0,
+
+    fontSize: "22px",
+
+    background: "#eff6ff",
+    border: "1px solid #dbeafe",
   },
 
   employeeInfo: {
@@ -470,13 +612,13 @@ const styles = {
   },
 
   label: {
-    color: "#64748b",
-    fontSize: "11px",
+    color: "#94a3b8",
+    fontSize: "10px",
   },
 
   employeeName: {
-    color: "#f8fafc",
-    fontSize: "18px",
+    color: "#172033",
+    fontSize: "17px",
     fontWeight: "800",
   },
 
@@ -488,27 +630,80 @@ const styles = {
   gradeBadge: {
     padding: "8px 13px",
     borderRadius: "10px",
-    color: "#86efac",
-    background: "rgba(34,197,94,.10)",
-    border:
-      "1px solid rgba(34,197,94,.16)",
+
+    color: "#15803d",
+
+    background: "#f0fdf4",
+    border: "1px solid #bbf7d0",
+
     fontSize: "12px",
     fontWeight: "800",
   },
 
   // =========================================================
+  // EDIT NOTICE
+  // =========================================================
+  editNotice: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "12px",
+
+    padding: "14px 16px",
+    marginBottom: "15px",
+
+    borderRadius: "15px",
+
+    background: "#fffbeb",
+    border: "1px solid #fde68a",
+
+    boxShadow:
+      "0 6px 18px rgba(245,158,11,0.05)",
+  },
+
+  editNoticeIcon: {
+    width: "34px",
+    height: "34px",
+    minWidth: "34px",
+
+    borderRadius: "10px",
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    background: "#fef3c7",
+    fontSize: "15px",
+  },
+
+  editNoticeTitle: {
+    display: "block",
+    color: "#92400e",
+    fontSize: "12px",
+    marginBottom: "3px",
+  },
+
+  editNoticeText: {
+    margin: 0,
+    color: "#78716c",
+    fontSize: "11px",
+    lineHeight: "1.8",
+  },
+
+  // =========================================================
   // NOTES CARD
   // =========================================================
-
   notesCard: {
     padding: "25px",
-    borderRadius: "24px",
-    background:
-      "linear-gradient(145deg, rgba(30,41,59,.86), rgba(15,23,42,.80))",
-    border:
-      "1px solid rgba(148,163,184,.12)",
+
+    borderRadius: "22px",
+
+    background: "#ffffff",
+
+    border: "1px solid #e2e8f0",
+
     boxShadow:
-      "0 20px 60px rgba(0,0,0,.24)",
+      "0 12px 40px rgba(15,23,42,0.06)",
+
     marginBottom: "15px",
   },
 
@@ -516,8 +711,13 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+
     gap: "15px",
     marginBottom: "20px",
+
+    paddingBottom: "18px",
+
+    borderBottom: "1px solid #f1f5f9",
   },
 
   notesTitleWrapper: {
@@ -529,43 +729,51 @@ const styles = {
   notesIcon: {
     width: "45px",
     height: "45px",
-    borderRadius: "14px",
+    minWidth: "45px",
+
+    borderRadius: "13px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+
     fontSize: "20px",
+
     background:
-      "linear-gradient(135deg, rgba(14,165,233,.15), rgba(99,102,241,.15))",
+      "linear-gradient(135deg, #eff6ff, #eef2ff)",
+
+    border: "1px solid #dbeafe",
   },
 
   notesTitle: {
     margin: 0,
     fontSize: "17px",
     fontWeight: "800",
-    color: "#f1f5f9",
+    color: "#172033",
   },
 
   notesSubtitle: {
     margin: "3px 0 0",
     fontSize: "11px",
-    color: "#64748b",
+    color: "#94a3b8",
   },
 
   requiredBadge: {
     padding: "6px 11px",
     borderRadius: "20px",
-    color: "#fbbf24",
-    background: "rgba(245,158,11,.09)",
-    border:
-      "1px solid rgba(245,158,11,.15)",
+
+    color: "#b45309",
+
+    background: "#fffbeb",
+    border: "1px solid #fde68a",
+
     fontSize: "10px",
-    fontWeight: "700",
+    fontWeight: "800",
   },
 
   // =========================================================
   // TEXTAREA
   // =========================================================
-
   textareaWrapper: {
     position: "relative",
   },
@@ -573,31 +781,46 @@ const styles = {
   textarea: {
     width: "100%",
     minHeight: "260px",
-    padding: "18px",
-    borderRadius: "17px",
-    border:
-      "1px solid rgba(71,85,105,.75)",
+
+    padding: "17px",
+
+    borderRadius: "15px",
+
+    border: "1px solid #dbe3ee",
+
     outline: "none",
     resize: "vertical",
-    background:
-      "rgba(2,6,23,.45)",
-    color: "#f8fafc",
+
+    background: "#f8fafc",
+
+    color: "#172033",
+
     fontSize: "14px",
     lineHeight: "2",
+
     transition: "all .2s ease",
+
     direction: "rtl",
+
+    fontFamily:
+      "'Cairo', 'Tajawal', Arial, sans-serif",
+
+    boxShadow:
+      "inset 0 1px 2px rgba(15,23,42,0.02)",
   },
 
   textareaFooter: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+
     gap: "10px",
+
     marginTop: "9px",
   },
 
   hint: {
-    color: "#475569",
+    color: "#94a3b8",
     fontSize: "10px",
   },
 
@@ -610,28 +833,39 @@ const styles = {
   // =========================================================
   // INFO
   // =========================================================
-
   infoBox: {
     display: "flex",
     alignItems: "flex-start",
     gap: "12px",
+
     padding: "15px 17px",
-    borderRadius: "16px",
     marginBottom: "18px",
-    background:
-      "rgba(14,165,233,.055)",
-    border:
-      "1px solid rgba(14,165,233,.12)",
+
+    borderRadius: "15px",
+
+    background: "#eff6ff",
+    border: "1px solid #dbeafe",
   },
 
   infoIcon: {
-    fontSize: "18px",
-    flexShrink: 0,
+    width: "27px",
+    height: "27px",
+    minWidth: "27px",
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    borderRadius: "8px",
+
+    background: "#dbeafe",
+
+    fontSize: "14px",
   },
 
   infoTitle: {
     display: "block",
-    color: "#bae6fd",
+    color: "#1d4ed8",
     fontSize: "12px",
     marginBottom: "3px",
   },
@@ -646,7 +880,6 @@ const styles = {
   // =========================================================
   // ACTIONS
   // =========================================================
-
   actions: {
     display: "flex",
     flexDirection: "column",
@@ -656,20 +889,31 @@ const styles = {
   button: {
     width: "100%",
     minHeight: "56px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+
     gap: "10px",
+
     border: "none",
-    borderRadius: "16px",
-    color: "#fff",
-    fontSize: "15px",
+    borderRadius: "15px",
+
+    color: "#ffffff",
+
+    fontSize: "14px",
     fontWeight: "800",
+
     background:
-      "linear-gradient(135deg, #0ea5e9, #4f46e5)",
+      "linear-gradient(135deg, #2563eb, #4f46e5)",
+
     boxShadow:
-      "0 15px 30px rgba(37,99,235,.22)",
+      "0 10px 25px rgba(37,99,235,0.18)",
+
     transition: "all .2s ease",
+
+    fontFamily:
+      "'Cairo', 'Tajawal', Arial, sans-serif",
   },
 
   buttonIcon: {
@@ -684,33 +928,45 @@ const styles = {
   backButton: {
     width: "100%",
     minHeight: "47px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+
     gap: "8px",
-    border:
-      "1px solid rgba(148,163,184,.13)",
+
+    border: "1px solid #e2e8f0",
     borderRadius: "14px",
-    color: "#94a3b8",
-    background:
-      "rgba(30,41,59,.55)",
+
+    color: "#64748b",
+
+    background: "#ffffff",
+
     fontSize: "12px",
     fontWeight: "700",
+
     cursor: "pointer",
+
     transition: "all .2s ease",
+
+    fontFamily:
+      "'Cairo', 'Tajawal', Arial, sans-serif",
   },
 
   // =========================================================
   // FOOTER
   // =========================================================
-
   footer: {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+
     gap: "6px",
+
     marginTop: "17px",
-    color: "#475569",
+
+    color: "#94a3b8",
+
     fontSize: "10px",
   },
 };
