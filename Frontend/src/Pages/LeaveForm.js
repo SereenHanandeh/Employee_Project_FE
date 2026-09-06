@@ -28,13 +28,19 @@ import "./leaveForm.css";
 export default function LeaveForm() {
   const nav = useNavigate();
 
+  // =========================================================
+  // STATE
+  // =========================================================
+
   const [employees, setEmployees] = useState([]);
   const [me, setMe] = useState(null);
 
   const [employeeId, setEmployeeId] = useState("");
   const [type, setType] = useState("سنوية");
+
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+
   const [notes, setNotes] = useState("");
 
   const [file, setFile] = useState(null);
@@ -49,6 +55,10 @@ export default function LeaveForm() {
   const [pendingFromDate, setPendingFromDate] = useState("");
   const [previousFromDate, setPreviousFromDate] = useState("");
   const [previousToDate, setPreviousToDate] = useState("");
+
+  // =========================================================
+  // LEAVE TYPES
+  // =========================================================
 
   const leaveTypes = [
     {
@@ -84,7 +94,7 @@ export default function LeaveForm() {
   ];
 
   // =========================================================
-  // Fetch employee data
+  // FETCH EMPLOYEE DATA
   // =========================================================
 
   useEffect(() => {
@@ -116,18 +126,26 @@ export default function LeaveForm() {
 
         setEmployees(list);
       } else {
-        setEmployeeId(user?.employee_id || user?.id || "");
+        const currentEmployeeId =
+          user?.employee_id || user?.id || "";
+
+        setEmployeeId(String(currentEmployeeId));
       }
     } catch (error) {
       console.error("Error loading employees:", error);
-      alert("حدث خطأ أثناء تحميل بيانات الموظفين");
+
+      const message =
+        error?.response?.data?.message ||
+        "حدث خطأ أثناء تحميل بيانات الموظفين";
+
+      alert(message);
     } finally {
       setLoading(false);
     }
   };
 
   // =========================================================
-  // Date helpers
+  // DATE HELPERS
   // =========================================================
 
   const isPastDate = (dateValue) => {
@@ -174,13 +192,17 @@ export default function LeaveForm() {
 
     setFrom(pendingFromDate);
 
-    if (to && new Date(to) < new Date(pendingFromDate)) {
+    if (
+      to &&
+      new Date(to) < new Date(pendingFromDate)
+    ) {
       setTo("");
     }
 
     setPendingFromDate("");
     setPreviousFromDate("");
     setPreviousToDate("");
+
     setShowPastDateConfirm(false);
   };
 
@@ -191,6 +213,7 @@ export default function LeaveForm() {
     setPendingFromDate("");
     setPreviousFromDate("");
     setPreviousToDate("");
+
     setShowPastDateConfirm(false);
   };
 
@@ -202,8 +225,13 @@ export default function LeaveForm() {
       return;
     }
 
-    if (from && new Date(value) < new Date(from)) {
-      alert("تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية");
+    if (
+      from &&
+      new Date(value) < new Date(from)
+    ) {
+      alert(
+        "تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية"
+      );
       return;
     }
 
@@ -211,7 +239,8 @@ export default function LeaveForm() {
   };
 
   // =========================================================
-  // Calculate days
+  // CALCULATE DAYS - DISPLAY ONLY
+  // Backend calculates the final value.
   // =========================================================
 
   const calculateDays = () => {
@@ -220,23 +249,30 @@ export default function LeaveForm() {
     const start = new Date(`${from}T00:00:00`);
     const end = new Date(`${to}T00:00:00`);
 
-    const difference = end.getTime() - start.getTime();
+    const difference =
+      end.getTime() - start.getTime();
 
     if (difference < 0) return 0;
 
-    return Math.floor(difference / (1000 * 60 * 60 * 24)) + 1;
+    return (
+      Math.floor(
+        difference / (1000 * 60 * 60 * 24)
+      ) + 1
+    );
   };
 
   const days = calculateDays();
 
   // =========================================================
-  // Date formatting
+  // DATE FORMATTING
   // =========================================================
 
   const formatDate = (dateValue) => {
     if (!dateValue) return "";
 
-    const date = new Date(`${dateValue}T00:00:00`);
+    const date = new Date(
+      `${dateValue}T00:00:00`
+    );
 
     return date.toLocaleDateString("ar-SA", {
       weekday: "long",
@@ -247,13 +283,15 @@ export default function LeaveForm() {
   };
 
   // =========================================================
-  // File handling
+  // FILE HANDLING
   // =========================================================
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0];
 
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      return;
+    }
 
     const allowedTypes = [
       "image/jpeg",
@@ -262,41 +300,86 @@ export default function LeaveForm() {
       "application/pdf",
     ];
 
+    // -------------------------------------------------------
+    // Validate file type
+    // -------------------------------------------------------
+
     if (!allowedTypes.includes(selectedFile.type)) {
-      alert("نوع الملف غير مدعوم. يسمح فقط بـ JPG و PNG و WEBP و PDF");
+      alert(
+        "نوع الملف غير مدعوم. يسمح فقط بـ JPG و PNG و WEBP و PDF"
+      );
 
       e.target.value = "";
       return;
     }
+
+    // -------------------------------------------------------
+    // Validate file size
+    // -------------------------------------------------------
 
     const maxSize = 5 * 1024 * 1024;
 
     if (selectedFile.size > maxSize) {
-      alert("حجم الملف يجب ألا يتجاوز 5 ميجابايت");
+      alert(
+        "حجم الملف يجب ألا يتجاوز 5 ميجابايت"
+      );
 
       e.target.value = "";
       return;
     }
 
+    // -------------------------------------------------------
+    // Clean old preview URL
+    // -------------------------------------------------------
+
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+
+    // -------------------------------------------------------
+    // Save file
+    // -------------------------------------------------------
+
     setFile(selectedFile);
 
+    // -------------------------------------------------------
+    // Image preview
+    // -------------------------------------------------------
+
     if (selectedFile.type.startsWith("image/")) {
-      setPreview(URL.createObjectURL(selectedFile));
+      const objectUrl =
+        URL.createObjectURL(selectedFile);
+
+      setPreview(objectUrl);
     } else {
       setPreview("");
     }
   };
 
   const removeFile = () => {
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+
     setFile(null);
     setPreview("");
 
-    const input = document.getElementById("leave-file");
+    const input =
+      document.getElementById("leave-file");
 
     if (input) {
       input.value = "";
     }
   };
+
+  // Cleanup preview when component unmounts
+  useEffect(() => {
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
 
   const formatFileSize = (size) => {
     if (!size) return "";
@@ -309,16 +392,22 @@ export default function LeaveForm() {
       return `${(size / 1024).toFixed(1)} KB`;
     }
 
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(
+      size /
+      (1024 * 1024)
+    ).toFixed(1)} MB`;
   };
 
   // =========================================================
-  // Selected employee
+  // SELECTED EMPLOYEE
   // =========================================================
 
   const selectedEmployee = useMemo(() => {
     return employees.find(
-      (emp) => String(emp.id ?? emp.employee_id) === String(employeeId),
+      (emp) =>
+        String(
+          emp.id ?? emp.employee_id
+        ) === String(employeeId)
     );
   }, [employees, employeeId]);
 
@@ -335,13 +424,19 @@ export default function LeaveForm() {
     "";
 
   const employeeDepartment =
-    selectedEmployee?.department_name || selectedEmployee?.department || "";
+    selectedEmployee?.department_name ||
+    selectedEmployee?.department ||
+    "";
 
   // =========================================================
-  // Save
+  // SAVE LEAVE
   // =========================================================
 
   const saveLeave = async () => {
+    // -------------------------------------------------------
+    // Basic validation
+    // -------------------------------------------------------
+
     if (!employeeId) {
       alert("يرجى اختيار الموظف");
       return;
@@ -363,7 +458,9 @@ export default function LeaveForm() {
     }
 
     if (new Date(to) < new Date(from)) {
-      alert("تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية");
+      alert(
+        "تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية"
+      );
       return;
     }
 
@@ -372,56 +469,145 @@ export default function LeaveForm() {
       return;
     }
 
+    // -------------------------------------------------------
+    // File validation again before sending
+    // -------------------------------------------------------
+
+    if (file) {
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "application/pdf",
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        alert(
+          "نوع الملف غير مدعوم. يسمح فقط بـ JPG و PNG و WEBP و PDF"
+        );
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert(
+          "حجم الملف يجب ألا يتجاوز 5 ميجابايت"
+        );
+        return;
+      }
+    }
+
     try {
       setSaving(true);
 
+      // =====================================================
+      // IMPORTANT:
+      // Use FormData because attachment is a file.
+      // =====================================================
+
       const formData = new FormData();
 
-      // إذا كان Admin نرسل employee_id
+      // -----------------------------------------------------
+      // Admin sends employee_id.
+      // Normal employee does NOT need to send it.
+      // Backend gets the employee from req.user.
+      // -----------------------------------------------------
+
       if (isAdmin) {
-        formData.append("employee_id", employeeId);
+        formData.append(
+          "employee_id",
+          String(employeeId)
+        );
       }
 
-      formData.append("type", type);
+      // -----------------------------------------------------
+      // Leave data
+      // -----------------------------------------------------
 
-      // مهم جدًا:
-      // الـ Backend ينتظر from_date و to_date
+      formData.append("type", type.trim());
       formData.append("from_date", from);
       formData.append("to_date", to);
+      formData.append(
+        "notes",
+        notes.trim()
+      );
 
-      formData.append("notes", notes.trim());
+      // -----------------------------------------------------
+      // Attachment
+      // IMPORTANT: field name must be "attachment"
+      // because backend uses uploadLeave.single("attachment")
+      // -----------------------------------------------------
 
       if (file) {
         formData.append("attachment", file);
       }
 
-      // للتأكد من البيانات التي يتم إرسالها
-      console.log("========== LEAVE FORM DATA ==========");
+      // =====================================================
+      // DEBUG
+      // =====================================================
 
-      for (const [key, value] of formData.entries()) {
-        console.log(key, value);
+      console.log(
+        "========== CREATE LEAVE =========="
+      );
+
+      for (const [
+        key,
+        value,
+      ] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(
+            `${key}:`,
+            {
+              name: value.name,
+              type: value.type,
+              size: value.size,
+            }
+          );
+        } else {
+          console.log(`${key}:`, value);
+        }
       }
 
-      console.log("=====================================");
+      console.log(
+        "=================================="
+      );
 
-      const response = await API.post("/leaves", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      // =====================================================
+      // SEND
+      //
+      // DO NOT manually set Content-Type.
+      // Axios will automatically create:
+      // multipart/form-data; boundary=...
+      // =====================================================
 
-      console.log("Leave created successfully:", response.data);
+      const response = await API.post(
+        "/leaves",
+        formData
+      );
 
-      alert("تم إرسال طلب الإجازة بنجاح");
+      console.log(
+        "Leave created successfully:",
+        response.data
+      );
+
+      alert(
+        "تم إرسال طلب الإجازة بنجاح"
+      );
 
       nav("/leaves-list");
     } catch (error) {
-      console.error("Save leave error:", error);
+      console.error(
+        "Save leave error:",
+        error
+      );
 
-      console.error("Server response:", error?.response?.data);
+      console.error(
+        "Server response:",
+        error?.response?.data
+      );
 
       const message =
-        error?.response?.data?.message || "حدث خطأ أثناء حفظ طلب الإجازة";
+        error?.response?.data?.message ||
+        "حدث خطأ أثناء حفظ طلب الإجازة";
 
       alert(message);
     } finally {
@@ -430,7 +616,7 @@ export default function LeaveForm() {
   };
 
   // =========================================================
-  // Reset
+  // RESET
   // =========================================================
 
   const resetForm = () => {
@@ -438,17 +624,36 @@ export default function LeaveForm() {
     setFrom("");
     setTo("");
     setNotes("");
-    removeFile();
+
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+
+    setFile(null);
+    setPreview("");
+
+    const input =
+      document.getElementById("leave-file");
+
+    if (input) {
+      input.value = "";
+    }
 
     if (!isAdmin && me) {
-      setEmployeeId(me?.employee_id || me?.id || "");
+      setEmployeeId(
+        String(
+          me?.employee_id ||
+          me?.id ||
+          ""
+        )
+      );
     } else {
       setEmployeeId("");
     }
   };
 
   // =========================================================
-  // Loading
+  // LOADING
   // =========================================================
 
   if (loading) {
@@ -456,15 +661,26 @@ export default function LeaveForm() {
       <div className="leave-loading">
         <div className="leave-loading-card">
           <div className="leave-spinner"></div>
-          <h3>جاري تحميل النموذج</h3>
-          <p>يرجى الانتظار لحظات...</p>
+
+          <h3>
+            جاري تحميل النموذج
+          </h3>
+
+          <p>
+            يرجى الانتظار لحظات...
+          </p>
         </div>
       </div>
     );
   }
 
+  // =========================================================
+  // UI
+  // =========================================================
+
   return (
     <div className="leave-page">
+
       {/* =====================================================
           Background decorations
       ====================================================== */}
@@ -474,39 +690,59 @@ export default function LeaveForm() {
       <div className="leave-bg-shape leave-bg-shape-3"></div>
 
       <div className="leave-container">
+
         {/* =====================================================
             Header
         ====================================================== */}
 
         <header className="leave-header">
+
           <div className="leave-header-main">
+
             <div className="leave-header-icon">
               <FaCalendarAlt />
             </div>
 
             <div>
+
               <div className="leave-breadcrumb">
                 لوحة التحكم
+
                 <FaChevronLeft />
+
                 طلبات الإجازات
+
                 <FaChevronLeft />
+
                 طلب جديد
               </div>
 
-              <h1>إنشاء طلب إجازة</h1>
+              <h1>
+                إنشاء طلب إجازة
+              </h1>
 
-              <p>قم بتعبئة البيانات التالية لإرسال طلب الإجازة</p>
+              <p>
+                قم بتعبئة البيانات التالية لإرسال طلب الإجازة
+              </p>
+
             </div>
+
           </div>
 
           <button
             type="button"
             className="leave-back-btn"
-            onClick={() => nav("/leaves-list")}
+            onClick={() =>
+              nav("/leaves-list")
+            }
           >
             <FaChevronLeft />
-            <span>العودة للطلبات</span>
+
+            <span>
+              العودة للطلبات
+            </span>
           </button>
+
         </header>
 
         {/* =====================================================
@@ -514,79 +750,134 @@ export default function LeaveForm() {
         ====================================================== */}
 
         <div className="leave-progress">
+
           <div className="progress-line"></div>
 
           <div className="progress-step active">
-            <div className="progress-number">01</div>
+
+            <div className="progress-number">
+              01
+            </div>
 
             <div>
-              <strong>بيانات الإجازة</strong>
-              <span>المعلومات الأساسية</span>
+              <strong>
+                بيانات الإجازة
+              </strong>
+
+              <span>
+                المعلومات الأساسية
+              </span>
             </div>
+
           </div>
 
           <div className="progress-step">
-            <div className="progress-number">02</div>
+
+            <div className="progress-number">
+              02
+            </div>
 
             <div>
-              <strong>المراجعة</strong>
-              <span>تأكد من البيانات</span>
+              <strong>
+                المراجعة
+              </strong>
+
+              <span>
+                تأكد من البيانات
+              </span>
             </div>
+
           </div>
 
           <div className="progress-step">
-            <div className="progress-number">03</div>
+
+            <div className="progress-number">
+              03
+            </div>
 
             <div>
-              <strong>الإرسال</strong>
-              <span>إرسال الطلب</span>
+              <strong>
+                الإرسال
+              </strong>
+
+              <span>
+                إرسال الطلب
+              </span>
             </div>
+
           </div>
+
         </div>
 
         {/* =====================================================
-            Main form
+            Main
         ====================================================== */}
 
         <main className="leave-form-layout">
+
           <div className="leave-form-main">
+
             {/* =================================================
-                Employee section
+                Employee
             ================================================== */}
 
             <section className="leave-section">
+
               <div className="section-heading">
+
                 <div className="section-icon blue">
                   <FaUser />
                 </div>
 
                 <div>
-                  <h2>بيانات الموظف</h2>
-                  <p>حدد الموظف الذي سيتم تسجيل الإجازة له</p>
+                  <h2>
+                    بيانات الموظف
+                  </h2>
+
+                  <p>
+                    حدد الموظف الذي سيتم تسجيل الإجازة له
+                  </p>
                 </div>
 
-                <span className="section-badge">01</span>
+                <span className="section-badge">
+                  01
+                </span>
+
               </div>
 
               <div className="section-content">
+
                 {isAdmin ? (
+
                   <div className="field-group">
+
                     <label>
                       الموظف
                       <span>*</span>
                     </label>
 
                     <div className="select-wrapper">
+
                       <FaUser className="field-icon" />
 
                       <select
                         value={employeeId}
-                        onChange={(e) => setEmployeeId(e.target.value)}
+                        onChange={(e) =>
+                          setEmployeeId(
+                            e.target.value
+                          )
+                        }
                       >
-                        <option value="">اختر الموظف</option>
+
+                        <option value="">
+                          اختر الموظف
+                        </option>
 
                         {employees.map((emp) => {
-                          const id = emp.id ?? emp.employee_id;
+
+                          const id =
+                            emp.id ??
+                            emp.employee_id;
 
                           const name =
                             emp.name ||
@@ -595,48 +886,76 @@ export default function LeaveForm() {
                             "موظف";
 
                           return (
-                            <option key={id} value={id}>
+                            <option
+                              key={id}
+                              value={id}
+                            >
                               {name}
                             </option>
                           );
                         })}
+
                       </select>
 
                       <span className="select-arrow">
                         <FaChevronLeft />
                       </span>
+
                     </div>
 
                     {selectedEmployee && (
+
                       <div className="employee-mini-card">
+
                         <div className="employee-avatar">
                           <FaUser />
                         </div>
 
                         <div className="employee-mini-info">
-                          <strong>{employeeName}</strong>
+
+                          <strong>
+                            {employeeName}
+                          </strong>
 
                           <div>
-                            {employeeJob && <span>{employeeJob}</span>}
+
+                            {employeeJob && (
+                              <span>
+                                {employeeJob}
+                              </span>
+                            )}
 
                             {employeeDepartment && (
-                              <span>{employeeDepartment}</span>
+                              <span>
+                                {employeeDepartment}
+                              </span>
                             )}
+
                           </div>
+
                         </div>
 
                         <FaCheckCircle className="employee-check" />
+
                       </div>
+
                     )}
+
                   </div>
+
                 ) : (
+
                   <div className="employee-profile-card">
+
                     <div className="profile-avatar">
                       <FaUser />
                     </div>
 
                     <div className="profile-info">
-                      <span>الموظف</span>
+
+                      <span>
+                        الموظف
+                      </span>
 
                       <strong>
                         {me?.name ||
@@ -645,70 +964,115 @@ export default function LeaveForm() {
                           "الموظف الحالي"}
                       </strong>
 
-                      <small>{me?.job_title || me?.position || "موظف"}</small>
+                      <small>
+                        {me?.job_title ||
+                          me?.position ||
+                          "موظف"}
+                      </small>
+
                     </div>
 
                     <div className="profile-status">
                       <FaCheckCircle />
                       بياناتك الحالية
                     </div>
+
                   </div>
+
                 )}
+
               </div>
+
             </section>
 
             {/* =================================================
-                Leave type
+                Leave Type
             ================================================== */}
 
             <section className="leave-section">
+
               <div className="section-heading">
+
                 <div className="section-icon purple">
                   <FaBriefcase />
                 </div>
 
                 <div>
-                  <h2>نوع الإجازة</h2>
-                  <p>اختر نوع الإجازة المناسب للطلب</p>
+
+                  <h2>
+                    نوع الإجازة
+                  </h2>
+
+                  <p>
+                    اختر نوع الإجازة المناسب للطلب
+                  </p>
+
                 </div>
 
-                <span className="section-badge">02</span>
+                <span className="section-badge">
+                  02
+                </span>
+
               </div>
 
               <div className="section-content">
-                <div className="leave-types-grid">
-                  {leaveTypes.map((item) => {
-                    const Icon = item.icon;
 
-                    const selected = type === item.value;
+                <div className="leave-types-grid">
+
+                  {leaveTypes.map((item) => {
+
+                    const Icon = item.icon;
+                    const selected =
+                      type === item.value;
 
                     return (
+
                       <button
                         type="button"
                         key={item.value}
                         className={`leave-type-card ${
-                          selected ? "selected" : ""
+                          selected
+                            ? "selected"
+                            : ""
                         }`}
-                        onClick={() => setType(item.value)}
+                        onClick={() =>
+                          setType(item.value)
+                        }
                       >
+
                         <div className="leave-type-icon">
                           <Icon />
                         </div>
 
                         <div className="leave-type-text">
-                          <strong>{item.label}</strong>
 
-                          <span>{item.description}</span>
+                          <strong>
+                            {item.label}
+                          </strong>
+
+                          <span>
+                            {item.description}
+                          </span>
+
                         </div>
 
                         <div className="leave-type-check">
-                          {selected && <FaCheckCircle />}
+
+                          {selected && (
+                            <FaCheckCircle />
+                          )}
+
                         </div>
+
                       </button>
+
                     );
                   })}
+
                 </div>
+
               </div>
+
             </section>
 
             {/* =================================================
@@ -716,28 +1080,44 @@ export default function LeaveForm() {
             ================================================== */}
 
             <section className="leave-section">
+
               <div className="section-heading">
+
                 <div className="section-icon orange">
                   <FaCalendarAlt />
                 </div>
 
                 <div>
-                  <h2>مدة الإجازة</h2>
-                  <p>حدد تاريخ بداية ونهاية الإجازة</p>
+
+                  <h2>
+                    مدة الإجازة
+                  </h2>
+
+                  <p>
+                    حدد تاريخ بداية ونهاية الإجازة
+                  </p>
+
                 </div>
 
-                <span className="section-badge">03</span>
+                <span className="section-badge">
+                  03
+                </span>
+
               </div>
 
               <div className="section-content">
+
                 <div className="dates-grid">
+
                   <div className="date-field">
+
                     <label>
                       تاريخ البداية
                       <span>*</span>
                     </label>
 
                     <div className="date-input-wrapper">
+
                       <div className="date-icon">
                         <FaCalendarAlt />
                       </div>
@@ -745,31 +1125,46 @@ export default function LeaveForm() {
                       <input
                         type="date"
                         value={from}
-                        onChange={handleFromDateChange}
+                        onChange={
+                          handleFromDateChange
+                        }
                       />
+
                     </div>
 
                     {from && (
+
                       <div className="date-readable">
+
                         <FaClock />
+
                         {formatDate(from)}
+
                       </div>
+
                     )}
+
                   </div>
 
                   <div className="date-connector">
+
                     <span></span>
+
                     <FaChevronLeft />
+
                     <span></span>
+
                   </div>
 
                   <div className="date-field">
+
                     <label>
                       تاريخ النهاية
                       <span>*</span>
                     </label>
 
                     <div className="date-input-wrapper">
+
                       <div className="date-icon">
                         <FaCalendarAlt />
                       </div>
@@ -778,43 +1173,73 @@ export default function LeaveForm() {
                         type="date"
                         value={to}
                         min={from || undefined}
-                        onChange={handleToDateChange}
+                        onChange={
+                          handleToDateChange
+                        }
                       />
+
                     </div>
 
                     {to && (
+
                       <div className="date-readable">
+
                         <FaClock />
+
                         {formatDate(to)}
+
                       </div>
+
                     )}
+
                   </div>
+
                 </div>
 
                 {/* Days summary */}
 
-                <div className={`days-summary ${days > 0 ? "has-days" : ""}`}>
+                <div
+                  className={`days-summary ${
+                    days > 0
+                      ? "has-days"
+                      : ""
+                  }`}
+                >
+
                   <div className="days-summary-icon">
                     <FaCalendarAlt />
                   </div>
 
                   <div className="days-summary-text">
-                    <span>مدة الإجازة</span>
+
+                    <span>
+                      مدة الإجازة
+                    </span>
 
                     <strong>
                       {days > 0
-                        ? `${days} ${days === 1 ? "يوم" : "أيام"}`
+                        ? `${days} ${
+                            days === 1
+                              ? "يوم"
+                              : "أيام"
+                          }`
                         : "—"}
                     </strong>
+
                   </div>
 
                   {days > 0 && (
+
                     <div className="days-summary-message">
                       تم احتساب المدة تلقائيًا
                     </div>
+
                   )}
+
                 </div>
+
               </div>
+
             </section>
 
             {/* =================================================
@@ -822,27 +1247,47 @@ export default function LeaveForm() {
             ================================================== */}
 
             <section className="leave-section">
+
               <div className="section-heading">
+
                 <div className="section-icon green">
                   <FaPaperclip />
                 </div>
 
                 <div>
-                  <h2>المرفق</h2>
-                  <p>يمكنك إرفاق مستند داعم لطلب الإجازة</p>
+
+                  <h2>
+                    المرفق
+                  </h2>
+
+                  <p>
+                    يمكنك إرفاق مستند داعم لطلب الإجازة
+                  </p>
+
                 </div>
 
-                <span className="optional-badge">اختياري</span>
+                <span className="optional-badge">
+                  اختياري
+                </span>
+
               </div>
 
               <div className="section-content">
+
                 {!file ? (
-                  <label htmlFor="leave-file" className="upload-area">
+
+                  <label
+                    htmlFor="leave-file"
+                    className="upload-area"
+                  >
+
                     <input
                       id="leave-file"
                       type="file"
                       accept=".jpg,.jpeg,.png,.webp,.pdf"
-                      onChange={handleFileChange}
+                      onChange={
+                        handleFileChange
+                      }
                     />
 
                     <div className="upload-icon">
@@ -850,36 +1295,70 @@ export default function LeaveForm() {
                     </div>
 
                     <div className="upload-content">
-                      <strong>اسحب الملف هنا أو اضغط للاختيار</strong>
 
-                      <span>JPG, PNG, WEBP أو PDF</span>
+                      <strong>
+                        اسحب الملف هنا أو اضغط للاختيار
+                      </strong>
 
-                      <small>الحد الأقصى لحجم الملف 5 ميجابايت</small>
+                      <span>
+                        JPG, PNG, WEBP أو PDF
+                      </span>
+
+                      <small>
+                        الحد الأقصى لحجم الملف 5 ميجابايت
+                      </small>
+
                     </div>
 
-                    <div className="upload-button">اختيار ملف</div>
+                    <div className="upload-button">
+                      اختيار ملف
+                    </div>
+
                   </label>
+
                 ) : (
+
                   <div className="file-preview-card">
+
                     {preview ? (
+
                       <div className="file-image-preview">
-                        <img src={preview} alt="معاينة المرفق" />
+
+                        <img
+                          src={preview}
+                          alt="معاينة المرفق"
+                        />
+
                       </div>
+
                     ) : (
+
                       <div className="file-pdf-icon">
                         <FaFileAlt />
                       </div>
+
                     )}
 
                     <div className="file-info">
-                      <strong>{file.name}</strong>
 
-                      <span>{formatFileSize(file.size)}</span>
+                      <strong>
+                        {file.name}
+                      </strong>
+
+                      <span>
+                        {formatFileSize(
+                          file.size
+                        )}
+                      </span>
 
                       <div className="file-success">
+
                         <FaCheckCircle />
+
                         تم إرفاق الملف بنجاح
+
                       </div>
+
                     </div>
 
                     <button
@@ -888,11 +1367,17 @@ export default function LeaveForm() {
                       onClick={removeFile}
                       title="حذف المرفق"
                     >
+
                       <FaTimes />
+
                     </button>
+
                   </div>
+
                 )}
+
               </div>
+
             </section>
 
             {/* =================================================
@@ -900,126 +1385,221 @@ export default function LeaveForm() {
             ================================================== */}
 
             <section className="leave-section">
+
               <div className="section-heading">
+
                 <div className="section-icon teal">
                   <FaStickyNote />
                 </div>
 
                 <div>
-                  <h2>الملاحظات</h2>
-                  <p>أضف أي معلومات أو ملاحظات إضافية</p>
+
+                  <h2>
+                    الملاحظات
+                  </h2>
+
+                  <p>
+                    أضف أي معلومات أو ملاحظات إضافية
+                  </p>
+
                 </div>
 
-                <span className="optional-badge">اختياري</span>
+                <span className="optional-badge">
+                  اختياري
+                </span>
+
               </div>
 
               <div className="section-content">
+
                 <div className="notes-wrapper">
+
                   <FaStickyNote className="notes-icon" />
 
                   <textarea
                     value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                    onChange={(e) =>
+                      setNotes(
+                        e.target.value
+                      )
+                    }
                     placeholder="اكتب ملاحظاتك هنا..."
                     maxLength={1000}
                   />
 
-                  <div className="notes-counter">{notes.length} / 1000</div>
+                  <div className="notes-counter">
+                    {notes.length} / 1000
+                  </div>
+
                 </div>
+
               </div>
+
             </section>
+
           </div>
 
           {/* ===================================================
-              Side summary
+              SIDE SUMMARY
           ==================================================== */}
 
           <aside className="leave-sidebar">
+
             <div className="summary-card">
+
               <div className="summary-header">
+
                 <div className="summary-header-icon">
                   <FaFileAlt />
                 </div>
 
                 <div>
-                  <span>ملخص الطلب</span>
-                  <strong>طلب إجازة جديد</strong>
+
+                  <span>
+                    ملخص الطلب
+                  </span>
+
+                  <strong>
+                    طلب إجازة جديد
+                  </strong>
+
                 </div>
+
               </div>
 
               <div className="summary-divider"></div>
 
               <div className="summary-item">
-                <span>الموظف</span>
+
+                <span>
+                  الموظف
+                </span>
 
                 <strong>
+
                   {isAdmin
-                    ? employeeName || "لم يتم الاختيار"
-                    : me?.name || me?.full_name || "الموظف الحالي"}
+                    ? employeeName ||
+                      "لم يتم الاختيار"
+                    : me?.name ||
+                      me?.full_name ||
+                      "الموظف الحالي"}
+
                 </strong>
+
               </div>
 
               <div className="summary-item">
-                <span>نوع الإجازة</span>
 
-                <strong>{type}</strong>
+                <span>
+                  نوع الإجازة
+                </span>
+
+                <strong>
+                  {type}
+                </strong>
+
               </div>
 
               <div className="summary-item">
-                <span>من</span>
 
-                <strong>{from || "لم يتم التحديد"}</strong>
+                <span>
+                  من
+                </span>
+
+                <strong>
+                  {from ||
+                    "لم يتم التحديد"}
+                </strong>
+
               </div>
 
               <div className="summary-item">
-                <span>إلى</span>
 
-                <strong>{to || "لم يتم التحديد"}</strong>
+                <span>
+                  إلى
+                </span>
+
+                <strong>
+                  {to ||
+                    "لم يتم التحديد"}
+                </strong>
+
               </div>
 
               <div className="summary-days">
+
                 <div>
-                  <span>إجمالي المدة</span>
-                  <small>يتم الحساب تلقائيًا</small>
+
+                  <span>
+                    إجمالي المدة
+                  </span>
+
+                  <small>
+                    يتم الحساب تلقائيًا
+                  </small>
+
                 </div>
 
                 <strong>
+
                   {days}
-                  <small>{days === 1 ? "يوم" : "أيام"}</small>
+
+                  <small>
+                    {days === 1
+                      ? "يوم"
+                      : "أيام"}
+                  </small>
+
                 </strong>
+
               </div>
+
             </div>
 
             <div className="info-card">
+
               <div className="info-icon">
                 <FaExclamationTriangle />
               </div>
 
               <div>
-                <strong>تنبيه مهم</strong>
+
+                <strong>
+                  تنبيه مهم
+                </strong>
 
                 <p>
                   تأكد من صحة جميع البيانات قبل إرسال الطلب، وسيتم تحويله
                   للمراجعة حسب نظام المؤسسة.
                 </p>
+
               </div>
+
             </div>
+
           </aside>
+
         </main>
 
         {/* =====================================================
-            Footer actions
+            Footer Actions
         ====================================================== */}
 
         <div className="leave-actions">
+
           <button
             type="button"
             className="action-cancel"
-            onClick={() => nav("/leaves-list")}
+            onClick={() =>
+              nav("/leaves-list")
+            }
             disabled={saving}
           >
+
             <FaTimes />
+
             إلغاء
+
           </button>
 
           <button
@@ -1037,33 +1617,57 @@ export default function LeaveForm() {
             onClick={saveLeave}
             disabled={saving}
           >
+
             {saving ? (
+
               <>
                 <span className="button-spinner"></span>
+
                 جاري الإرسال...
               </>
+
             ) : (
+
               <>
                 <FaSave />
+
                 إرسال طلب الإجازة
               </>
+
             )}
+
           </button>
+
         </div>
 
         <div className="leave-footer-note">
+
           <FaCheckCircle />
+
           جميع البيانات المدخلة محفوظة بشكل آمن
+
         </div>
+
       </div>
 
       {/* =======================================================
-          Past date modal
+          Past Date Modal
       ======================================================== */}
 
       {showPastDateConfirm && (
-        <div className="past-date-overlay" onClick={cancelPastDate}>
-          <div className="past-date-modal" onClick={(e) => e.stopPropagation()}>
+
+        <div
+          className="past-date-overlay"
+          onClick={cancelPastDate}
+        >
+
+          <div
+            className="past-date-modal"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+
             <div className="modal-top-line"></div>
 
             <button
@@ -1078,34 +1682,53 @@ export default function LeaveForm() {
               <FaExclamationTriangle />
             </div>
 
-            <span className="modal-label">تنبيه التاريخ</span>
+            <span className="modal-label">
+              تنبيه التاريخ
+            </span>
 
-            <h3>التاريخ المختار سابق لليوم</h3>
+            <h3>
+              التاريخ المختار سابق لليوم
+            </h3>
 
             <p className="modal-description">
-              لقد اخترت تاريخ بداية يقع قبل تاريخ اليوم. هل تريد الاستمرار بهذا
-              التاريخ؟
+              لقد اخترت تاريخ بداية يقع قبل تاريخ اليوم.
+              هل تريد الاستمرار بهذا التاريخ؟
             </p>
 
             <div className="selected-past-date">
+
               <div className="selected-date-icon">
                 <FaCalendarAlt />
               </div>
 
               <div>
-                <span>التاريخ المختار</span>
-                <strong>{formatDate(pendingFromDate)}</strong>
+
+                <span>
+                  التاريخ المختار
+                </span>
+
+                <strong>
+                  {formatDate(
+                    pendingFromDate
+                  )}
+                </strong>
+
               </div>
+
             </div>
 
             <div className="modal-actions">
+
               <button
                 type="button"
                 className="modal-cancel"
                 onClick={cancelPastDate}
               >
+
                 <FaTimes />
+
                 إلغاء
+
               </button>
 
               <button
@@ -1113,13 +1736,21 @@ export default function LeaveForm() {
                 className="modal-confirm"
                 onClick={confirmPastDate}
               >
+
                 <FaCheckCircle />
+
                 نعم، أريد الاستمرار
+
               </button>
+
             </div>
+
           </div>
+
         </div>
+
       )}
+
     </div>
   );
 }

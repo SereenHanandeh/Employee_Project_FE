@@ -15,16 +15,13 @@ import {
   FaSyncAlt,
   FaSearch,
   FaFileAlt,
-  FaUser,
   FaClock,
   FaCheckCircle,
   FaTimesCircle,
-  FaExclamationCircle,
   FaPaperclip,
   FaDownload,
   FaSave,
   FaTimes as FaClose,
-  FaExclamationTriangle,
 } from "react-icons/fa";
 
 import "./LeaveList.css";
@@ -32,33 +29,49 @@ import "./LeaveList.css";
 export default function LeavesList() {
   const nav = useNavigate();
 
+  // =====================================================
+  // STATE
+  // =====================================================
+
   const [leaves, setLeaves] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [saving, setSaving] = useState(false);
 
   const [search, setSearch] = useState("");
+
   const [filterType, setFilterType] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
 
-  const [selectedLeave, setSelectedLeave] = useState(null);
-  const [selectedAttachment, setSelectedAttachment] = useState(null);
+  const [filterStatus, setFilterStatus] =
+    useState("");
 
-  const [editingLeave, setEditingLeave] = useState(null);
+  const [selectedLeave, setSelectedLeave] =
+    useState(null);
+
+  const [selectedAttachment, setSelectedAttachment] =
+    useState(null);
+
+  const [editingLeave, setEditingLeave] =
+    useState(null);
 
   const [editForm, setEditForm] = useState({
     type: "",
     from_date: "",
     to_date: "",
     notes: "",
+    attachment: null,
   });
 
-  const [confirmModal, setConfirmModal] = useState(null);
+  const [confirmModal, setConfirmModal] =
+    useState(null);
 
-  const [actionLoading, setActionLoading] = useState(null);
+  const [actionLoading, setActionLoading] =
+    useState(null);
 
-  // =========================================================
+  // =====================================================
   // FETCH LEAVES
-  // =========================================================
+  // =====================================================
 
   const fetchLeaves = async () => {
     try {
@@ -66,9 +79,17 @@ export default function LeavesList() {
 
       const res = await API.get("/leaves");
 
-      setLeaves(Array.isArray(res.data) ? res.data : []);
+      setLeaves(
+        Array.isArray(res.data)
+          ? res.data
+          : []
+      );
     } catch (error) {
-      console.error("Fetch Leaves Error:", error);
+      console.error(
+        "Fetch Leaves Error:",
+        error
+      );
+
       alert(
         error.response?.data?.message ||
           "حدث خطأ أثناء تحميل طلبات الإجازات"
@@ -82,9 +103,9 @@ export default function LeavesList() {
     fetchLeaves();
   }, []);
 
-  // =========================================================
+  // =====================================================
   // HELPERS
-  // =========================================================
+  // =====================================================
 
   const getEmployeeName = (leave) => {
     return (
@@ -106,8 +127,16 @@ export default function LeavesList() {
     );
   };
 
+  // =====================================================
+  // STATUS
+  // =====================================================
+
   const getStatusKey = (status) => {
-    const value = String(status || "").toLowerCase().trim();
+    const value = String(
+      status || ""
+    )
+      .toLowerCase()
+      .trim();
 
     if (
       [
@@ -167,6 +196,10 @@ export default function LeavesList() {
     };
   };
 
+  // =====================================================
+  // ATTACHMENT URL
+  // =====================================================
+
   const getAttachmentUrl = (leave) => {
     const attachment =
       leave?.attachment ||
@@ -176,9 +209,14 @@ export default function LeavesList() {
       leave?.document ||
       leave?.document_url;
 
-    if (!attachment) return null;
+    if (!attachment) {
+      return null;
+    }
 
-    if (typeof attachment === "object") {
+    // إذا كان object
+    if (
+      typeof attachment === "object"
+    ) {
       return (
         attachment.url ||
         attachment.path ||
@@ -188,33 +226,58 @@ export default function LeavesList() {
       );
     }
 
-    if (String(attachment).startsWith("http")) {
+    // Cloudinary URL
+    if (
+      String(attachment).startsWith(
+        "http"
+      )
+    ) {
       return attachment;
     }
 
-    const baseURL = API?.defaults?.baseURL || "";
+    // fallback للروابط القديمة المحلية
+    const baseURL =
+      API?.defaults?.baseURL || "";
 
-    return `${baseURL.replace(/\/$/, "")}/${String(attachment).replace(
+    return `${baseURL.replace(
+      /\/$/,
+      ""
+    )}/${String(attachment).replace(
       /^\//,
       ""
     )}`;
   };
 
+  // =====================================================
+  // PDF CHECK
+  // =====================================================
+
   const isPdfFile = (url) => {
     if (!url) return false;
 
-    return String(url).toLowerCase().includes(".pdf");
+    return String(url)
+      .toLowerCase()
+      .includes(".pdf");
   };
+
+  // =====================================================
+  // DATE
+  // =====================================================
 
   const formatDate = (date) => {
     if (!date) return "-";
 
     try {
-      return new Date(date).toLocaleDateString("ar-SA", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
+      return new Date(
+        date
+      ).toLocaleDateString(
+        "ar-SA",
+        {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }
+      );
     } catch {
       return date;
     }
@@ -232,50 +295,86 @@ export default function LeavesList() {
     return value.slice(0, 10);
   };
 
-  const calculateDays = (from, to) => {
-    if (!from || !to) return 0;
+  // =====================================================
+  // CALCULATE DAYS
+  // =====================================================
 
-    const start = new Date(from);
-    const end = new Date(to);
-
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+  const calculateDays = (
+    from,
+    to
+  ) => {
+    if (!from || !to) {
       return 0;
     }
 
+    const start = new Date(from);
+
+    const end = new Date(to);
+
+    if (
+      Number.isNaN(
+        start.getTime()
+      ) ||
+      Number.isNaN(
+        end.getTime()
+      )
+    ) {
+      return 0;
+    }
+
+    const startDate = new Date(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate()
+    );
+
+    const endDate = new Date(
+      end.getFullYear(),
+      end.getMonth(),
+      end.getDate()
+    );
+
     const difference =
       Math.floor(
-        (new Date(
-          end.getFullYear(),
-          end.getMonth(),
-          end.getDate()
-        ) -
-          new Date(
-            start.getFullYear(),
-            start.getMonth(),
-            start.getDate()
-          )) /
+        (endDate - startDate) /
           (1000 * 60 * 60 * 24)
       ) + 1;
 
-    return difference > 0 ? difference : 0;
+    return difference > 0
+      ? difference
+      : 0;
   };
 
-  // =========================================================
+  // =====================================================
   // STATISTICS
-  // =========================================================
+  // =====================================================
 
   const statistics = useMemo(() => {
     let total = leaves.length;
+
     let pending = 0;
+
     let approved = 0;
+
     let rejected = 0;
 
     leaves.forEach((leave) => {
-      const status = getStatusKey(leave.status);
+      const status =
+        getStatusKey(
+          leave.status
+        );
 
-      if (status === "pending") pending++;
-      if (status === "approved") approved++;
-      if (status === "rejected") rejected++;
+      if (status === "pending") {
+        pending++;
+      }
+
+      if (status === "approved") {
+        approved++;
+      }
+
+      if (status === "rejected") {
+        rejected++;
+      }
     });
 
     return {
@@ -286,424 +385,745 @@ export default function LeavesList() {
     };
   }, [leaves]);
 
-  // =========================================================
+  // =====================================================
   // LEAVE TYPES
-  // =========================================================
+  // =====================================================
 
   const leaveTypes = useMemo(() => {
     return [
       ...new Set(
         leaves
-          .map((leave) => leave.type || leave.leave_type)
+          .map(
+            (leave) =>
+              leave.type ||
+              leave.leave_type
+          )
           .filter(Boolean)
       ),
     ];
   }, [leaves]);
 
-  // =========================================================
+  // =====================================================
   // FILTER
-  // =========================================================
+  // =====================================================
 
   const filteredLeaves = useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
+    const searchValue =
+      search
+        .trim()
+        .toLowerCase();
 
-    return leaves.filter((leave) => {
-      const employeeName = getEmployeeName(leave).toLowerCase();
+    return leaves.filter(
+      (leave) => {
+        const employeeName =
+          getEmployeeName(
+            leave
+          ).toLowerCase();
 
-      const type = String(
-        leave.type || leave.leave_type || ""
-      ).toLowerCase();
+        const type = String(
+          leave.type ||
+            leave.leave_type ||
+            ""
+        ).toLowerCase();
 
-      const fromDate = String(leave.from_date || "");
-      const toDate = String(leave.to_date || "");
+        const fromDate = String(
+          leave.from_date || ""
+        );
 
-      const matchesSearch =
-        !searchValue ||
-        employeeName.includes(searchValue) ||
-        type.includes(searchValue) ||
-        fromDate.includes(searchValue) ||
-        toDate.includes(searchValue);
+        const toDate = String(
+          leave.to_date || ""
+        );
 
-      const matchesType =
-        !filterType ||
-        (leave.type || leave.leave_type) === filterType;
+        const matchesSearch =
+          !searchValue ||
+          employeeName.includes(
+            searchValue
+          ) ||
+          type.includes(
+            searchValue
+          ) ||
+          fromDate.includes(
+            searchValue
+          ) ||
+          toDate.includes(
+            searchValue
+          );
 
-      const matchesStatus =
-        !filterStatus ||
-        getStatusKey(leave.status) === filterStatus;
+        const matchesType =
+          !filterType ||
+          (
+            leave.type ||
+            leave.leave_type
+          ) === filterType;
 
-      return matchesSearch && matchesType && matchesStatus;
-    });
-  }, [leaves, search, filterType, filterStatus]);
+        const matchesStatus =
+          !filterStatus ||
+          getStatusKey(
+            leave.status
+          ) === filterStatus;
 
-  // =========================================================
+        return (
+          matchesSearch &&
+          matchesType &&
+          matchesStatus
+        );
+      }
+    );
+  }, [
+    leaves,
+    search,
+    filterType,
+    filterStatus,
+  ]);
+
+  // =====================================================
   // ATTACHMENT
-  // =========================================================
+  // =====================================================
 
   const openAttachment = (leave) => {
-    const url = getAttachmentUrl(leave);
+    const url =
+      getAttachmentUrl(leave);
 
     if (!url) return;
 
     setSelectedAttachment({
       url,
-      isPdf: isPdfFile(url),
-      employeeName: getEmployeeName(leave),
+      isPdf:
+        isPdfFile(url),
+      employeeName:
+        getEmployeeName(leave),
     });
   };
 
-  // =========================================================
-  // STATUS
-  // =========================================================
+  // =====================================================
+  // STATUS CHANGE
+  // =====================================================
 
-  const requestStatusChange = (id, status) => {
-    const leave = leaves.find((item) => item.leave_id === id);
+  const requestStatusChange = (
+    id,
+    status
+  ) => {
+    const leave = leaves.find(
+      (item) =>
+        item.leave_id === id
+    );
 
     if (!leave) return;
 
-    const employeeName = getEmployeeName(leave);
+    const employeeName =
+      getEmployeeName(
+        leave
+      );
 
-    if (status === "approved") {
+    if (
+      status === "approved"
+    ) {
       setConfirmModal({
         type: "approve",
-        title: "تأكيد قبول الطلب",
-        message: `هل أنت متأكد من قبول طلب الإجازة الخاص بالموظف "${employeeName}"؟`,
-        confirmText: "نعم، قبول الطلب",
-        icon: <FaCheckCircle />,
+        title:
+          "تأكيد قبول الطلب",
+        message:
+          `هل أنت متأكد من قبول طلب الإجازة الخاص بالموظف "${employeeName}"؟`,
+        confirmText:
+          "نعم، قبول الطلب",
+        icon:
+          <FaCheckCircle />,
         id,
         status,
       });
     }
 
-    if (status === "rejected") {
+    if (
+      status === "rejected"
+    ) {
       setConfirmModal({
         type: "reject",
-        title: "تأكيد رفض الطلب",
-        message: `هل أنت متأكد من رفض طلب الإجازة الخاص بالموظف "${employeeName}"؟`,
-        confirmText: "نعم، رفض الطلب",
-        icon: <FaTimesCircle />,
+        title:
+          "تأكيد رفض الطلب",
+        message:
+          `هل أنت متأكد من رفض طلب الإجازة الخاص بالموظف "${employeeName}"؟`,
+        confirmText:
+          "نعم، رفض الطلب",
+        icon:
+          <FaTimesCircle />,
         id,
         status,
       });
     }
   };
 
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (
+    id,
+    status
+  ) => {
     try {
       setSaving(true);
-      setActionLoading(`${status}-${id}`);
 
-      const res = await API.put(`/leaves/${id}`, {
-        status,
-      });
+      setActionLoading(
+        `${status}-${id}`
+      );
 
-      const updatedLeave = res.data;
+      const res =
+        await API.put(
+          `/leaves/${id}`,
+          {
+            status,
+          }
+        );
+
+      const updatedLeave =
+        res.data;
 
       setLeaves((prev) =>
-        prev.map((leave) =>
-          leave.leave_id === id
-            ? {
-                ...leave,
-                ...(updatedLeave || {}),
-                status:
-                  updatedLeave?.status ||
-                  status,
-              }
-            : leave
+        prev.map(
+          (leave) =>
+            leave.leave_id === id
+              ? {
+                  ...leave,
+                  ...(updatedLeave ||
+                    {}),
+                  status:
+                    updatedLeave?.status ||
+                    status,
+                }
+              : leave
         )
       );
 
-      setSelectedLeave(null);
-      setConfirmModal(null);
+      setSelectedLeave(
+        null
+      );
+
+      setConfirmModal(
+        null
+      );
     } catch (error) {
-      console.error("Update Leave Status Error:", error);
+      console.error(
+        "Update Leave Status Error:",
+        error
+      );
 
       alert(
-        error.response?.data?.message ||
+        error.response?.data
+          ?.message ||
           "فشل تحديث حالة طلب الإجازة"
       );
     } finally {
       setSaving(false);
+
       setActionLoading(null);
     }
   };
 
-  const confirmAction = async () => {
-    if (!confirmModal) return;
+  const confirmAction =
+    async () => {
+      if (!confirmModal) {
+        return;
+      }
 
-    if (confirmModal.type === "approve") {
-      await updateStatus(
-        confirmModal.id,
-        "approved"
-      );
-    }
+      if (
+        confirmModal.type ===
+        "approve"
+      ) {
+        await updateStatus(
+          confirmModal.id,
+          "approved"
+        );
+      }
 
-    if (confirmModal.type === "reject") {
-      await updateStatus(
-        confirmModal.id,
-        "rejected"
-      );
-    }
+      if (
+        confirmModal.type ===
+        "reject"
+      ) {
+        await updateStatus(
+          confirmModal.id,
+          "rejected"
+        );
+      }
 
-    if (confirmModal.type === "delete") {
-      await deleteLeave(confirmModal.id);
-    }
-  };
+      if (
+        confirmModal.type ===
+        "delete"
+      ) {
+        await deleteLeave(
+          confirmModal.id
+        );
+      }
+    };
 
-  // =========================================================
+  // =====================================================
   // EDIT
-  // =========================================================
+  // =====================================================
 
-  const openEditLeave = (leave) => {
-    setEditingLeave(leave);
-
-    setEditForm({
-      type: leave.type || leave.leave_type || "",
-      from_date: getInputDate(leave.from_date),
-      to_date: getInputDate(leave.to_date),
-      notes: leave.notes || "",
-    });
-  };
-
-  const closeEditModal = () => {
-    if (saving) return;
-
-    setEditingLeave(null);
-
-    setEditForm({
-      type: "",
-      from_date: "",
-      to_date: "",
-      notes: "",
-    });
-  };
-
-  const updateLeave = async () => {
-    if (!editingLeave) return;
-
-    if (!editForm.type) {
-      alert("يرجى اختيار نوع الإجازة");
-      return;
-    }
-
-    if (!editForm.from_date || !editForm.to_date) {
-      alert("يرجى تحديد تاريخ بداية ونهاية الإجازة");
-      return;
-    }
-
-    if (
-      new Date(editForm.from_date) >
-      new Date(editForm.to_date)
-    ) {
-      alert("تاريخ البداية يجب أن يكون قبل تاريخ النهاية");
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      const res = await API.put(
-        `/leaves/edit/${editingLeave.leave_id}`,
-        {
-          type: editForm.type,
-          from_date: editForm.from_date,
-          to_date: editForm.to_date,
-          notes: editForm.notes,
-        }
-      );
-
-      const updatedLeave = res.data;
-
-      setLeaves((prev) =>
-        prev.map((leave) =>
-          leave.leave_id === editingLeave.leave_id
-            ? {
-                ...leave,
-                ...(updatedLeave || {}),
-                type:
-                  updatedLeave?.type ||
-                  editForm.type,
-                from_date:
-                  updatedLeave?.from_date ||
-                  editForm.from_date,
-                to_date:
-                  updatedLeave?.to_date ||
-                  editForm.to_date,
-                notes:
-                  updatedLeave?.notes ??
-                  editForm.notes,
-              }
-            : leave
-        )
-      );
-
-      closeEditModal();
-    } catch (error) {
-      console.error("Update Leave Error:", error);
-
-      alert(
-        error.response?.data?.message ||
-          "فشل تعديل طلب الإجازة"
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // =========================================================
-  // DELETE
-  // =========================================================
-
-  const requestDeleteLeave = (id) => {
-    const leave = leaves.find(
-      (item) => item.leave_id === id
+  const openEditLeave = (
+    leave
+  ) => {
+    setEditingLeave(
+      leave
     );
 
-    if (!leave) return;
+    setEditForm({
+      type:
+        leave.type ||
+        leave.leave_type ||
+        "",
 
-    const employeeName = getEmployeeName(leave);
-
-    setConfirmModal({
-      type: "delete",
-      title: "حذف طلب الإجازة",
-      message: `هل أنت متأكد من حذف طلب الإجازة الخاص بالموظف "${employeeName}"؟ لا يمكن التراجع عن هذه العملية.`,
-      confirmText: "نعم، حذف الطلب",
-      icon: <FaTrash />,
-      id,
-    });
-  };
-
-  const deleteLeave = async (id) => {
-    try {
-      setSaving(true);
-      setActionLoading(`delete-${id}`);
-
-      await API.delete(`/leaves/${id}`);
-
-      setLeaves((prev) =>
-        prev.filter(
-          (leave) => leave.leave_id !== id
-        )
-      );
-
-      setSelectedLeave(null);
-      setConfirmModal(null);
-    } catch (error) {
-      console.error("Delete Leave Error:", error);
-
-      alert(
-        error.response?.data?.message ||
-          "فشل حذف طلب الإجازة"
-      );
-    } finally {
-      setSaving(false);
-      setActionLoading(null);
-    }
-  };
-
-  // =========================================================
-  // EXPORT EXCEL
-  // =========================================================
-
-  const exportToExcel = () => {
-    if (!filteredLeaves.length) {
-      alert("لا توجد بيانات لتصديرها");
-      return;
-    }
-
-    const data = filteredLeaves.map((leave) => {
-      const status = getStatusInfo(leave.status);
-
-      return {
-        الموظف: getEmployeeName(leave),
-        "نوع الإجازة":
-          leave.type ||
-          leave.leave_type ||
-          "-",
-        "تاريخ البداية": formatDate(
+      from_date:
+        getInputDate(
           leave.from_date
         ),
-        "تاريخ النهاية": formatDate(
+
+      to_date:
+        getInputDate(
           leave.to_date
         ),
-        "عدد الأيام":
-          leave.days ||
-          calculateDays(
-            leave.from_date,
-            leave.to_date
-          ),
-        المرفق: getAttachmentUrl(leave)
-          ? "يوجد مرفق"
-          : "لا يوجد",
-        الملاحظات: leave.notes || "-",
-        الحالة: status.text,
-      };
+
+      notes:
+        leave.notes || "",
+
+      attachment:
+        null,
     });
+  };
 
-    const worksheet =
-      XLSX.utils.json_to_sheet(data);
-
-    const workbook =
-      XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      "طلبات الإجازات"
-    );
-
-    const excelBuffer =
-      XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-      });
-
-    const blob = new Blob(
-      [excelBuffer],
-      {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  const closeEditModal =
+    () => {
+      if (saving) {
+        return;
       }
-    );
 
-    saveAs(
-      blob,
-      `طلبات_الإجازات_${new Date()
-        .toISOString()
-        .slice(0, 10)}.xlsx`
-    );
-  };
+      setEditingLeave(
+        null
+      );
 
-  // =========================================================
+      setEditForm({
+        type: "",
+        from_date: "",
+        to_date: "",
+        notes: "",
+        attachment: null,
+      });
+    };
+
+  // =====================================================
+  // UPDATE LEAVE
+  // =====================================================
+
+  const updateLeave =
+    async () => {
+      if (!editingLeave) {
+        return;
+      }
+
+      if (!editForm.type) {
+        alert(
+          "يرجى اختيار نوع الإجازة"
+        );
+        return;
+      }
+
+      if (
+        !editForm.from_date ||
+        !editForm.to_date
+      ) {
+        alert(
+          "يرجى تحديد تاريخ بداية ونهاية الإجازة"
+        );
+        return;
+      }
+
+      if (
+        new Date(
+          editForm.from_date
+        ) >
+        new Date(
+          editForm.to_date
+        )
+      ) {
+        alert(
+          "تاريخ البداية يجب أن يكون قبل تاريخ النهاية"
+        );
+        return;
+      }
+
+      // =================================================
+      // FILE VALIDATION
+      // =================================================
+
+      if (
+        editForm.attachment
+      ) {
+        const allowedTypes = [
+          "image/jpeg",
+          "image/png",
+          "image/jpg",
+          "image/webp",
+          "application/pdf",
+        ];
+
+        if (
+          !allowedTypes.includes(
+            editForm
+              .attachment
+              .type
+          )
+        ) {
+          alert(
+            "يسمح فقط برفع JPG أو JPEG أو PNG أو WEBP أو PDF"
+          );
+
+          return;
+        }
+
+        if (
+          editForm
+            .attachment
+            .size >
+          5 * 1024 * 1024
+        ) {
+          alert(
+            "حجم الملف يجب ألا يتجاوز 5 ميجابايت"
+          );
+
+          return;
+        }
+      }
+
+      try {
+        setSaving(true);
+
+        // =================================================
+        // FORMDATA
+        // =================================================
+
+        const formData =
+          new FormData();
+
+        formData.append(
+          "type",
+          editForm.type
+        );
+
+        formData.append(
+          "from_date",
+          editForm.from_date
+        );
+
+        formData.append(
+          "to_date",
+          editForm.to_date
+        );
+
+        formData.append(
+          "notes",
+          editForm.notes || ""
+        );
+
+        if (
+          editForm.attachment
+        ) {
+          formData.append(
+            "attachment",
+            editForm.attachment
+          );
+        }
+
+        const res =
+          await API.put(
+            `/leaves/edit/${editingLeave.leave_id}`,
+            formData
+          );
+
+        const updatedLeave =
+          res.data;
+
+        setLeaves((prev) =>
+          prev.map(
+            (leave) =>
+              leave.leave_id ===
+              editingLeave.leave_id
+                ? {
+                    ...leave,
+                    ...(updatedLeave ||
+                      {}),
+                    type:
+                      updatedLeave?.type ||
+                      editForm.type,
+
+                    from_date:
+                      updatedLeave?.from_date ||
+                      editForm.from_date,
+
+                    to_date:
+                      updatedLeave?.to_date ||
+                      editForm.to_date,
+
+                    notes:
+                      updatedLeave?.notes ??
+                      editForm.notes,
+
+                    attachment:
+                      updatedLeave?.attachment ??
+                      leave.attachment,
+                  }
+                : leave
+          )
+        );
+
+        closeEditModal();
+
+      } catch (error) {
+        console.error(
+          "Update Leave Error:",
+          error
+        );
+
+        alert(
+          error.response?.data
+            ?.message ||
+            "فشل تعديل طلب الإجازة"
+        );
+      } finally {
+        setSaving(false);
+      }
+    };
+
+  // =====================================================
+  // DELETE
+  // =====================================================
+
+  const requestDeleteLeave =
+    (id) => {
+      const leave =
+        leaves.find(
+          (item) =>
+            item.leave_id === id
+        );
+
+      if (!leave) return;
+
+      const employeeName =
+        getEmployeeName(
+          leave
+        );
+
+      setConfirmModal({
+        type: "delete",
+        title:
+          "حذف طلب الإجازة",
+        message:
+          `هل أنت متأكد من حذف طلب الإجازة الخاص بالموظف "${employeeName}"؟ لا يمكن التراجع عن هذه العملية.`,
+        confirmText:
+          "نعم، حذف الطلب",
+        icon:
+          <FaTrash />,
+        id,
+      });
+    };
+
+  const deleteLeave =
+    async (id) => {
+      try {
+        setSaving(true);
+
+        setActionLoading(
+          `delete-${id}`
+        );
+
+        await API.delete(
+          `/leaves/${id}`
+        );
+
+        setLeaves((prev) =>
+          prev.filter(
+            (leave) =>
+              leave.leave_id !== id
+          )
+        );
+
+        setSelectedLeave(
+          null
+        );
+
+        setConfirmModal(
+          null
+        );
+      } catch (error) {
+        console.error(
+          "Delete Leave Error:",
+          error
+        );
+
+        alert(
+          error.response?.data
+            ?.message ||
+            "فشل حذف طلب الإجازة"
+        );
+      } finally {
+        setSaving(false);
+
+        setActionLoading(null);
+      }
+    };
+
+  // =====================================================
+  // EXPORT EXCEL
+  // =====================================================
+
+  const exportToExcel =
+    () => {
+      if (
+        !filteredLeaves.length
+      ) {
+        alert(
+          "لا توجد بيانات لتصديرها"
+        );
+
+        return;
+      }
+
+      const data =
+        filteredLeaves.map(
+          (leave) => {
+            const status =
+              getStatusInfo(
+                leave.status
+              );
+
+            return {
+              الموظف:
+                getEmployeeName(
+                  leave
+                ),
+
+              "نوع الإجازة":
+                leave.type ||
+                leave.leave_type ||
+                "-",
+
+              "تاريخ البداية":
+                formatDate(
+                  leave.from_date
+                ),
+
+              "تاريخ النهاية":
+                formatDate(
+                  leave.to_date
+                ),
+
+              "عدد الأيام":
+                leave.days ||
+                calculateDays(
+                  leave.from_date,
+                  leave.to_date
+                ),
+
+              المرفق:
+                getAttachmentUrl(
+                  leave
+                )
+                  ? "يوجد مرفق"
+                  : "لا يوجد",
+
+              "رابط المرفق":
+                getAttachmentUrl(
+                  leave
+                ) || "-",
+
+              الملاحظات:
+                leave.notes ||
+                "-",
+
+              الحالة:
+                status.text,
+            };
+          }
+        );
+
+      const worksheet =
+        XLSX.utils.json_to_sheet(
+          data
+        );
+
+      const workbook =
+        XLSX.utils.book_new();
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "طلبات الإجازات"
+      );
+
+      const excelBuffer =
+        XLSX.write(
+          workbook,
+          {
+            bookType: "xlsx",
+            type: "array",
+          }
+        );
+
+      const blob =
+        new Blob(
+          [excelBuffer],
+          {
+            type:
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          }
+        );
+
+      saveAs(
+        blob,
+        `طلبات_الإجازات_${new Date()
+          .toISOString()
+          .slice(0, 10)}.xlsx`
+      );
+    };
+
+  // =====================================================
   // RESET FILTERS
-  // =========================================================
+  // =====================================================
 
-  const resetFilters = () => {
-    setSearch("");
-    setFilterType("");
-    setFilterStatus("");
-  };
+  const resetFilters =
+    () => {
+      setSearch("");
 
-  // =========================================================
+      setFilterType("");
+
+      setFilterStatus("");
+    };
+
+  // =====================================================
   // RENDER
-  // =========================================================
+  // =====================================================
 
   return (
     <div className="leaves-page">
+
       {/* =====================================================
           HEADER
       ===================================================== */}
 
       <header className="top-header">
+
         <div className="header-right">
+
           <div className="breadcrumb">
-            <span>لوحة التحكم</span>
+            <span>
+              لوحة التحكم
+            </span>
+
             <span className="breadcrumb-arrow">
               /
             </span>
-            <strong>طلبات الإجازات</strong>
+
+            <strong>
+              طلبات الإجازات
+            </strong>
           </div>
 
           <div className="title-wrapper">
+
             <div className="title-icon">
               <FaCalendarAlt />
             </div>
@@ -714,14 +1134,16 @@ export default function LeavesList() {
               </h1>
 
               <p className="page-description">
-                إدارة ومراجعة جميع طلبات إجازات
-                الموظفين
+                إدارة ومراجعة جميع طلبات إجازات الموظفين
               </p>
             </div>
+
           </div>
+
         </div>
 
         <div className="header-actions">
+
           <button
             type="button"
             className="secondary-header-button"
@@ -735,6 +1157,7 @@ export default function LeavesList() {
                   : ""
               }
             />
+
             تحديث
           </button>
 
@@ -746,19 +1169,26 @@ export default function LeavesList() {
             }
           >
             <FaCalendarAlt />
+
             إضافة إجازة
           </button>
+
         </div>
+
       </header>
 
       <main className="content">
+
         {/* ===================================================
             STATISTICS
         =================================================== */}
 
         <section className="stats-grid">
+
           <div className="stat-card total-card">
+
             <div className="stat-card-top">
+
               <div className="stat-icon">
                 <FaFileAlt />
               </div>
@@ -766,6 +1196,7 @@ export default function LeavesList() {
               <span className="stat-mini">
                 الكل
               </span>
+
             </div>
 
             <span className="stat-label">
@@ -775,10 +1206,13 @@ export default function LeavesList() {
             <strong className="stat-number">
               {statistics.total}
             </strong>
+
           </div>
 
           <div className="stat-card pending-card">
+
             <div className="stat-card-top">
+
               <div className="stat-icon">
                 <FaClock />
               </div>
@@ -786,6 +1220,7 @@ export default function LeavesList() {
               <span className="stat-mini">
                 مراجعة
               </span>
+
             </div>
 
             <span className="stat-label">
@@ -795,10 +1230,13 @@ export default function LeavesList() {
             <strong className="stat-number">
               {statistics.pending}
             </strong>
+
           </div>
 
           <div className="stat-card approved-card">
+
             <div className="stat-card-top">
+
               <div className="stat-icon">
                 <FaCheckCircle />
               </div>
@@ -806,6 +1244,7 @@ export default function LeavesList() {
               <span className="stat-mini">
                 معتمد
               </span>
+
             </div>
 
             <span className="stat-label">
@@ -815,10 +1254,13 @@ export default function LeavesList() {
             <strong className="stat-number">
               {statistics.approved}
             </strong>
+
           </div>
 
           <div className="stat-card rejected-card">
+
             <div className="stat-card-top">
+
               <div className="stat-icon">
                 <FaTimesCircle />
               </div>
@@ -826,6 +1268,7 @@ export default function LeavesList() {
               <span className="stat-mini">
                 مرفوض
               </span>
+
             </div>
 
             <span className="stat-label">
@@ -835,7 +1278,9 @@ export default function LeavesList() {
             <strong className="stat-number">
               {statistics.rejected}
             </strong>
+
           </div>
+
         </section>
 
         {/* ===================================================
@@ -843,7 +1288,9 @@ export default function LeavesList() {
         =================================================== */}
 
         <section className="toolbar">
+
           <div className="search-wrapper">
+
             <FaSearch className="search-icon" />
 
             <input
@@ -852,7 +1299,9 @@ export default function LeavesList() {
               placeholder="ابحث باسم الموظف أو نوع الإجازة..."
               value={search}
               onChange={(e) =>
-                setSearch(e.target.value)
+                setSearch(
+                  e.target.value
+                )
               }
             />
 
@@ -868,35 +1317,44 @@ export default function LeavesList() {
                 <FaClose />
               </button>
             )}
+
           </div>
 
           <div className="filters">
+
             <select
               className="select-filter"
               value={filterType}
               onChange={(e) =>
-                setFilterType(e.target.value)
+                setFilterType(
+                  e.target.value
+                )
               }
             >
               <option value="">
                 جميع أنواع الإجازات
               </option>
 
-              {leaveTypes.map((type) => (
-                <option
-                  key={type}
-                  value={type}
-                >
-                  {type}
-                </option>
-              ))}
+              {leaveTypes.map(
+                (type) => (
+                  <option
+                    key={type}
+                    value={type}
+                  >
+                    {type}
+                  </option>
+                )
+              )}
+
             </select>
 
             <select
               className="select-filter"
               value={filterStatus}
               onChange={(e) =>
-                setFilterStatus(e.target.value)
+                setFilterStatus(
+                  e.target.value
+                )
               }
             >
               <option value="">
@@ -922,7 +1380,9 @@ export default function LeavesList() {
               <button
                 type="button"
                 className="reset-filters"
-                onClick={resetFilters}
+                onClick={
+                  resetFilters
+                }
               >
                 إعادة ضبط
               </button>
@@ -931,12 +1391,17 @@ export default function LeavesList() {
             <button
               type="button"
               className="excel-button"
-              onClick={exportToExcel}
+              onClick={
+                exportToExcel
+              }
             >
               <FaFileExcel />
+
               تصدير Excel
             </button>
+
           </div>
+
         </section>
 
         {/* ===================================================
@@ -944,9 +1409,13 @@ export default function LeavesList() {
         =================================================== */}
 
         <section className="table-container">
+
           <div className="table-header">
+
             <div className="section-title-row">
+
               <div>
+
                 <h2 className="section-title">
                   قائمة طلبات الإجازات
                 </h2>
@@ -954,7 +1423,9 @@ export default function LeavesList() {
                 <p className="results-count">
                   عرض{" "}
                   <strong>
-                    {filteredLeaves.length}
+                    {
+                      filteredLeaves.length
+                    }
                   </strong>{" "}
                   من أصل{" "}
                   <strong>
@@ -962,17 +1433,23 @@ export default function LeavesList() {
                   </strong>{" "}
                   طلب
                 </p>
+
               </div>
 
               <span className="count-badge">
-                {filteredLeaves.length}
+                {
+                  filteredLeaves.length
+                }
               </span>
+
             </div>
 
             <button
               type="button"
               className="refresh-button"
-              onClick={fetchLeaves}
+              onClick={
+                fetchLeaves
+              }
               disabled={loading}
               title="تحديث البيانات"
             >
@@ -984,18 +1461,25 @@ export default function LeavesList() {
                 }
               />
             </button>
+
           </div>
 
           {loading ? (
+
             <div className="loading-state">
+
               <div className="loading-spinner" />
+
               <p>
                 جاري تحميل طلبات الإجازات...
               </p>
+
             </div>
-          ) : filteredLeaves.length ===
-            0 ? (
+
+          ) : filteredLeaves.length === 0 ? (
+
             <div className="empty-state">
+
               <div className="empty-icon">
                 <FaCalendarAlt />
               </div>
@@ -1005,8 +1489,7 @@ export default function LeavesList() {
               </h3>
 
               <p>
-                لم يتم العثور على طلبات
-                مطابقة للبحث أو الفلاتر
+                لم يتم العثور على طلبات مطابقة للبحث أو الفلاتر
               </p>
 
               {(search ||
@@ -1015,29 +1498,61 @@ export default function LeavesList() {
                 <button
                   type="button"
                   className="reset-filters empty-reset"
-                  onClick={resetFilters}
+                  onClick={
+                    resetFilters
+                  }
                 >
                   إعادة ضبط الفلاتر
                 </button>
               )}
+
             </div>
+
           ) : (
+
             <>
-              {/* DESKTOP TABLE */}
+
+              {/* =================================================
+                  DESKTOP
+              ================================================= */}
 
               <div className="desktop-table">
+
                 <div className="table-head">
-                  <div>الموظف</div>
-                  <div>نوع الإجازة</div>
-                  <div>من</div>
-                  <div>إلى</div>
-                  <div>المرفق</div>
-                  <div>الحالة</div>
-                  <div>الإجراءات</div>
+
+                  <div>
+                    الموظف
+                  </div>
+
+                  <div>
+                    نوع الإجازة
+                  </div>
+
+                  <div>
+                    من
+                  </div>
+
+                  <div>
+                    إلى
+                  </div>
+
+                  <div>
+                    المرفق
+                  </div>
+
+                  <div>
+                    الحالة
+                  </div>
+
+                  <div>
+                    الإجراءات
+                  </div>
+
                 </div>
 
                 {filteredLeaves.map(
                   (leave) => {
+
                     const status =
                       getStatusInfo(
                         leave.status
@@ -1052,22 +1567,30 @@ export default function LeavesList() {
                       );
 
                     return (
+
                       <div
                         className="table-row"
-                        key={leave.leave_id}
+                        key={
+                          leave.leave_id
+                        }
                       >
+
                         {/* EMPLOYEE */}
 
                         <div className="employee-cell">
+
                           <div className="avatar">
                             {getEmployeeName(
                               leave
                             )
-                              .charAt(0)
+                              .charAt(
+                                0
+                              )
                               .toUpperCase()}
                           </div>
 
                           <div className="employee-info">
+
                             <strong className="employee-name">
                               {getEmployeeName(
                                 leave
@@ -1079,44 +1602,57 @@ export default function LeavesList() {
                                 leave
                               )}
                             </span>
+
                           </div>
+
                         </div>
 
                         {/* TYPE */}
 
                         <div>
+
                           <span className="leave-type-badge">
+
                             <FaCalendarAlt />
+
                             {leave.type ||
                               leave.leave_type ||
                               "-"}
+
                           </span>
+
                         </div>
 
                         {/* FROM */}
 
                         <div className="date-cell">
+
                           <span>
                             {formatDate(
                               leave.from_date
                             )}
                           </span>
+
                         </div>
 
                         {/* TO */}
 
                         <div className="date-cell">
+
                           <span>
                             {formatDate(
                               leave.to_date
                             )}
                           </span>
+
                         </div>
 
                         {/* ATTACHMENT */}
 
                         <div className="attachment-cell">
+
                           {attachment ? (
+
                             <button
                               type="button"
                               className="attachment-preview-button"
@@ -1126,11 +1662,15 @@ export default function LeavesList() {
                                 )
                               }
                             >
+
                               {isPdfFile(
                                 attachment
                               ) ? (
+
                                 <FaFileAlt />
+
                               ) : (
+
                                 <img
                                   src={
                                     attachment
@@ -1138,39 +1678,55 @@ export default function LeavesList() {
                                   alt="مرفق"
                                   className="attachment-image-mini"
                                 />
+
                               )}
 
                               <span>
                                 عرض المرفق
                               </span>
+
                             </button>
+
                           ) : (
+
                             <span className="no-attachment">
                               لا يوجد
                             </span>
+
                           )}
+
                         </div>
 
                         {/* STATUS */}
 
                         <div>
+
                           <span
                             className={`status-badge ${status.className}`}
                           >
+
                             <span className="status-dot">
-                              {status.icon}
+                              {
+                                status.icon
+                              }
                             </span>
 
-                            {status.text}
+                            {
+                              status.text
+                            }
+
                           </span>
+
                         </div>
 
                         {/* ACTIONS */}
 
                         <div className="actions">
+
                           {statusKey ===
                             "pending" && (
                             <>
+
                               <button
                                 type="button"
                                 className="action-button accept"
@@ -1186,6 +1742,7 @@ export default function LeavesList() {
                                 }
                               >
                                 <FaCheck />
+
                                 <span className="action-tooltip">
                                   قبول
                                 </span>
@@ -1206,6 +1763,7 @@ export default function LeavesList() {
                                 }
                               >
                                 <FaTimes />
+
                                 <span className="action-tooltip">
                                   رفض
                                 </span>
@@ -1225,10 +1783,12 @@ export default function LeavesList() {
                                 }
                               >
                                 <FaEdit />
+
                                 <span className="action-tooltip">
                                   تعديل
                                 </span>
                               </button>
+
                             </>
                           )}
 
@@ -1271,20 +1831,25 @@ export default function LeavesList() {
                               حذف
                             </span>
                           </button>
+
                         </div>
+
                       </div>
                     );
                   }
                 )}
+
               </div>
 
               {/* =================================================
-                  MOBILE CARDS
+                  MOBILE
               ================================================= */}
 
               <div className="mobile-cards">
+
                 {filteredLeaves.map(
                   (leave) => {
+
                     const status =
                       getStatusInfo(
                         leave.status
@@ -1306,23 +1871,30 @@ export default function LeavesList() {
                       );
 
                     return (
+
                       <div
                         className="mobile-leave-card"
                         key={
                           leave.leave_id
                         }
                       >
+
                         <div className="mobile-leave-top">
+
                           <div className="mobile-info">
+
                             <div className="avatar">
                               {getEmployeeName(
                                 leave
                               )
-                                .charAt(0)
+                                .charAt(
+                                  0
+                                )
                                 .toUpperCase()}
                             </div>
 
                             <div>
+
                               <strong>
                                 {getEmployeeName(
                                   leave
@@ -1334,19 +1906,27 @@ export default function LeavesList() {
                                   leave
                                 )}
                               </span>
+
                             </div>
+
                           </div>
 
                           <span
                             className={`status-badge ${status.className}`}
                           >
                             {status.icon}
-                            {status.text}
+
+                            {
+                              status.text
+                            }
                           </span>
+
                         </div>
 
                         <div className="mobile-leave-grid">
+
                           <div>
+
                             <span>
                               نوع الإجازة
                             </span>
@@ -1356,9 +1936,11 @@ export default function LeavesList() {
                                 leave.leave_type ||
                                 "-"}
                             </strong>
+
                           </div>
 
                           <div>
+
                             <span>
                               المدة
                             </span>
@@ -1366,9 +1948,11 @@ export default function LeavesList() {
                             <strong>
                               {days} يوم
                             </strong>
+
                           </div>
 
                           <div>
+
                             <span>
                               من
                             </span>
@@ -1378,9 +1962,11 @@ export default function LeavesList() {
                                 leave.from_date
                               )}
                             </strong>
+
                           </div>
 
                           <div>
+
                             <span>
                               إلى
                             </span>
@@ -1390,10 +1976,13 @@ export default function LeavesList() {
                                 leave.to_date
                               )}
                             </strong>
+
                           </div>
+
                         </div>
 
                         {attachment && (
+
                           <button
                             type="button"
                             className="mobile-attachment"
@@ -1404,14 +1993,18 @@ export default function LeavesList() {
                             }
                           >
                             <FaPaperclip />
+
                             عرض المرفق
                           </button>
+
                         )}
 
                         <div className="mobile-actions">
+
                           {statusKey ===
                             "pending" && (
                             <>
+
                               <button
                                 type="button"
                                 className="mobile-action accept"
@@ -1426,6 +2019,7 @@ export default function LeavesList() {
                                 }
                               >
                                 <FaCheck />
+
                                 قبول
                               </button>
 
@@ -1443,6 +2037,7 @@ export default function LeavesList() {
                                 }
                               >
                                 <FaTimes />
+
                                 رفض
                               </button>
 
@@ -1459,8 +2054,10 @@ export default function LeavesList() {
                                 }
                               >
                                 <FaEdit />
+
                                 تعديل
                               </button>
+
                             </>
                           )}
 
@@ -1477,6 +2074,7 @@ export default function LeavesList() {
                             }
                           >
                             <FaEye />
+
                             عرض التفاصيل
                           </button>
 
@@ -1493,17 +2091,24 @@ export default function LeavesList() {
                             }
                           >
                             <FaTrash />
+
                             حذف الطلب
                           </button>
+
                         </div>
+
                       </div>
                     );
                   }
                 )}
+
               </div>
+
             </>
           )}
+
         </section>
+
       </main>
 
       {/* =====================================================
@@ -1511,42 +2116,56 @@ export default function LeavesList() {
       ===================================================== */}
 
       {confirmModal && (
+
         <div
           className="modal-overlay"
           onClick={() => {
             if (!saving) {
-              setConfirmModal(null);
+              setConfirmModal(
+                null
+              );
             }
           }}
         >
+
           <div
-            className={`confirm-modal ${
-              confirmModal.type
-            }`}
+            className={`confirm-modal ${confirmModal.type}`}
             onClick={(e) =>
               e.stopPropagation()
             }
           >
+
             <div className="confirm-icon">
-              {confirmModal.icon}
+              {
+                confirmModal.icon
+              }
             </div>
 
             <h3>
-              {confirmModal.title}
+              {
+                confirmModal.title
+              }
             </h3>
 
             <p>
-              {confirmModal.message}
+              {
+                confirmModal.message
+              }
             </p>
 
             <div className="confirm-footer">
+
               <button
                 type="button"
                 className="secondary-button"
                 onClick={() =>
-                  setConfirmModal(null)
+                  setConfirmModal(
+                    null
+                  )
                 }
-                disabled={saving}
+                disabled={
+                  saving
+                }
               >
                 إلغاء
               </button>
@@ -1554,15 +2173,24 @@ export default function LeavesList() {
               <button
                 type="button"
                 className={`confirm-button ${confirmModal.type}`}
-                onClick={confirmAction}
-                disabled={saving}
+                onClick={
+                  confirmAction
+                }
+                disabled={
+                  saving
+                }
               >
+
                 {saving ? (
+
                   <>
                     <span className="button-spinner" />
+
                     جاري التنفيذ...
                   </>
+
                 ) : (
+
                   <>
                     {confirmModal.type ===
                       "approve" && (
@@ -1579,13 +2207,21 @@ export default function LeavesList() {
                       <FaTrash />
                     )}
 
-                    {confirmModal.confirmText}
+                    {
+                      confirmModal.confirmText
+                    }
                   </>
+
                 )}
+
               </button>
+
             </div>
+
           </div>
+
         </div>
+
       )}
 
       {/* =====================================================
@@ -1593,25 +2229,33 @@ export default function LeavesList() {
       ===================================================== */}
 
       {selectedLeave && (
+
         <div
           className="modal-overlay"
           onClick={() =>
-            setSelectedLeave(null)
+            setSelectedLeave(
+              null
+            )
           }
         >
+
           <div
             className="modal details-modal"
             onClick={(e) =>
               e.stopPropagation()
             }
           >
+
             <div className="modal-header">
+
               <div className="modal-heading">
+
                 <div className="modal-icon">
                   <FaFileAlt />
                 </div>
 
                 <div>
+
                   <h3 className="modal-title">
                     تفاصيل طلب الإجازة
                   </h3>
@@ -1619,22 +2263,29 @@ export default function LeavesList() {
                   <p className="modal-subtitle">
                     معلومات الطلب والموظف
                   </p>
+
                 </div>
+
               </div>
 
               <button
                 type="button"
                 className="close-button"
                 onClick={() =>
-                  setSelectedLeave(null)
+                  setSelectedLeave(
+                    null
+                  )
                 }
               >
                 <FaClose />
               </button>
+
             </div>
 
             <div className="modal-body">
+
               <div className="employee-profile">
+
                 <div className="large-avatar">
                   {getEmployeeName(
                     selectedLeave
@@ -1644,6 +2295,7 @@ export default function LeavesList() {
                 </div>
 
                 <div>
+
                   <h4>
                     {getEmployeeName(
                       selectedLeave
@@ -1655,6 +2307,7 @@ export default function LeavesList() {
                       selectedLeave
                     )}
                   </span>
+
                 </div>
 
                 <span
@@ -1676,12 +2329,16 @@ export default function LeavesList() {
                     ).text
                   }
                 </span>
+
               </div>
 
               <div className="detail-grid">
+
                 <div className="detail-item">
+
                   <span>
                     <FaCalendarAlt />
+
                     نوع الإجازة
                   </span>
 
@@ -1690,25 +2347,33 @@ export default function LeavesList() {
                       selectedLeave.leave_type ||
                       "-"}
                   </strong>
+
                 </div>
 
                 <div className="detail-item">
+
                   <span>
                     <FaClock />
+
                     عدد الأيام
                   </span>
 
                   <strong>
+
                     {selectedLeave.days ||
                       calculateDays(
                         selectedLeave.from_date,
                         selectedLeave.to_date
-                      )}{" "}
-                    يوم
+                      )}
+
+                    {" "}يوم
+
                   </strong>
+
                 </div>
 
                 <div className="detail-item">
+
                   <span>
                     من
                   </span>
@@ -1718,9 +2383,11 @@ export default function LeavesList() {
                       selectedLeave.from_date
                     )}
                   </strong>
+
                 </div>
 
                 <div className="detail-item">
+
                   <span>
                     إلى
                   </span>
@@ -1730,10 +2397,13 @@ export default function LeavesList() {
                       selectedLeave.to_date
                     )}
                   </strong>
+
                 </div>
+
               </div>
 
               <div className="notes-box">
+
                 <span>
                   الملاحظات
                 </span>
@@ -1742,11 +2412,13 @@ export default function LeavesList() {
                   {selectedLeave.notes ||
                     "لا توجد ملاحظات مضافة"}
                 </p>
+
               </div>
 
               {getAttachmentUrl(
                 selectedLeave
               ) && (
+
                 <button
                   type="button"
                   className="modal-attachment-button"
@@ -1757,17 +2429,24 @@ export default function LeavesList() {
                   }
                 >
                   <FaPaperclip />
+
                   عرض المرفق
+
                   <FaEye />
                 </button>
+
               )}
+
             </div>
 
             <div className="modal-footer">
+
               {getStatusKey(
                 selectedLeave.status
               ) === "pending" && (
+
                 <>
+
                   <button
                     type="button"
                     className="modal-action-button accept"
@@ -1779,6 +2458,7 @@ export default function LeavesList() {
                     }
                   >
                     <FaCheck />
+
                     قبول الطلب
                   </button>
 
@@ -1793,6 +2473,7 @@ export default function LeavesList() {
                     }
                   >
                     <FaTimes />
+
                     رفض الطلب
                   </button>
 
@@ -1803,13 +2484,19 @@ export default function LeavesList() {
                       openEditLeave(
                         selectedLeave
                       );
-                      setSelectedLeave(null);
+
+                      setSelectedLeave(
+                        null
+                      );
                     }}
                   >
                     <FaEdit />
+
                     تعديل
                   </button>
+
                 </>
+
               )}
 
               <button
@@ -1822,11 +2509,16 @@ export default function LeavesList() {
                 }
               >
                 <FaTrash />
+
                 حذف
               </button>
+
             </div>
+
           </div>
+
         </div>
+
       )}
 
       {/* =====================================================
@@ -1834,6 +2526,7 @@ export default function LeavesList() {
       ===================================================== */}
 
       {editingLeave && (
+
         <div
           className="modal-overlay"
           onClick={() => {
@@ -1842,19 +2535,24 @@ export default function LeavesList() {
             }
           }}
         >
+
           <div
             className="modal edit-modal"
             onClick={(e) =>
               e.stopPropagation()
             }
           >
+
             <div className="modal-header">
+
               <div className="modal-heading">
+
                 <div className="modal-icon edit-icon">
                   <FaEdit />
                 </div>
 
                 <div>
+
                   <h3 className="modal-title">
                     تعديل طلب الإجازة
                   </h3>
@@ -1862,21 +2560,30 @@ export default function LeavesList() {
                   <p className="modal-subtitle">
                     تعديل بيانات طلب الموظف
                   </p>
+
                 </div>
+
               </div>
 
               <button
                 type="button"
                 className="close-button"
-                onClick={closeEditModal}
-                disabled={saving}
+                onClick={
+                  closeEditModal
+                }
+                disabled={
+                  saving
+                }
               >
                 <FaClose />
               </button>
+
             </div>
 
             <div className="modal-body">
+
               <div className="edit-employee-preview">
+
                 <div className="avatar">
                   {getEmployeeName(
                     editingLeave
@@ -1886,6 +2593,7 @@ export default function LeavesList() {
                 </div>
 
                 <div>
+
                   <strong>
                     {getEmployeeName(
                       editingLeave
@@ -1895,47 +2603,67 @@ export default function LeavesList() {
                   <span>
                     تعديل بيانات الإجازة
                   </span>
+
                 </div>
+
               </div>
 
+              {/* TYPE */}
+
               <div className="form-group">
+
                 <label className="form-label">
                   نوع الإجازة
                 </label>
 
                 <div className="input-with-icon">
+
                   <FaCalendarAlt />
 
                   <select
                     className="form-input"
-                    value={editForm.type}
+                    value={
+                      editForm.type
+                    }
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
-                        type: e.target.value,
+                        type:
+                          e.target
+                            .value,
                       })
                     }
                   >
+
                     <option value="">
                       اختر نوع الإجازة
                     </option>
 
                     {leaveTypes.map(
                       (type) => (
+
                         <option
                           key={type}
                           value={type}
                         >
                           {type}
                         </option>
+
                       )
                     )}
+
                   </select>
+
                 </div>
+
               </div>
 
+              {/* DATES */}
+
               <div className="edit-date-grid">
+
                 <div className="form-group">
+
                   <label className="form-label">
                     تاريخ البداية
                   </label>
@@ -1950,13 +2678,16 @@ export default function LeavesList() {
                       setEditForm({
                         ...editForm,
                         from_date:
-                          e.target.value,
+                          e.target
+                            .value,
                       })
                     }
                   />
+
                 </div>
 
                 <div className="form-group">
+
                   <label className="form-label">
                     تاريخ النهاية
                   </label>
@@ -1975,12 +2706,17 @@ export default function LeavesList() {
                       setEditForm({
                         ...editForm,
                         to_date:
-                          e.target.value,
+                          e.target
+                            .value,
                       })
                     }
                   />
+
                 </div>
+
               </div>
+
+              {/* DAYS */}
 
               {editForm.from_date &&
                 editForm.to_date &&
@@ -1988,7 +2724,9 @@ export default function LeavesList() {
                   editForm.from_date,
                   editForm.to_date
                 ) > 0 && (
+
                   <div className="days-preview">
+
                     <FaCalendarAlt />
 
                     <span>
@@ -2002,10 +2740,15 @@ export default function LeavesList() {
                       )}{" "}
                       يوم
                     </strong>
+
                   </div>
+
                 )}
 
+              {/* NOTES */}
+
               <div className="form-group">
+
                 <label className="form-label">
                   الملاحظات
                 </label>
@@ -2014,23 +2757,107 @@ export default function LeavesList() {
                   className="form-textarea"
                   rows="4"
                   placeholder="اكتب الملاحظات هنا..."
-                  value={editForm.notes}
+                  value={
+                    editForm.notes
+                  }
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
-                      notes: e.target.value,
+                      notes:
+                        e.target
+                          .value,
                     })
                   }
                 />
+
               </div>
+
+              {/* ATTACHMENT */}
+
+              <div className="form-group">
+
+                <label className="form-label">
+                  المرفق
+                </label>
+
+                <div className="attachment-upload-box">
+
+                  <input
+                    type="file"
+                    id="edit-attachment"
+                    accept=".jpg,.jpeg,.png,.webp,.pdf"
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        attachment:
+                          e.target
+                            .files?.[0] ||
+                          null,
+                      })
+                    }
+                  />
+
+                  <label
+                    htmlFor="edit-attachment"
+                    className="attachment-upload-label"
+                  >
+
+                    <FaPaperclip />
+
+                    <span>
+
+                      {editForm.attachment
+                        ? editForm
+                            .attachment
+                            .name
+                        : "اختر مرفقًا جديدًا"}
+
+                    </span>
+
+                  </label>
+
+                  <small>
+                    JPG, JPEG, PNG, WEBP أو PDF — الحد الأقصى 5MB
+                  </small>
+
+                </div>
+
+                {editingLeave?.attachment &&
+                  !editForm.attachment && (
+
+                    <button
+                      type="button"
+                      className="current-attachment-button"
+                      onClick={() =>
+                        openAttachment(
+                          editingLeave
+                        )
+                      }
+                    >
+
+                      <FaEye />
+
+                      عرض المرفق الحالي
+
+                    </button>
+
+                  )}
+
+              </div>
+
             </div>
 
             <div className="modal-footer edit-footer">
+
               <button
                 type="button"
                 className="secondary-button"
-                onClick={closeEditModal}
-                disabled={saving}
+                onClick={
+                  closeEditModal
+                }
+                disabled={
+                  saving
+                }
               >
                 إلغاء
               </button>
@@ -2038,24 +2865,40 @@ export default function LeavesList() {
               <button
                 type="button"
                 className="save-button"
-                onClick={updateLeave}
-                disabled={saving}
+                onClick={
+                  updateLeave
+                }
+                disabled={
+                  saving
+                }
               >
+
                 {saving ? (
+
                   <>
                     <span className="button-spinner" />
+
                     جاري الحفظ...
                   </>
+
                 ) : (
+
                   <>
                     <FaSave />
+
                     حفظ التعديلات
                   </>
+
                 )}
+
               </button>
+
             </div>
+
           </div>
+
         </div>
+
       )}
 
       {/* =====================================================
@@ -2063,42 +2906,57 @@ export default function LeavesList() {
       ===================================================== */}
 
       {selectedAttachment && (
+
         <div
           className="modal-overlay attachment-overlay"
           onClick={() =>
-            setSelectedAttachment(null)
+            setSelectedAttachment(
+              null
+            )
           }
         >
+
           <div
             className="attachment-modal"
             onClick={(e) =>
               e.stopPropagation()
             }
           >
+
             <div className="attachment-modal-header">
+
               <div>
+
                 <h3>
                   مرفق طلب الإجازة
                 </h3>
 
                 <p>
-                  {selectedAttachment.employeeName}
+                  {
+                    selectedAttachment.employeeName
+                  }
                 </p>
+
               </div>
 
               <button
                 type="button"
                 className="close-button"
                 onClick={() =>
-                  setSelectedAttachment(null)
+                  setSelectedAttachment(
+                    null
+                  )
                 }
               >
                 <FaClose />
               </button>
+
             </div>
 
             <div className="attachment-modal-body">
+
               {selectedAttachment.isPdf ? (
+
                 <iframe
                   src={
                     selectedAttachment.url
@@ -2106,7 +2964,9 @@ export default function LeavesList() {
                   title="مرفق الإجازة"
                   className="pdf-viewer"
                 />
+
               ) : (
+
                 <img
                   src={
                     selectedAttachment.url
@@ -2114,20 +2974,26 @@ export default function LeavesList() {
                   alt="مرفق الإجازة"
                   className="attachment-full-image"
                 />
+
               )}
+
             </div>
 
             <div className="attachment-modal-footer">
+
               <a
                 href={
                   selectedAttachment.url
                 }
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="download-button"
               >
+
                 <FaDownload />
+
                 فتح / تحميل المرفق
+
               </a>
 
               <button
@@ -2141,10 +3007,15 @@ export default function LeavesList() {
               >
                 إغلاق
               </button>
+
             </div>
+
           </div>
+
         </div>
+
       )}
+
     </div>
   );
 }
