@@ -253,12 +253,12 @@ export default function LeavesList() {
   // =====================================================
 
   const isPdfFile = (url) => {
-    if (!url) return false;
+  if (!url) return false;
 
-    return String(url)
-      .toLowerCase()
-      .includes(".pdf");
-  };
+  const value = String(url).toLowerCase();
+
+  return value.includes(".pdf");
+};
 
   // =====================================================
   // DATE
