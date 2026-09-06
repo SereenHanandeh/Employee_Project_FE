@@ -439,37 +439,31 @@
   color: #ef4444;
 }
 
-/* =========================================================
-   INPUT
-========================================================= */
-
 .input-wrapper {
   position: relative;
+  width: 100%;
   display: flex;
   align-items: center;
 }
 
 .input-wrapper > svg {
   position: absolute;
-  right: 14px;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
   color: #94a3b8;
-  font-size: 13px;
+  font-size: 14px;
   pointer-events: none;
-  transition: color 0.2s ease;
-
-  /* الأيقونة فوق الحقل بدون التأثير على النص */
-  z-index: 2;
+  z-index: 5;
 }
 
 .input-wrapper input {
   width: 100%;
   height: 45px;
+  box-sizing: border-box;
 
-  /*
-    مساحة أكبر من اليمين حتى لا تتداخل الكتابة
-    مع الأيقونة
-  */
-  padding: 0 48px 0 15px;
+  /* مساحة كبيرة بين الأيقونة والكتابة */
+  padding: 0 55px 0 16px;
 
   border: 1px solid #e2e8f0;
   border-radius: 11px;
@@ -479,45 +473,33 @@
   color: #172033;
 
   font-family: inherit;
-  font-size: 11px;
+  font-size: 12px;
 
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: 0.2s ease;
 }
 
 .input-wrapper input::placeholder {
   color: #a0a8b7;
 }
 
-.input-wrapper input:focus {
-  background: #ffffff;
-  border-color: #818cf8;
-
-  box-shadow:
-    0 0 0 3px rgba(99, 102, 241, 0.08);
-}
-
-.input-wrapper:focus-within > svg {
-  color: #6366f1;
-}
-
-/* =========================================================
-   LTR INPUTS
-   البريد الإلكتروني وكلمة المرور
-========================================================= */
-
+/* الحقول الإنجليزية مثل الإيميل والباسورد */
 .input-wrapper input[dir="ltr"] {
   direction: ltr;
   text-align: left;
 
-  /*
-    نخلي مسافة من اليمين واليسار
-    حتى لا يلتصق النص بأي عنصر
-  */
-  padding-left: 15px;
-  padding-right: 48px;
+  /* الأيقونة موجودة على اليمين */
+  padding-left: 16px;
+  padding-right: 55px;
+}
+
+.input-wrapper input:focus {
+  background: #ffffff;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+}
+
+.input-wrapper:focus-within > svg {
+  color: #6366f1;
 }
 
 /* =========================================================
