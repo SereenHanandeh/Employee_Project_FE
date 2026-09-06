@@ -6,9 +6,7 @@ export default function Result() {
   const nav = useNavigate();
   const { state } = useLocation();
 
-  const [evaluationId, setEvaluationId] = useState(
-    state?.evaluationId || null
-  );
+  const [evaluationId, setEvaluationId] = useState(state?.evaluationId || null);
 
   const [loading, setLoading] = useState(false);
   const [loadingEmployee, setLoadingEmployee] = useState(true);
@@ -16,9 +14,7 @@ export default function Result() {
 
   const [grade, setGrade] = useState(state?.grade || "");
   const [error, setError] = useState("");
-  const [employeeName, setEmployeeName] = useState(
-    state?.name || ""
-  );
+  const [employeeName, setEmployeeName] = useState(state?.name || "");
 
   /* =========================================================
      MODAL
@@ -88,28 +84,25 @@ export default function Result() {
   const performanceTotal = useMemo(() => {
     return Object.values(performance || {}).reduce(
       (a, b) => a + Number(b || 0),
-      0
+      0,
     );
   }, [performance]);
 
   const personalityTotal = useMemo(() => {
     return Object.values(personality || {}).reduce(
       (a, b) => a + Number(b || 0),
-      0
+      0,
     );
   }, [personality]);
 
   const relationsTotal = useMemo(() => {
     return Object.values(relations || {}).reduce(
       (a, b) => a + Number(b || 0),
-      0
+      0,
     );
   }, [relations]);
 
-  const totalScore =
-    performanceTotal +
-    personalityTotal +
-    relationsTotal;
+  const totalScore = performanceTotal + personalityTotal + relationsTotal;
 
   /* =========================================================
      الحدود القصوى
@@ -120,9 +113,7 @@ export default function Result() {
   const maxRelations = 9;
   const maxTotal = 104;
 
-  const percentage = Math.round(
-    (totalScore / maxTotal) * 100
-  );
+  const percentage = Math.round((totalScore / maxTotal) * 100);
 
   /* =========================================================
      حساب التقدير محليًا
@@ -149,12 +140,9 @@ export default function Result() {
         setLoadingEvaluation(true);
         setError("");
 
-        const res = await API.get(
-          `/evaluations/${evaluationId}`
-        );
+        const res = await API.get(`/evaluations/${evaluationId}`);
 
-        const evaluation =
-          res.data?.evaluation || res.data;
+        const evaluation = res.data?.evaluation || res.data;
 
         if (evaluation?.grade) {
           setGrade(evaluation.grade);
@@ -172,14 +160,10 @@ export default function Result() {
           }
         }
       } catch (err) {
-        console.error(
-          "Error loading evaluation:",
-          err
-        );
+        console.error("Error loading evaluation:", err);
 
         const backendMessage =
-          err?.response?.data?.message ||
-          err?.response?.data?.error;
+          err?.response?.data?.message || err?.response?.data?.error;
 
         if (backendMessage) {
           showModal({
@@ -225,8 +209,7 @@ export default function Result() {
         const employee = employees.find(
           (emp) =>
             String(emp.id) === String(employee_id) ||
-            String(emp.employee_id) ===
-              String(employee_id)
+            String(emp.employee_id) === String(employee_id),
         );
 
         if (employee) {
@@ -234,24 +217,15 @@ export default function Result() {
             employee.name ||
               employee.full_name ||
               employee.employee_name ||
-              `${employee.first_name || ""} ${
-                employee.last_name || ""
-              }`.trim()
+              `${employee.first_name || ""} ${employee.last_name || ""}`.trim(),
           );
         } else {
-          setEmployeeName(
-            `الموظف رقم ${employee_id}`
-          );
+          setEmployeeName(`الموظف رقم ${employee_id}`);
         }
       } catch (err) {
-        console.error(
-          "Error fetching employee:",
-          err
-        );
+        console.error("Error fetching employee:", err);
 
-        setEmployeeName(
-          name || `الموظف رقم ${employee_id}`
-        );
+        setEmployeeName(name || `الموظف رقم ${employee_id}`);
       } finally {
         setLoadingEmployee(false);
       }
@@ -265,12 +239,7 @@ export default function Result() {
   ========================================================= */
 
   useEffect(() => {
-    if (
-      !employee_id ||
-      !performance ||
-      !personality ||
-      !relations
-    ) {
+    if (!employee_id || !performance || !personality || !relations) {
       showModal({
         type: "warning",
         title: "البيانات غير مكتملة",
@@ -279,13 +248,7 @@ export default function Result() {
         onConfirm: () => nav("/"),
       });
     }
-  }, [
-    employee_id,
-    performance,
-    personality,
-    relations,
-    nav,
-  ]);
+  }, [employee_id, performance, personality, relations, nav]);
 
   /* =========================================================
      حفظ / تحديث التقييم
@@ -313,25 +276,15 @@ export default function Result() {
       ===================================================== */
 
       if (editMode && evaluationId) {
-        res = await API.put(
-          `/evaluations/${evaluationId}`,
-          payload
-        );
-      }
-
-      /* =====================================================
+        res = await API.put(`/evaluations/${evaluationId}`, payload);
+      } else {
+        /* =====================================================
          إنشاء تقييم جديد
       ===================================================== */
-
-      else {
-        res = await API.post(
-          "/evaluations",
-          payload
-        );
+        res = await API.post("/evaluations", payload);
       }
 
-      const savedEvaluation =
-        res.data?.evaluation || res.data;
+      const savedEvaluation = res.data?.evaluation || res.data;
 
       const savedId =
         savedEvaluation?.evaluation_id ||
@@ -339,36 +292,25 @@ export default function Result() {
         evaluationId;
 
       const savedGrade =
-        savedEvaluation?.grade ||
-        res.data?.grade ||
-        calculatedGrade;
+        savedEvaluation?.grade || res.data?.grade || calculatedGrade;
 
       setEvaluationId(savedId);
       setGrade(savedGrade);
 
       showModal({
         type: "success",
-        title: editMode
-          ? "تم تحديث التقييم"
-          : "تم حفظ التقييم",
+        title: editMode ? "تم تحديث التقييم" : "تم حفظ التقييم",
         message: editMode
           ? `تم تحديث التقييم بنجاح!\nالتقدير النهائي: ${savedGrade}`
           : `تم حفظ التقييم بنجاح!\nالتقدير النهائي: ${savedGrade}`,
       });
     } catch (err) {
-      console.error(
-        "Error saving evaluation:",
-        err
-      );
+      console.error("Error saving evaluation:", err);
 
       const backendMessage =
-        err?.response?.data?.message ||
-        err?.response?.data?.error;
+        err?.response?.data?.message || err?.response?.data?.error;
 
-      setError(
-        backendMessage ||
-          "حدث خطأ أثناء حفظ التقييم"
-      );
+      setError(backendMessage || "حدث خطأ أثناء حفظ التقييم");
 
       showModal({
         type: "error",
@@ -391,8 +333,7 @@ export default function Result() {
       showModal({
         type: "warning",
         title: "لم يتم حفظ التقييم",
-        message:
-          "يجب حفظ التقييم أولًا قبل إضافة الملاحظات.",
+        message: "يجب حفظ التقييم أولًا قبل إضافة الملاحظات.",
       });
 
       return;
@@ -430,24 +371,21 @@ export default function Result() {
   ========================================================= */
 
   const performancePercentage = Math.round(
-    (performanceTotal / maxPerformance) * 100
+    (performanceTotal / maxPerformance) * 100,
   );
 
   const personalityPercentage = Math.round(
-    (personalityTotal / maxPersonality) * 100
+    (personalityTotal / maxPersonality) * 100,
   );
 
-  const relationsPercentage = Math.round(
-    (relationsTotal / maxRelations) * 100
-  );
+  const relationsPercentage = Math.round((relationsTotal / maxRelations) * 100);
 
   /* =========================================================
      لون التقدير
   ========================================================= */
 
   const getGradeStyle = () => {
-    const currentGrade =
-      grade || calculatedGrade;
+    const currentGrade = grade || calculatedGrade;
 
     if (currentGrade === "ممتاز") {
       return {
@@ -458,10 +396,7 @@ export default function Result() {
       };
     }
 
-    if (
-      currentGrade === "جيد جدًا" ||
-      currentGrade === "جيد جدا"
-    ) {
+    if (currentGrade === "جيد جدًا" || currentGrade === "جيد جدا") {
       return {
         background: "#eff6ff",
         border: "#bfdbfe",
@@ -496,8 +431,7 @@ export default function Result() {
     };
   };
 
-  const currentGrade =
-    grade || calculatedGrade;
+  const currentGrade = grade || calculatedGrade;
 
   const gradeStyle = getGradeStyle();
 
@@ -507,35 +441,24 @@ export default function Result() {
 
   return (
     <div style={styles.page}>
-      <div
-        style={styles.container}
-        className="result-page-container"
-      >
+      <div style={styles.container} className="result-page-container">
         {/* =================================================
             HEADER
         ================================================= */}
 
         <div style={styles.header}>
-          <div style={styles.headerIcon}>
-            📋
-          </div>
+          <div style={styles.headerIcon}>📋</div>
 
           <div style={{ flex: 1 }}>
             <div style={styles.badge}>
-              {editMode
-                ? "تعديل التقييم"
-                : "المرحلة النهائية"}
+              {editMode ? "تعديل التقييم" : "المرحلة النهائية"}
             </div>
 
-            <h1 style={styles.heading}>
-              مراجعة وحفظ التقييم
-            </h1>
+            <h1 style={styles.heading}>مراجعة وحفظ التقييم</h1>
 
             <p style={styles.subheading}>
               راجع نتائج تقييم الموظف قبل اعتماد
-              {editMode
-                ? " التعديلات"
-                : " التقييم"}
+              {editMode ? " التعديلات" : " التقييم"}
             </p>
           </div>
         </div>
@@ -546,19 +469,12 @@ export default function Result() {
 
         {editMode && (
           <div style={styles.editNotice}>
-            <div style={styles.editNoticeIcon}>
-              ✏️
-            </div>
+            <div style={styles.editNoticeIcon}>✏️</div>
 
             <div>
-              <strong>
-                أنت الآن في وضع تعديل التقييم
-              </strong>
+              <strong>أنت الآن في وضع تعديل التقييم</strong>
 
-              <p>
-                راجع الدرجات ثم اضغط على
-                «تحديث التقييم» لحفظ التغييرات.
-              </p>
+              <p>راجع الدرجات ثم اضغط على «تحديث التقييم» لحفظ التغييرات.</p>
             </div>
           </div>
         )}
@@ -568,75 +484,49 @@ export default function Result() {
         ================================================= */}
 
         <div style={styles.employeeCard}>
-          <div style={styles.employeeIcon}>
-            👤
-          </div>
+          <div style={styles.employeeIcon}>👤</div>
 
           <div style={styles.employeeInfo}>
-            <span style={styles.employeeLabel}>
-              الموظف محل التقييم
-            </span>
+            <span style={styles.employeeLabel}>الموظف محل التقييم</span>
 
             {loadingEmployee ? (
-              <div style={styles.loadingName}>
-                جاري تحميل بيانات الموظف...
-              </div>
+              <div style={styles.loadingName}>جاري تحميل بيانات الموظف...</div>
             ) : (
               <strong style={styles.employeeName}>
-                {employeeName ||
-                  "لم يتم تحديد الموظف"}
+                {employeeName || "لم يتم تحديد الموظف"}
               </strong>
             )}
 
-            <span style={styles.employeeId}>
-              الرقم الوظيفي: {employee_id}
-            </span>
+            <span style={styles.employeeId}>الرقم الوظيفي: {employee_id}</span>
           </div>
 
-          <div style={styles.verified}>
-            ✓
-          </div>
+          <div style={styles.verified}>✓</div>
         </div>
 
         {/* =================================================
             PERIOD
         ================================================= */}
 
-        <div
-          style={styles.periodCard}
-          className="result-period-card"
-        >
+        <div style={styles.periodCard} className="result-period-card">
           <div style={styles.periodItem}>
-            <span style={styles.periodIcon}>
-              📅
-            </span>
+            <span style={styles.periodIcon}>📅</span>
 
             <div>
-              <span style={styles.smallLabel}>
-                تاريخ بداية التقييم
-              </span>
+              <span style={styles.smallLabel}>تاريخ بداية التقييم</span>
 
-              <strong style={styles.dateValue}>
-                {from_date || "-"}
-              </strong>
+              <strong style={styles.dateValue}>{from_date || "-"}</strong>
             </div>
           </div>
 
           <div style={styles.divider} />
 
           <div style={styles.periodItem}>
-            <span style={styles.periodIcon}>
-              📅
-            </span>
+            <span style={styles.periodIcon}>📅</span>
 
             <div>
-              <span style={styles.smallLabel}>
-                تاريخ نهاية التقييم
-              </span>
+              <span style={styles.smallLabel}>تاريخ نهاية التقييم</span>
 
-              <strong style={styles.dateValue}>
-                {to_date || "-"}
-              </strong>
+              <strong style={styles.dateValue}>{to_date || "-"}</strong>
             </div>
           </div>
         </div>
@@ -647,9 +537,7 @@ export default function Result() {
 
         <div style={styles.scoreHeader}>
           <div>
-            <span style={styles.scoreHeaderTitle}>
-              ملخص نتيجة التقييم
-            </span>
+            <span style={styles.scoreHeaderTitle}>ملخص نتيجة التقييم</span>
 
             <p style={styles.scoreHeaderSubtitle}>
               مجموع درجات جميع محاور التقييم
@@ -657,13 +545,9 @@ export default function Result() {
           </div>
 
           <div style={styles.totalCircle}>
-            <strong>
-              {totalScore}
-            </strong>
+            <strong>{totalScore}</strong>
 
-            <span>
-              / {maxTotal}
-            </span>
+            <span>/ {maxTotal}</span>
           </div>
         </div>
 
@@ -671,10 +555,7 @@ export default function Result() {
             SCORE CARDS
         ================================================= */}
 
-        <div
-          className="result-score-grid"
-          style={styles.scoresGrid}
-        >
+        <div className="result-score-grid" style={styles.scoresGrid}>
           {/* الأداء */}
 
           <div style={styles.scoreCard}>
@@ -682,38 +563,29 @@ export default function Result() {
               <div
                 style={{
                   ...styles.scoreIcon,
-                  background:
-                    "linear-gradient(135deg, #dbeafe, #e0f2fe)",
+                  background: "linear-gradient(135deg, #dbeafe, #e0f2fe)",
                 }}
               >
                 📊
               </div>
 
               <div style={styles.scoreTitleBox}>
-                <span style={styles.scoreTitle}>
-                  الأداء الوظيفي
-                </span>
+                <span style={styles.scoreTitle}>الأداء الوظيفي</span>
 
                 <span style={styles.scoreMax}>
                   الحد الأقصى {maxPerformance}
                 </span>
               </div>
 
-              <strong style={styles.scoreNumber}>
-                {performanceTotal}
-              </strong>
+              <strong style={styles.scoreNumber}>{performanceTotal}</strong>
             </div>
 
             <div style={styles.progressBackground}>
               <div
                 style={{
                   ...styles.progressFill,
-                  width: `${Math.min(
-                    performancePercentage,
-                    100
-                  )}%`,
-                  background:
-                    "linear-gradient(90deg, #38bdf8, #2563eb)",
+                  width: `${Math.min(performancePercentage, 100)}%`,
+                  background: "linear-gradient(90deg, #38bdf8, #2563eb)",
                 }}
               />
             </div>
@@ -721,9 +593,7 @@ export default function Result() {
             <div style={styles.scoreFooter}>
               <span>نسبة الإنجاز</span>
 
-              <strong>
-                {performancePercentage}%
-              </strong>
+              <strong>{performancePercentage}%</strong>
             </div>
           </div>
 
@@ -734,38 +604,29 @@ export default function Result() {
               <div
                 style={{
                   ...styles.scoreIcon,
-                  background:
-                    "linear-gradient(135deg, #ede9fe, #e0e7ff)",
+                  background: "linear-gradient(135deg, #ede9fe, #e0e7ff)",
                 }}
               >
                 🧠
               </div>
 
               <div style={styles.scoreTitleBox}>
-                <span style={styles.scoreTitle}>
-                  الصفات الشخصية
-                </span>
+                <span style={styles.scoreTitle}>الصفات الشخصية</span>
 
                 <span style={styles.scoreMax}>
                   الحد الأقصى {maxPersonality}
                 </span>
               </div>
 
-              <strong style={styles.scoreNumber}>
-                {personalityTotal}
-              </strong>
+              <strong style={styles.scoreNumber}>{personalityTotal}</strong>
             </div>
 
             <div style={styles.progressBackground}>
               <div
                 style={{
                   ...styles.progressFill,
-                  width: `${Math.min(
-                    personalityPercentage,
-                    100
-                  )}%`,
-                  background:
-                    "linear-gradient(90deg, #a78bfa, #6366f1)",
+                  width: `${Math.min(personalityPercentage, 100)}%`,
+                  background: "linear-gradient(90deg, #a78bfa, #6366f1)",
                 }}
               />
             </div>
@@ -773,9 +634,7 @@ export default function Result() {
             <div style={styles.scoreFooter}>
               <span>نسبة الإنجاز</span>
 
-              <strong>
-                {personalityPercentage}%
-              </strong>
+              <strong>{personalityPercentage}%</strong>
             </div>
           </div>
 
@@ -786,38 +645,27 @@ export default function Result() {
               <div
                 style={{
                   ...styles.scoreIcon,
-                  background:
-                    "linear-gradient(135deg, #cffafe, #dbeafe)",
+                  background: "linear-gradient(135deg, #cffafe, #dbeafe)",
                 }}
               >
                 🤝
               </div>
 
               <div style={styles.scoreTitleBox}>
-                <span style={styles.scoreTitle}>
-                  العلاقات الوظيفية
-                </span>
+                <span style={styles.scoreTitle}>العلاقات الوظيفية</span>
 
-                <span style={styles.scoreMax}>
-                  الحد الأقصى {maxRelations}
-                </span>
+                <span style={styles.scoreMax}>الحد الأقصى {maxRelations}</span>
               </div>
 
-              <strong style={styles.scoreNumber}>
-                {relationsTotal}
-              </strong>
+              <strong style={styles.scoreNumber}>{relationsTotal}</strong>
             </div>
 
             <div style={styles.progressBackground}>
               <div
                 style={{
                   ...styles.progressFill,
-                  width: `${Math.min(
-                    relationsPercentage,
-                    100
-                  )}%`,
-                  background:
-                    "linear-gradient(90deg, #22d3ee, #0891b2)",
+                  width: `${Math.min(relationsPercentage, 100)}%`,
+                  background: "linear-gradient(90deg, #22d3ee, #0891b2)",
                 }}
               />
             </div>
@@ -825,9 +673,7 @@ export default function Result() {
             <div style={styles.scoreFooter}>
               <span>نسبة الإنجاز</span>
 
-              <strong>
-                {relationsPercentage}%
-              </strong>
+              <strong>{relationsPercentage}%</strong>
             </div>
           </div>
         </div>
@@ -838,34 +684,23 @@ export default function Result() {
 
         <div style={styles.resultCard}>
           <div style={styles.resultLeft}>
-            <div style={styles.resultIcon}>
-              🏆
-            </div>
+            <div style={styles.resultIcon}>🏆</div>
 
             <div>
-              <span style={styles.resultLabel}>
-                النتيجة الإجمالية
-              </span>
+              <span style={styles.resultLabel}>النتيجة الإجمالية</span>
 
               <p style={styles.resultDescription}>
-                مجموع الأداء والصفات الشخصية
-                والعلاقات الوظيفية
+                مجموع الأداء والصفات الشخصية والعلاقات الوظيفية
               </p>
             </div>
           </div>
 
           <div style={styles.resultRight}>
-            <strong>
-              {totalScore}
-            </strong>
+            <strong>{totalScore}</strong>
 
-            <span>
-              / {maxTotal}
-            </span>
+            <span>/ {maxTotal}</span>
 
-            <div style={styles.percentageBadge}>
-              {percentage}%
-            </div>
+            <div style={styles.percentageBadge}>{percentage}%</div>
           </div>
         </div>
 
@@ -883,8 +718,7 @@ export default function Result() {
           <div
             style={{
               ...styles.gradeIcon,
-              background:
-                gradeStyle.iconBackground,
+              background: gradeStyle.iconBackground,
             }}
           >
             ⭐
@@ -911,8 +745,8 @@ export default function Result() {
               {editMode
                 ? "سيتم اعتماد التقدير الجديد عند تحديث التقييم"
                 : evaluationId
-                ? "تم حفظ التقييم بنجاح ويمكنك الآن إضافة الملاحظات"
-                : "التقدير محسوب بناءً على النسبة الإجمالية"}
+                  ? "تم حفظ التقييم بنجاح ويمكنك الآن إضافة الملاحظات"
+                  : "التقدير محسوب بناءً على النسبة الإجمالية"}
             </small>
           </div>
 
@@ -920,8 +754,7 @@ export default function Result() {
             style={{
               ...styles.successCheck,
               color: gradeStyle.color,
-              background:
-                gradeStyle.iconBackground,
+              background: gradeStyle.iconBackground,
             }}
           >
             ✓
@@ -944,9 +777,7 @@ export default function Result() {
         ================================================= */}
 
         {loadingEvaluation && (
-          <div style={styles.loadingBox}>
-            جاري تحميل بيانات التقييم...
-          </div>
+          <div style={styles.loadingBox}>جاري تحميل بيانات التقييم...</div>
         )}
 
         {/* =================================================
@@ -962,40 +793,29 @@ export default function Result() {
               style={{
                 ...styles.saveButton,
                 opacity: loading ? 0.7 : 1,
-                cursor: loading
-                  ? "not-allowed"
-                  : "pointer",
+                cursor: loading ? "not-allowed" : "pointer",
               }}
               disabled={loading}
             >
-              <span>
-                {loading ? "⏳" : "💾"}
-              </span>
+              <span>{loading ? "⏳" : "💾"}</span>
 
               {loading
                 ? editMode
                   ? "جارٍ تحديث التقييم..."
                   : "جارٍ حفظ التقييم..."
                 : editMode
-                ? "تحديث واعتماد التقييم"
-                : "اعتماد وحفظ التقييم"}
+                  ? "تحديث واعتماد التقييم"
+                  : "اعتماد وحفظ التقييم"}
             </button>
           ) : null}
 
           {/* الملاحظات */}
 
           {evaluationId && (
-            <button
-              onClick={goToNotes}
-              style={styles.notesButton}
-            >
+            <button onClick={goToNotes} style={styles.notesButton}>
               <span>📝</span>
-
               إضافة ملاحظات
-
-              <span style={styles.arrow}>
-                ←
-              </span>
+              <span style={styles.arrow}>←</span>
             </button>
           )}
 
@@ -1029,9 +849,7 @@ export default function Result() {
 
         <div style={styles.footer}>
           <span>🔒</span>
-
-          تأكد من صحة البيانات قبل اعتماد
-          التقييم
+          تأكد من صحة البيانات قبل اعتماد التقييم
         </div>
       </div>
 
@@ -1040,38 +858,39 @@ export default function Result() {
       ===================================================== */}
 
       {modal.open && (
-        <div
-          className="result-modal-overlay"
-          onClick={closeModal}
-        >
+        <div className="result-modal-overlay" onClick={closeModal}>
           <div
             className={`result-modal result-modal-${modal.type}`}
-            onClick={(e) =>
-              e.stopPropagation()
-            }
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* ICON */}
+            {/* Close */}
+            <button
+              type="button"
+              className="result-modal-close"
+              onClick={closeModal}
+              aria-label="إغلاق"
+            >
+              ×
+            </button>
 
-            <div className="result-modal-icon">
-              {modal.type === "success" && "✓"}
-
-              {modal.type === "error" && "×"}
-
-              {modal.type === "warning" && "⚠"}
-
-              {modal.type === "info" && "ⓘ"}
+            {/* Icon */}
+            <div className="result-modal-icon-wrapper">
+              <div className="result-modal-icon">
+                {modal.type === "success" && "✓"}
+                {modal.type === "error" && "×"}
+                {modal.type === "warning" && "!"}
+                {modal.type === "info" && "i"}
+              </div>
             </div>
 
-            {/* TITLE */}
+            {/* Content */}
+            <div className="result-modal-content">
+              <h3>{modal.title}</h3>
 
-            <h3>{modal.title}</h3>
+              <p>{modal.message}</p>
+            </div>
 
-            {/* MESSAGE */}
-
-            <p>{modal.message}</p>
-
-            {/* BUTTON */}
-
+            {/* Button */}
             <button
               type="button"
               className="result-modal-button"
@@ -1092,6 +911,371 @@ export default function Result() {
           * {
             box-sizing: border-box;
           }
+
+          /* =====================================================
+   RESULT MODAL
+===================================================== */
+
+.result-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(15, 23, 42, 0.55);
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  animation: resultModalOverlayIn 0.25s ease;
+}
+
+.result-modal {
+  position: relative;
+
+  width: 100%;
+  max-width: 430px;
+
+  padding: 38px 32px 30px;
+
+  border-radius: 28px;
+
+  background: #ffffff;
+
+  border: 1px solid rgba(226, 232, 240, 0.9);
+
+  box-shadow:
+    0 25px 60px rgba(15, 23, 42, 0.18),
+    0 8px 25px rgba(15, 23, 42, 0.08);
+
+  text-align: center;
+
+  direction: rtl;
+
+  animation: resultModalIn 0.3s cubic-bezier(.2,.8,.2,1);
+}
+
+/* =====================================================
+   CLOSE BUTTON
+===================================================== */
+
+.result-modal-close {
+  position: absolute;
+
+  top: 15px;
+  left: 15px;
+
+  width: 34px;
+  height: 34px;
+
+  border: none;
+  border-radius: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #f8fafc;
+  color: #64748b;
+
+  font-size: 23px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.result-modal-close:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+
+  transform: rotate(90deg);
+}
+
+/* =====================================================
+   ICON
+===================================================== */
+
+.result-modal-icon-wrapper {
+  display: flex;
+  justify-content: center;
+
+  margin-bottom: 20px;
+}
+
+.result-modal-icon {
+  width: 78px;
+  height: 78px;
+
+  border-radius: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 36px;
+  font-weight: 900;
+
+  box-shadow:
+    0 12px 25px rgba(15, 23, 42, 0.08);
+
+  animation: resultModalIconIn 0.45s ease;
+}
+
+/* =====================================================
+   SUCCESS
+===================================================== */
+
+.result-modal-success {
+  border-top: 4px solid #10b981;
+}
+
+.result-modal-success .result-modal-icon {
+  color: #047857;
+
+  background:
+    linear-gradient(
+      135deg,
+      #d1fae5,
+      #ecfdf5
+    );
+
+  border: 1px solid #a7f3d0;
+}
+
+/* =====================================================
+   ERROR
+===================================================== */
+
+.result-modal-error {
+  border-top: 4px solid #ef4444;
+}
+
+.result-modal-error .result-modal-icon {
+  color: #b91c1c;
+
+  background:
+    linear-gradient(
+      135deg,
+      #fee2e2,
+      #fef2f2
+    );
+
+  border: 1px solid #fecaca;
+}
+
+/* =====================================================
+   WARNING
+===================================================== */
+
+.result-modal-warning {
+  border-top: 4px solid #f59e0b;
+}
+
+.result-modal-warning .result-modal-icon {
+  color: #b45309;
+
+  background:
+    linear-gradient(
+      135deg,
+      #fef3c7,
+      #fffbeb
+    );
+
+  border: 1px solid #fde68a;
+}
+
+/* =====================================================
+   INFO
+===================================================== */
+
+.result-modal-info {
+  border-top: 4px solid #3b82f6;
+}
+
+.result-modal-info .result-modal-icon {
+  color: #1d4ed8;
+
+  background:
+    linear-gradient(
+      135deg,
+      #dbeafe,
+      #eff6ff
+    );
+
+  border: 1px solid #bfdbfe;
+}
+
+/* =====================================================
+   CONTENT
+===================================================== */
+
+.result-modal-content {
+  padding: 0 5px;
+}
+
+.result-modal-content h3 {
+  margin: 0 0 10px;
+
+  color: #172033;
+
+  font-size: 21px;
+  font-weight: 800;
+
+  line-height: 1.5;
+}
+
+.result-modal-content p {
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  line-height: 1.9;
+
+  white-space: pre-line;
+}
+
+/* =====================================================
+   BUTTON
+===================================================== */
+
+.result-modal-button {
+  width: 100%;
+
+  min-height: 50px;
+
+  margin-top: 25px;
+
+  border: none;
+  border-radius: 14px;
+
+  color: #ffffff;
+
+  font-family: inherit;
+
+  font-size: 14px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #4f46e5
+    );
+
+  box-shadow:
+    0 10px 22px rgba(37, 99, 235, 0.18);
+
+  transition: all 0.2s ease;
+}
+
+.result-modal-button:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 14px 28px rgba(37, 99, 235, 0.25);
+}
+
+.result-modal-button:active {
+  transform: translateY(0);
+}
+
+/* =====================================================
+   ANIMATIONS
+===================================================== */
+
+@keyframes resultModalOverlayIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes resultModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes resultModalIconIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+
+  70% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media (max-width: 500px) {
+
+  .result-modal-overlay {
+    padding: 15px;
+  }
+
+  .result-modal {
+    max-width: 100%;
+
+    padding:
+      35px
+      22px
+      25px;
+
+    border-radius: 24px;
+  }
+
+  .result-modal-icon {
+    width: 68px;
+    height: 68px;
+
+    border-radius: 21px;
+
+    font-size: 31px;
+  }
+
+  .result-modal-content h3 {
+    font-size: 19px;
+  }
+
+  .result-modal-content p {
+    font-size: 13px;
+  }
+
+  .result-modal-button {
+    min-height: 48px;
+    margin-top: 22px;
+  }
+}
 
           body {
             margin: 0;
@@ -1183,13 +1367,11 @@ const styles = {
 
     fontSize: "30px",
 
-    background:
-      "linear-gradient(135deg, #dbeafe, #e0e7ff)",
+    background: "linear-gradient(135deg, #dbeafe, #e0e7ff)",
 
     border: "1px solid #dbe3f0",
 
-    boxShadow:
-      "0 10px 25px rgba(30, 64, 175, 0.08)",
+    boxShadow: "0 10px 25px rgba(30, 64, 175, 0.08)",
 
     flexShrink: 0,
   },
@@ -1292,8 +1474,7 @@ const styles = {
 
     border: "1px solid #e5eaf1",
 
-    boxShadow:
-      "0 8px 25px rgba(15, 23, 42, 0.05)",
+    boxShadow: "0 8px 25px rgba(15, 23, 42, 0.05)",
   },
 
   employeeIcon: {
@@ -1308,8 +1489,7 @@ const styles = {
 
     fontSize: "25px",
 
-    background:
-      "linear-gradient(135deg, #eff6ff, #eef2ff)",
+    background: "linear-gradient(135deg, #eff6ff, #eef2ff)",
 
     border: "1px solid #dbeafe",
 
@@ -1372,8 +1552,7 @@ const styles = {
   periodCard: {
     display: "grid",
 
-    gridTemplateColumns:
-      "1fr auto 1fr",
+    gridTemplateColumns: "1fr auto 1fr",
 
     alignItems: "center",
 
@@ -1389,8 +1568,7 @@ const styles = {
 
     border: "1px solid #e5eaf1",
 
-    boxShadow:
-      "0 8px 22px rgba(15, 23, 42, 0.04)",
+    boxShadow: "0 8px 22px rgba(15, 23, 42, 0.04)",
   },
 
   periodItem: {
@@ -1488,8 +1666,7 @@ const styles = {
 
     gap: "3px",
 
-    background:
-      "linear-gradient(135deg, #eff6ff, #eef2ff)",
+    background: "linear-gradient(135deg, #eff6ff, #eef2ff)",
 
     border: "1px solid #dbe4f2",
 
@@ -1503,8 +1680,7 @@ const styles = {
   scoresGrid: {
     display: "grid",
 
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(280px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
 
     gap: "14px",
 
@@ -1520,8 +1696,7 @@ const styles = {
 
     border: "1px solid #e5eaf1",
 
-    boxShadow:
-      "0 8px 25px rgba(15, 23, 42, 0.045)",
+    boxShadow: "0 8px 25px rgba(15, 23, 42, 0.045)",
   },
 
   scoreTop: {
@@ -1634,13 +1809,11 @@ const styles = {
 
     borderRadius: "20px",
 
-    background:
-      "linear-gradient(135deg, #eff6ff, #f5f3ff)",
+    background: "linear-gradient(135deg, #eff6ff, #f5f3ff)",
 
     border: "1px solid #dbe4f2",
 
-    boxShadow:
-      "0 10px 30px rgba(30, 64, 175, 0.06)",
+    boxShadow: "0 10px 30px rgba(30, 64, 175, 0.06)",
   },
 
   resultLeft: {
@@ -1849,11 +2022,9 @@ const styles = {
 
     fontWeight: "800",
 
-    background:
-      "linear-gradient(135deg, #2563eb, #4f46e5)",
+    background: "linear-gradient(135deg, #2563eb, #4f46e5)",
 
-    boxShadow:
-      "0 12px 25px rgba(37, 99, 235, 0.18)",
+    boxShadow: "0 12px 25px rgba(37, 99, 235, 0.18)",
 
     transition: "all .2s ease",
   },
@@ -1875,11 +2046,9 @@ const styles = {
 
     fontWeight: "800",
 
-    background:
-      "linear-gradient(135deg, #059669, #0f766e)",
+    background: "linear-gradient(135deg, #059669, #0f766e)",
 
-    boxShadow:
-      "0 10px 22px rgba(5, 150, 105, 0.15)",
+    boxShadow: "0 10px 22px rgba(5, 150, 105, 0.15)",
 
     transition: "all .2s ease",
   },

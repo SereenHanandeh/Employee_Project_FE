@@ -38,14 +38,8 @@ export default function Relations() {
   } = location.state || {};
 
   const [r, setR] = useState({});
-
-  const [employeeId, setEmployeeId] = useState(
-    employee_id || ""
-  );
-
-  const [employeeName, setEmployeeName] = useState(
-    name || ""
-  );
+  const [employeeId, setEmployeeId] = useState(employee_id || "");
+  const [employeeName, setEmployeeName] = useState(name || "");
 
   const [period, setPeriod] = useState({
     from: from_date || "",
@@ -57,6 +51,37 @@ export default function Relations() {
   );
 
   const [error, setError] = useState("");
+
+  // =========================================================
+  // MODAL
+  // =========================================================
+
+  const [modal, setModal] = useState({
+    open: false,
+    type: "warning",
+    title: "",
+    message: "",
+  });
+
+  const showModal = ({
+    type = "warning",
+    title = "تنبيه",
+    message = "",
+  }) => {
+    setModal({
+      open: true,
+      type,
+      title,
+      message,
+    });
+  };
+
+  const closeModal = () => {
+    setModal((prev) => ({
+      ...prev,
+      open: false,
+    }));
+  };
 
   // =========================================================
   // MAX TOTAL
@@ -88,8 +113,7 @@ export default function Relations() {
   const total = useMemo(
     () =>
       Object.values(r).reduce(
-        (sum, value) =>
-          sum + Number(value || 0),
+        (sum, value) => sum + Number(value || 0),
         0
       ),
     [r]
@@ -161,30 +185,29 @@ export default function Relations() {
 
         const preparedScores = {};
 
-        relationsItems.forEach(
-          (item, index) => {
-            const value =
-              details[index] ??
-              details[String(index)];
+        relationsItems.forEach((item, index) => {
+          const value =
+            details[index] ??
+            details[String(index)];
 
-            if (
-              value !== undefined &&
-              value !== null &&
-              value !== ""
-            ) {
-              let number = Number(value);
+          if (
+            value !== undefined &&
+            value !== null &&
+            value !== ""
+          ) {
+            let number = Number(value);
 
-              if (!Number.isNaN(number)) {
-                if (number < 0) number = 0;
-                if (number > item.max) {
-                  number = item.max;
-                }
+            if (!Number.isNaN(number)) {
+              if (number < 0) number = 0;
 
-                preparedScores[index] = number;
+              if (number > item.max) {
+                number = item.max;
               }
+
+              preparedScores[index] = number;
             }
           }
-        );
+        });
 
         setR(preparedScores);
       } catch (err) {
@@ -250,35 +273,72 @@ export default function Relations() {
   // =========================================================
 
   const next = () => {
+    // -------------------------------------------------------
+    // CHECK EMPLOYEE + DATES
+    // -------------------------------------------------------
+
     if (
       !employeeId ||
       !period.from ||
       !period.to
     ) {
-      alert(
-        "بيانات الموظف أو فترة التقييم غير مكتملة!"
-      );
+      showModal({
+        type: "warning",
+        title: "بيانات غير مكتملة",
+        message:
+          "بيانات الموظف أو فترة التقييم غير مكتملة. يرجى التأكد من إدخال جميع البيانات المطلوبة قبل المتابعة.",
+      });
+
       return;
     }
+
+    // -------------------------------------------------------
+    // CHECK RELATIONS
+    // -------------------------------------------------------
 
     if (
       Object.keys(r).length <
       relationsItems.length
     ) {
-      alert(
-        "يرجى تعبئة جميع معايير العلاقات قبل المتابعة!"
-      );
+      const missingItems = relationsItems
+        .map((item, index) => ({
+          ...item,
+          index,
+        }))
+        .filter(
+          ({ index }) =>
+            r[index] === undefined ||
+            r[index] === null ||
+            r[index] === ""
+        );
+
+      const missingNames = missingItems
+        .map((item) => item.title)
+        .join("، ");
+
+      showModal({
+        type: "warning",
+        title: "التقييم غير مكتمل",
+        message: `يرجى تعبئة جميع معايير العلاقات قبل المتابعة.${
+          missingNames
+            ? ` المعايير غير المكتملة: ${missingNames}`
+            : ""
+        }`,
+      });
+
       return;
     }
+
+    // -------------------------------------------------------
+    // GO TO RESULT
+    // -------------------------------------------------------
 
     nav("/result", {
       state: {
         employee_id: employeeId,
         name: employeeName,
-
         from_date: period.from,
         to_date: period.to,
-
         performance,
         personality,
         relations: r,
@@ -630,9 +690,7 @@ export default function Relations() {
                       </div>
 
                       {isCompleted && (
-                        <div
-                          style={styles.check}
-                        >
+                        <div style={styles.check}>
                           ✓
                         </div>
                       )}
@@ -793,6 +851,57 @@ export default function Relations() {
       </main>
 
       {/* =====================================================
+          MODAL
+      ===================================================== */}
+
+      {modal.open && (
+        <div
+          className="relations-modal-overlay"
+          style={styles.modalOverlay}
+          onClick={closeModal}
+        >
+          <div
+            className="relations-modal"
+            style={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                ...styles.modalIcon,
+                ...(modal.type === "success"
+                  ? styles.modalIconSuccess
+                  : modal.type === "error"
+                  ? styles.modalIconError
+                  : styles.modalIconWarning),
+              }}
+            >
+              {modal.type === "success"
+                ? "✓"
+                : modal.type === "error"
+                ? "!"
+                : "!"}
+            </div>
+
+            <h3 style={styles.modalTitle}>
+              {modal.title}
+            </h3>
+
+            <p style={styles.modalMessage}>
+              {modal.message}
+            </p>
+
+            <button
+              type="button"
+              style={styles.modalButton}
+              onClick={closeModal}
+            >
+              حسناً
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
           RESPONSIVE
       ===================================================== */}
 
@@ -820,6 +929,36 @@ export default function Relations() {
             border-color: #93c5fd !important;
             box-shadow:
               0 0 0 4px rgba(59,130,246,0.10);
+          }
+
+          .relations-modal-overlay {
+            animation: relationsModalFade 0.2s ease;
+          }
+
+          .relations-modal {
+            animation: relationsModalIn 0.25s ease;
+          }
+
+          @keyframes relationsModalFade {
+            from {
+              opacity: 0;
+            }
+
+            to {
+              opacity: 1;
+            }
+          }
+
+          @keyframes relationsModalIn {
+            from {
+              opacity: 0;
+              transform: translateY(15px) scale(0.97);
+            }
+
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
           }
 
           @media (max-width: 850px) {
@@ -894,26 +1033,36 @@ export default function Relations() {
               width: 100% !important;
               justify-content: center !important;
             }
+
+            .relations-modal {
+              width: calc(100% - 30px) !important;
+              max-width: 420px !important;
+              padding: 28px 20px !important;
+            }
           }
 
           @media (max-width: 430px) {
             .relations-header {
-              gap: 12px !important;
+              gap: 12px;
             }
 
             .relations-total {
-              gap: 12px !important;
+              gap: 12px;
             }
 
             .relations-total > div:last-child {
               width: 100%;
             }
-          }
-        `}
-      </style>
 
-      <style>
-        {`
+            .relations-modal-title {
+              font-size: 17px !important;
+            }
+
+            .relations-modal-message {
+              font-size: 12px !important;
+            }
+          }
+
           @keyframes relationsSpin {
             from {
               transform: rotate(0deg);
@@ -1507,6 +1656,98 @@ const styles = {
     marginTop: "18px",
   },
 
+  /* =========================================================
+     MODAL
+  ========================================================= */
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 9999,
+    background: "rgba(15, 23, 42, 0.45)",
+    backdropFilter: "blur(4px)",
+    WebkitBackdropFilter: "blur(4px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
+  },
+
+  modal: {
+    width: "100%",
+    maxWidth: "420px",
+    background: "#ffffff",
+    borderRadius: "22px",
+    padding: "32px 28px 28px",
+    textAlign: "center",
+    boxShadow:
+      "0 25px 70px rgba(15,23,42,0.20)",
+    border: "1px solid #e2e8f0",
+    fontFamily: "'Cairo', sans-serif",
+  },
+
+  modalIcon: {
+    width: "58px",
+    height: "58px",
+    borderRadius: "18px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 16px",
+    fontSize: "25px",
+    fontWeight: "800",
+  },
+
+  modalIconWarning: {
+    color: "#d97706",
+    background: "#fffbeb",
+    border: "1px solid #fde68a",
+  },
+
+  modalIconError: {
+    color: "#dc2626",
+    background: "#fef2f2",
+    border: "1px solid #fecaca",
+  },
+
+  modalIconSuccess: {
+    color: "#16a34a",
+    background: "#f0fdf4",
+    border: "1px solid #bbf7d0",
+  },
+
+  modalTitle: {
+    margin: 0,
+    color: "#1e293b",
+    fontSize: "19px",
+    fontWeight: "800",
+  },
+
+  modalMessage: {
+    margin: "10px auto 0",
+    maxWidth: "350px",
+    color: "#64748b",
+    fontSize: "12px",
+    lineHeight: "1.9",
+  },
+
+  modalButton: {
+    width: "100%",
+    marginTop: "22px",
+    padding: "12px 20px",
+    border: "none",
+    borderRadius: "12px",
+    background:
+      "linear-gradient(135deg, #0284c7, #2563eb)",
+    color: "#ffffff",
+    fontFamily: "'Cairo', sans-serif",
+    fontSize: "13px",
+    fontWeight: "800",
+    cursor: "pointer",
+    boxShadow:
+      "0 8px 20px rgba(37,99,235,0.18)",
+  },
+
   /* LOADING */
 
   loadingPage: {
@@ -1597,3 +1838,4 @@ const styles = {
     cursor: "pointer",
   },
 };
+
