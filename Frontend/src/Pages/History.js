@@ -48,7 +48,7 @@ export default function History() {
   // =====================================================
 
   const goToAddEvaluation = () => {
-    nav("/performance");
+    nav("/Step1");
   };
 
   // =====================================================

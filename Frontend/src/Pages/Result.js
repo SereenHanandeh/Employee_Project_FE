@@ -16,7 +16,21 @@ export default function Result() {
 
   const [grade, setGrade] = useState(state?.grade || "");
   const [error, setError] = useState("");
-  const [employeeName, setEmployeeName] = useState(state?.name || "");
+  const [employeeName, setEmployeeName] = useState(
+    state?.name || ""
+  );
+
+  /* =========================================================
+     MODAL
+  ========================================================= */
+
+  const [modal, setModal] = useState({
+    open: false,
+    type: "info",
+    title: "",
+    message: "",
+    onConfirm: null,
+  });
 
   const {
     employee_id,
@@ -29,9 +43,47 @@ export default function Result() {
     editMode,
   } = state || {};
 
-  // =========================================================
-  // حساب المجاميع
-  // =========================================================
+  /* =========================================================
+     MODAL FUNCTIONS
+  ========================================================= */
+
+  const showModal = ({
+    type = "info",
+    title = "تنبيه",
+    message = "",
+    onConfirm = null,
+  }) => {
+    setModal({
+      open: true,
+      type,
+      title,
+      message,
+      onConfirm,
+    });
+  };
+
+  const closeModal = () => {
+    setModal((prev) => ({
+      ...prev,
+      open: false,
+    }));
+  };
+
+  const handleModalConfirm = () => {
+    const action = modal.onConfirm;
+
+    closeModal();
+
+    if (action) {
+      setTimeout(() => {
+        action();
+      }, 100);
+    }
+  };
+
+  /* =========================================================
+     حساب المجاميع
+  ========================================================= */
 
   const performanceTotal = useMemo(() => {
     return Object.values(performance || {}).reduce(
@@ -55,11 +107,13 @@ export default function Result() {
   }, [relations]);
 
   const totalScore =
-    performanceTotal + personalityTotal + relationsTotal;
+    performanceTotal +
+    personalityTotal +
+    relationsTotal;
 
-  // =========================================================
-  // الحدود القصوى
-  // =========================================================
+  /* =========================================================
+     الحدود القصوى
+  ========================================================= */
 
   const maxPerformance = 76;
   const maxPersonality = 19;
@@ -70,21 +124,22 @@ export default function Result() {
     (totalScore / maxTotal) * 100
   );
 
-  // =========================================================
-  // حساب التقدير محليًا
-  // =========================================================
+  /* =========================================================
+     حساب التقدير محليًا
+  ========================================================= */
 
   const calculatedGrade = useMemo(() => {
     if (percentage >= 90) return "ممتاز";
     if (percentage >= 75) return "جيد جدًا";
     if (percentage >= 60) return "جيد";
     if (percentage >= 50) return "مقبول";
+
     return "ضعيف";
   }, [percentage]);
 
-  // =========================================================
-  // جلب بيانات التقييم في حالة التعديل
-  // =========================================================
+  /* =========================================================
+     جلب بيانات التقييم في حالة التعديل
+  ========================================================= */
 
   useEffect(() => {
     const loadEvaluation = async () => {
@@ -98,7 +153,8 @@ export default function Result() {
           `/evaluations/${evaluationId}`
         );
 
-        const evaluation = res.data?.evaluation || res.data;
+        const evaluation =
+          res.data?.evaluation || res.data;
 
         if (evaluation?.grade) {
           setGrade(evaluation.grade);
@@ -120,6 +176,18 @@ export default function Result() {
           "Error loading evaluation:",
           err
         );
+
+        const backendMessage =
+          err?.response?.data?.message ||
+          err?.response?.data?.error;
+
+        if (backendMessage) {
+          showModal({
+            type: "error",
+            title: "تعذر تحميل التقييم",
+            message: backendMessage,
+          });
+        }
       } finally {
         setLoadingEvaluation(false);
       }
@@ -128,9 +196,9 @@ export default function Result() {
     loadEvaluation();
   }, [editMode, evaluationId, employeeName]);
 
-  // =========================================================
-  // جلب اسم الموظف
-  // =========================================================
+  /* =========================================================
+     جلب اسم الموظف
+  ========================================================= */
 
   useEffect(() => {
     const getEmployee = async () => {
@@ -157,7 +225,8 @@ export default function Result() {
         const employee = employees.find(
           (emp) =>
             String(emp.id) === String(employee_id) ||
-            String(emp.employee_id) === String(employee_id)
+            String(emp.employee_id) ===
+              String(employee_id)
         );
 
         if (employee) {
@@ -191,9 +260,9 @@ export default function Result() {
     getEmployee();
   }, [employee_id, name]);
 
-  // =========================================================
-  // التحقق من البيانات
-  // =========================================================
+  /* =========================================================
+     التحقق من البيانات
+  ========================================================= */
 
   useEffect(() => {
     if (
@@ -202,11 +271,13 @@ export default function Result() {
       !personality ||
       !relations
     ) {
-      alert(
-        "البيانات غير مكتملة، سيتم الرجوع"
-      );
-
-      nav("/");
+      showModal({
+        type: "warning",
+        title: "البيانات غير مكتملة",
+        message:
+          "البيانات المطلوبة للتقييم غير مكتملة، سيتم الرجوع إلى الصفحة الرئيسية.",
+        onConfirm: () => nav("/"),
+      });
     }
   }, [
     employee_id,
@@ -216,9 +287,9 @@ export default function Result() {
     nav,
   ]);
 
-  // =========================================================
-  // حفظ / تحديث التقييم
-  // =========================================================
+  /* =========================================================
+     حفظ / تحديث التقييم
+  ========================================================= */
 
   const handleSubmit = async () => {
     try {
@@ -237,9 +308,9 @@ export default function Result() {
 
       let res;
 
-      // =====================================================
-      // تعديل تقييم موجود
-      // =====================================================
+      /* =====================================================
+         تعديل تقييم موجود
+      ===================================================== */
 
       if (editMode && evaluationId) {
         res = await API.put(
@@ -248,9 +319,9 @@ export default function Result() {
         );
       }
 
-      // =====================================================
-      // إنشاء تقييم جديد
-      // =====================================================
+      /* =====================================================
+         إنشاء تقييم جديد
+      ===================================================== */
 
       else {
         res = await API.post(
@@ -275,11 +346,15 @@ export default function Result() {
       setEvaluationId(savedId);
       setGrade(savedGrade);
 
-      alert(
-        editMode
-          ? `تم تحديث التقييم بنجاح! التقدير: ${savedGrade}`
-          : `تم حفظ التقييم بنجاح! التقدير: ${savedGrade}`
-      );
+      showModal({
+        type: "success",
+        title: editMode
+          ? "تم تحديث التقييم"
+          : "تم حفظ التقييم",
+        message: editMode
+          ? `تم تحديث التقييم بنجاح!\nالتقدير النهائي: ${savedGrade}`
+          : `تم حفظ التقييم بنجاح!\nالتقدير النهائي: ${savedGrade}`,
+      });
     } catch (err) {
       console.error(
         "Error saving evaluation:",
@@ -294,20 +369,32 @@ export default function Result() {
         backendMessage ||
           "حدث خطأ أثناء حفظ التقييم"
       );
+
+      showModal({
+        type: "error",
+        title: "تعذر حفظ التقييم",
+        message:
+          backendMessage ||
+          "حدث خطأ أثناء حفظ التقييم، يرجى المحاولة مرة أخرى.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================================================
-  // الانتقال للملاحظات
-  // =========================================================
+  /* =========================================================
+     الانتقال للملاحظات
+  ========================================================= */
 
   const goToNotes = () => {
     if (!evaluationId) {
-      alert(
-        "يجب حفظ التقييم أولاً!"
-      );
+      showModal({
+        type: "warning",
+        title: "لم يتم حفظ التقييم",
+        message:
+          "يجب حفظ التقييم أولًا قبل إضافة الملاحظات.",
+      });
+
       return;
     }
 
@@ -322,17 +409,25 @@ export default function Result() {
     });
   };
 
-  // =========================================================
-  // الرجوع للتعديل
-  // =========================================================
+  /* =========================================================
+     الرجوع للتعديل
+  ========================================================= */
 
   const goBackToEdit = () => {
     nav(-1);
   };
 
-  // =========================================================
-  // نسبة المحاور
-  // =========================================================
+  /* =========================================================
+     الرجوع للصفحة الرئيسية
+  ========================================================= */
+
+  const goToHome = () => {
+    nav("/history");
+  };
+
+  /* =========================================================
+     نسبة المحاور
+  ========================================================= */
 
   const performancePercentage = Math.round(
     (performanceTotal / maxPerformance) * 100
@@ -346,9 +441,9 @@ export default function Result() {
     (relationsTotal / maxRelations) * 100
   );
 
-  // =========================================================
-  // لون التقدير
-  // =========================================================
+  /* =========================================================
+     لون التقدير
+  ========================================================= */
 
   const getGradeStyle = () => {
     const currentGrade =
@@ -406,17 +501,19 @@ export default function Result() {
 
   const gradeStyle = getGradeStyle();
 
-  // =========================================================
-  // الواجهة
-  // =========================================================
+  /* =========================================================
+     الواجهة
+  ========================================================= */
 
   return (
     <div style={styles.page}>
-      <div style={styles.container}>
-
-        {/* ================================================= */}
-        {/* HEADER */}
-        {/* ================================================= */}
+      <div
+        style={styles.container}
+        className="result-page-container"
+      >
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
         <div style={styles.header}>
           <div style={styles.headerIcon}>
@@ -443,9 +540,9 @@ export default function Result() {
           </div>
         </div>
 
-        {/* ================================================= */}
-        {/* EDIT NOTICE */}
-        {/* ================================================= */}
+        {/* =================================================
+            EDIT NOTICE
+        ================================================= */}
 
         {editMode && (
           <div style={styles.editNotice}>
@@ -466,9 +563,9 @@ export default function Result() {
           </div>
         )}
 
-        {/* ================================================= */}
-        {/* EMPLOYEE CARD */}
-        {/* ================================================= */}
+        {/* =================================================
+            EMPLOYEE CARD
+        ================================================= */}
 
         <div style={styles.employeeCard}>
           <div style={styles.employeeIcon}>
@@ -501,11 +598,14 @@ export default function Result() {
           </div>
         </div>
 
-        {/* ================================================= */}
-        {/* PERIOD */}
-        {/* ================================================= */}
+        {/* =================================================
+            PERIOD
+        ================================================= */}
 
-        <div style={styles.periodCard}>
+        <div
+          style={styles.periodCard}
+          className="result-period-card"
+        >
           <div style={styles.periodItem}>
             <span style={styles.periodIcon}>
               📅
@@ -541,9 +641,9 @@ export default function Result() {
           </div>
         </div>
 
-        {/* ================================================= */}
-        {/* SCORE HEADER */}
-        {/* ================================================= */}
+        {/* =================================================
+            SCORE HEADER
+        ================================================= */}
 
         <div style={styles.scoreHeader}>
           <div>
@@ -567,9 +667,9 @@ export default function Result() {
           </div>
         </div>
 
-        {/* ================================================= */}
-        {/* SCORE CARDS */}
-        {/* ================================================= */}
+        {/* =================================================
+            SCORE CARDS
+        ================================================= */}
 
         <div
           className="result-score-grid"
@@ -732,9 +832,9 @@ export default function Result() {
           </div>
         </div>
 
-        {/* ================================================= */}
-        {/* TOTAL RESULT */}
-        {/* ================================================= */}
+        {/* =================================================
+            TOTAL RESULT
+        ================================================= */}
 
         <div style={styles.resultCard}>
           <div style={styles.resultLeft}>
@@ -769,9 +869,9 @@ export default function Result() {
           </div>
         </div>
 
-        {/* ================================================= */}
-        {/* GRADE */}
-        {/* ================================================= */}
+        {/* =================================================
+            GRADE
+        ================================================= */}
 
         <div
           style={{
@@ -828,9 +928,9 @@ export default function Result() {
           </div>
         </div>
 
-        {/* ================================================= */}
-        {/* ERROR */}
-        {/* ================================================= */}
+        {/* =================================================
+            ERROR
+        ================================================= */}
 
         {error && (
           <div style={styles.error}>
@@ -839,9 +939,9 @@ export default function Result() {
           </div>
         )}
 
-        {/* ================================================= */}
-        {/* LOADING EVALUATION */}
-        {/* ================================================= */}
+        {/* =================================================
+            LOADING EVALUATION
+        ================================================= */}
 
         {loadingEvaluation && (
           <div style={styles.loadingBox}>
@@ -849,9 +949,9 @@ export default function Result() {
           </div>
         )}
 
-        {/* ================================================= */}
-        {/* ACTIONS */}
-        {/* ================================================= */}
+        {/* =================================================
+            ACTIONS
+        ================================================= */}
 
         <div style={styles.actions}>
           {/* حفظ أو تحديث */}
@@ -899,7 +999,7 @@ export default function Result() {
             </button>
           )}
 
-          {/* الرجوع */}
+          {/* الرجوع للتعديل */}
 
           <button
             style={styles.backButton}
@@ -907,14 +1007,25 @@ export default function Result() {
             disabled={loading}
           >
             <span>→</span>
-
             تعديل الدرجات
+          </button>
+
+          {/* الصفحة الرئيسية */}
+
+          <button
+            type="button"
+            style={styles.homeButton}
+            onClick={goToHome}
+            disabled={loading}
+          >
+            <span>🏠</span>
+            الصفحة الرئيسية
           </button>
         </div>
 
-        {/* ================================================= */}
-        {/* FOOTER */}
-        {/* ================================================= */}
+        {/* =================================================
+            FOOTER
+        ================================================= */}
 
         <div style={styles.footer}>
           <span>🔒</span>
@@ -924,9 +1035,57 @@ export default function Result() {
         </div>
       </div>
 
-      {/* =================================================== */}
-      {/* RESPONSIVE CSS */}
-      {/* =================================================== */}
+      {/* =====================================================
+          MESSAGE MODAL
+      ===================================================== */}
+
+      {modal.open && (
+        <div
+          className="result-modal-overlay"
+          onClick={closeModal}
+        >
+          <div
+            className={`result-modal result-modal-${modal.type}`}
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+            {/* ICON */}
+
+            <div className="result-modal-icon">
+              {modal.type === "success" && "✓"}
+
+              {modal.type === "error" && "×"}
+
+              {modal.type === "warning" && "⚠"}
+
+              {modal.type === "info" && "ⓘ"}
+            </div>
+
+            {/* TITLE */}
+
+            <h3>{modal.title}</h3>
+
+            {/* MESSAGE */}
+
+            <p>{modal.message}</p>
+
+            {/* BUTTON */}
+
+            <button
+              type="button"
+              className="result-modal-button"
+              onClick={handleModalConfirm}
+            >
+              حسنًا
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================
+          RESPONSIVE CSS
+      =================================================== */}
 
       <style>
         {`
@@ -975,20 +1134,22 @@ export default function Result() {
   );
 }
 
-// =========================================================
-// STYLES
-// =========================================================
+/* =========================================================
+   STYLES
+========================================================= */
 
 const styles = {
-  // =========================================================
-  // PAGE
-  // =========================================================
+  /* =========================================================
+     PAGE
+  ========================================================= */
 
   page: {
     minHeight: "100vh",
     padding: "40px 20px 70px",
+
     background:
       "linear-gradient(180deg, #f8fafc 0%, #f5f7fb 50%, #eef2f7 100%)",
+
     direction: "rtl",
     color: "#172033",
   },
@@ -999,9 +1160,9 @@ const styles = {
     margin: "0 auto",
   },
 
-  // =========================================================
-  // HEADER
-  // =========================================================
+  /* =========================================================
+     HEADER
+  ========================================================= */
 
   header: {
     display: "flex",
@@ -1013,86 +1174,124 @@ const styles = {
   headerIcon: {
     width: "64px",
     height: "64px",
+
     borderRadius: "20px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+
     fontSize: "30px",
+
     background:
       "linear-gradient(135deg, #dbeafe, #e0e7ff)",
+
     border: "1px solid #dbe3f0",
+
     boxShadow:
       "0 10px 25px rgba(30, 64, 175, 0.08)",
+
     flexShrink: 0,
   },
 
   badge: {
     display: "inline-flex",
+
     padding: "5px 12px",
+
     borderRadius: "30px",
+
     fontSize: "11px",
     fontWeight: "800",
+
     color: "#2563eb",
+
     background: "#eff6ff",
+
     border: "1px solid #dbeafe",
+
     marginBottom: "6px",
   },
 
   heading: {
     margin: 0,
+
     fontSize: "28px",
     fontWeight: "800",
+
     color: "#172033",
+
     letterSpacing: "-.5px",
   },
 
   subheading: {
     margin: "5px 0 0",
+
     color: "#64748b",
+
     fontSize: "14px",
   },
 
-  // =========================================================
-  // EDIT NOTICE
-  // =========================================================
+  /* =========================================================
+     EDIT NOTICE
+  ========================================================= */
 
   editNotice: {
     display: "flex",
     alignItems: "center",
+
     gap: "13px",
+
     padding: "15px 18px",
+
     marginBottom: "15px",
+
     borderRadius: "16px",
+
     background: "#fffaf0",
+
     border: "1px solid #fde7b2",
+
     color: "#92400e",
   },
 
   editNoticeIcon: {
     width: "40px",
     height: "40px",
+
     borderRadius: "12px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+
     background: "#fef3c7",
+
     fontSize: "18px",
+
     flexShrink: 0,
   },
 
-  // =========================================================
-  // EMPLOYEE
-  // =========================================================
+  /* =========================================================
+     EMPLOYEE
+  ========================================================= */
 
   employeeCard: {
     display: "flex",
     alignItems: "center",
+
     gap: "16px",
+
     padding: "20px",
+
     borderRadius: "20px",
+
     marginBottom: "15px",
+
     background: "#ffffff",
+
     border: "1px solid #e5eaf1",
+
     boxShadow:
       "0 8px 25px rgba(15, 23, 42, 0.05)",
   },
@@ -1100,21 +1299,29 @@ const styles = {
   employeeIcon: {
     width: "58px",
     height: "58px",
+
     borderRadius: "18px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+
     fontSize: "25px",
+
     background:
       "linear-gradient(135deg, #eff6ff, #eef2ff)",
+
     border: "1px solid #dbeafe",
+
     flexShrink: 0,
   },
 
   employeeInfo: {
     display: "flex",
     flexDirection: "column",
+
     gap: "3px",
+
     flex: 1,
   },
 
@@ -1142,30 +1349,46 @@ const styles = {
   verified: {
     width: "34px",
     height: "34px",
+
     borderRadius: "50%",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+
     color: "#059669",
+
     background: "#ecfdf5",
+
     border: "1px solid #a7f3d0",
+
     fontWeight: "800",
   },
 
-  // =========================================================
-  // PERIOD
-  // =========================================================
+  /* =========================================================
+     PERIOD
+  ========================================================= */
 
   periodCard: {
     display: "grid",
-    gridTemplateColumns: "1fr auto 1fr",
+
+    gridTemplateColumns:
+      "1fr auto 1fr",
+
     alignItems: "center",
+
     gap: "20px",
+
     padding: "18px 22px",
+
     marginBottom: "25px",
+
     borderRadius: "18px",
+
     background: "#ffffff",
+
     border: "1px solid #e5eaf1",
+
     boxShadow:
       "0 8px 22px rgba(15, 23, 42, 0.04)",
   },
@@ -1173,370 +1396,561 @@ const styles = {
   periodItem: {
     display: "flex",
     alignItems: "center",
+
     gap: "12px",
   },
 
   periodIcon: {
     width: "40px",
     height: "40px",
+
     borderRadius: "12px",
+
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+
     background: "#eff6ff",
+
     fontSize: "18px",
   },
 
   smallLabel: {
     display: "block",
+
     color: "#64748b",
+
     fontSize: "11px",
+
     marginBottom: "2px",
   },
 
   dateValue: {
     color: "#334155",
+
     fontSize: "14px",
   },
 
   divider: {
     width: "1px",
+
     height: "38px",
+
     background: "#e2e8f0",
   },
 
-  // =========================================================
-  // SCORE HEADER
-  // =========================================================
+  /* =========================================================
+     SCORE HEADER
+  ========================================================= */
 
   scoreHeader: {
     display: "flex",
+
     alignItems: "center",
+
     justifyContent: "space-between",
+
     gap: "20px",
+
     marginBottom: "15px",
   },
 
   scoreHeaderTitle: {
     fontSize: "19px",
+
     fontWeight: "800",
+
     color: "#172033",
   },
 
   scoreHeaderSubtitle: {
     margin: "4px 0 0",
+
     color: "#64748b",
+
     fontSize: "12px",
   },
 
   totalCircle: {
     minWidth: "92px",
+
     height: "68px",
+
     padding: "0 15px",
+
     borderRadius: "18px",
+
     display: "flex",
+
     alignItems: "baseline",
+
     justifyContent: "center",
+
     gap: "3px",
+
     background:
       "linear-gradient(135deg, #eff6ff, #eef2ff)",
+
     border: "1px solid #dbe4f2",
+
     color: "#1e40af",
   },
 
-  // =========================================================
-  // SCORE CARDS
-  // =========================================================
+  /* =========================================================
+     SCORE CARDS
+  ========================================================= */
 
   scoresGrid: {
     display: "grid",
+
     gridTemplateColumns:
       "repeat(auto-fit, minmax(280px, 1fr))",
+
     gap: "14px",
+
     marginBottom: "18px",
   },
 
   scoreCard: {
     padding: "19px",
+
     borderRadius: "19px",
+
     background: "#ffffff",
+
     border: "1px solid #e5eaf1",
+
     boxShadow:
       "0 8px 25px rgba(15, 23, 42, 0.045)",
   },
 
   scoreTop: {
     display: "flex",
+
     alignItems: "center",
+
     gap: "11px",
   },
 
   scoreIcon: {
     width: "42px",
     height: "42px",
+
     borderRadius: "13px",
+
     display: "flex",
+
     alignItems: "center",
+
     justifyContent: "center",
+
     fontSize: "18px",
+
     flexShrink: 0,
   },
 
   scoreTitleBox: {
     flex: 1,
+
     minWidth: 0,
   },
 
   scoreTitle: {
     display: "block",
+
     color: "#334155",
+
     fontSize: "13px",
+
     fontWeight: "800",
   },
 
   scoreMax: {
     display: "block",
+
     color: "#94a3b8",
+
     fontSize: "10px",
+
     marginTop: "2px",
   },
 
   scoreNumber: {
     fontSize: "22px",
+
     fontWeight: "800",
+
     color: "#172033",
   },
 
   progressBackground: {
     height: "7px",
+
     marginTop: "17px",
+
     borderRadius: "20px",
+
     overflow: "hidden",
+
     background: "#eef2f7",
   },
 
   progressFill: {
     height: "100%",
+
     borderRadius: "20px",
+
     transition: "width .5s ease",
   },
 
   scoreFooter: {
     display: "flex",
+
     justifyContent: "space-between",
+
     marginTop: "8px",
+
     color: "#94a3b8",
+
     fontSize: "10px",
   },
 
-  // =========================================================
-  // RESULT
-  // =========================================================
+  /* =========================================================
+     RESULT
+  ========================================================= */
 
   resultCard: {
     display: "flex",
+
     alignItems: "center",
+
     justifyContent: "space-between",
+
     gap: "20px",
+
     padding: "22px",
+
     marginBottom: "18px",
+
     borderRadius: "20px",
+
     background:
       "linear-gradient(135deg, #eff6ff, #f5f3ff)",
+
     border: "1px solid #dbe4f2",
+
     boxShadow:
       "0 10px 30px rgba(30, 64, 175, 0.06)",
   },
 
   resultLeft: {
     display: "flex",
+
     alignItems: "center",
+
     gap: "14px",
   },
 
   resultIcon: {
     width: "50px",
     height: "50px",
+
     borderRadius: "16px",
+
     display: "flex",
+
     alignItems: "center",
+
     justifyContent: "center",
+
     fontSize: "24px",
+
     background: "#fef3c7",
   },
 
   resultLabel: {
     display: "block",
+
     color: "#172033",
+
     fontSize: "16px",
+
     fontWeight: "800",
   },
 
   resultDescription: {
     margin: "3px 0 0",
+
     color: "#64748b",
+
     fontSize: "11px",
   },
 
   resultRight: {
     display: "flex",
+
     alignItems: "baseline",
+
     gap: "3px",
+
     direction: "ltr",
+
     color: "#172033",
   },
 
   percentageBadge: {
     marginRight: "10px",
+
     padding: "6px 10px",
+
     borderRadius: "9px",
+
     fontSize: "12px",
+
     fontWeight: "800",
+
     color: "#2563eb",
+
     background: "#dbeafe",
   },
 
-  // =========================================================
-  // GRADE
-  // =========================================================
+  /* =========================================================
+     GRADE
+  ========================================================= */
 
   gradeSection: {
     display: "flex",
+
     alignItems: "center",
+
     gap: "15px",
+
     padding: "20px",
+
     borderRadius: "19px",
+
     marginBottom: "15px",
   },
 
   gradeIcon: {
     width: "52px",
     height: "52px",
+
     borderRadius: "16px",
+
     display: "flex",
+
     alignItems: "center",
+
     justifyContent: "center",
+
     fontSize: "25px",
+
     flexShrink: 0,
   },
 
   gradeContent: {
     flex: 1,
+
     display: "flex",
+
     flexDirection: "column",
+
     gap: "2px",
   },
 
   successCheck: {
     width: "35px",
     height: "35px",
+
     borderRadius: "50%",
+
     display: "flex",
+
     alignItems: "center",
+
     justifyContent: "center",
+
     fontWeight: "900",
+
     flexShrink: 0,
   },
 
-  // =========================================================
-  // ERROR
-  // =========================================================
+  /* =========================================================
+     ERROR
+  ========================================================= */
 
   error: {
     display: "flex",
+
     alignItems: "center",
+
     gap: "8px",
+
     padding: "13px 15px",
+
     borderRadius: "14px",
+
     marginBottom: "15px",
+
     color: "#b91c1c",
+
     background: "#fef2f2",
+
     border: "1px solid #fecaca",
+
     fontSize: "13px",
   },
 
   loadingBox: {
     textAlign: "center",
+
     padding: "12px",
+
     marginBottom: "15px",
+
     borderRadius: "12px",
+
     color: "#2563eb",
+
     background: "#eff6ff",
+
     fontSize: "13px",
   },
 
-  // =========================================================
-  // BUTTONS
-  // =========================================================
+  /* =========================================================
+     BUTTONS
+  ========================================================= */
 
   actions: {
     display: "flex",
+
     flexDirection: "column",
+
     gap: "10px",
+
     marginTop: "20px",
   },
 
   saveButton: {
     width: "100%",
+
     minHeight: "55px",
+
     border: "none",
+
     borderRadius: "16px",
+
     cursor: "pointer",
+
     color: "#ffffff",
+
     fontSize: "15px",
+
     fontWeight: "800",
+
     background:
       "linear-gradient(135deg, #2563eb, #4f46e5)",
+
     boxShadow:
       "0 12px 25px rgba(37, 99, 235, 0.18)",
+
     transition: "all .2s ease",
   },
 
   notesButton: {
     width: "100%",
+
     minHeight: "53px",
+
     border: "none",
+
     borderRadius: "16px",
+
     cursor: "pointer",
+
     color: "#ffffff",
+
     fontSize: "15px",
+
     fontWeight: "800",
+
     background:
       "linear-gradient(135deg, #059669, #0f766e)",
+
     boxShadow:
       "0 10px 22px rgba(5, 150, 105, 0.15)",
+
     transition: "all .2s ease",
   },
 
   arrow: {
     marginRight: "10px",
+
     fontSize: "18px",
   },
 
   backButton: {
     width: "100%",
+
     minHeight: "48px",
+
     border: "1px solid #dbe2ea",
+
     borderRadius: "14px",
+
     cursor: "pointer",
+
     color: "#475569",
+
     fontSize: "13px",
+
     fontWeight: "700",
+
     background: "#ffffff",
+
     transition: "all .2s ease",
   },
 
-  // =========================================================
-  // FOOTER
-  // =========================================================
+  homeButton: {
+    width: "100%",
+
+    minHeight: "48px",
+
+    border: "1px solid #dbe4f2",
+
+    borderRadius: "14px",
+
+    cursor: "pointer",
+
+    color: "#2563eb",
+
+    fontSize: "13px",
+
+    fontWeight: "700",
+
+    background: "#f8fafc",
+
+    transition: "all .2s ease",
+  },
+
+  /* =========================================================
+     FOOTER
+  ========================================================= */
 
   footer: {
     display: "flex",
+
     justifyContent: "center",
+
     alignItems: "center",
+
     gap: "6px",
+
     marginTop: "18px",
+
     color: "#94a3b8",
+
     fontSize: "11px",
   },
 };
