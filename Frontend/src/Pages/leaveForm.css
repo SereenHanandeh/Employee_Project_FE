@@ -2212,3 +2212,351 @@
     order: -1;
   }
 }
+/* =========================================================
+   MESSAGE MODAL
+========================================================= */
+
+.message-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+  z-index: 99999;
+
+  animation: messageOverlayFadeIn 0.2s ease-out;
+}
+
+/* =========================================================
+   MODAL BOX
+========================================================= */
+
+.message-modal {
+  width: min(440px, 100%);
+  background: #ffffff;
+
+  border-radius: 24px;
+  padding: 32px 28px 26px;
+
+  text-align: center;
+
+  position: relative;
+  overflow: hidden;
+
+  box-shadow:
+    0 25px 70px rgba(15, 23, 42, 0.22),
+    0 8px 25px rgba(15, 23, 42, 0.1);
+
+  animation: messageModalShow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+  direction: rtl;
+}
+
+/* خط علوي للمودال */
+
+.message-modal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 5px;
+
+  background: #3b82f6;
+}
+
+/* =========================================================
+   MODAL ICON
+========================================================= */
+
+.message-icon {
+  width: 76px;
+  height: 76px;
+
+  margin: 4px auto 20px;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 34px;
+
+  position: relative;
+}
+
+/* دائرة داخلية بسيطة */
+
+.message-icon::after {
+  content: "";
+  position: absolute;
+
+  inset: -7px;
+
+  border-radius: 50%;
+
+  border: 2px solid currentColor;
+
+  opacity: 0.12;
+}
+
+/* =========================================================
+   SUCCESS
+========================================================= */
+
+.message-modal.success::before {
+  background: #22c55e;
+}
+
+.message-modal.success .message-icon {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.message-modal.success .message-button {
+  background: #16a34a;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.22);
+}
+
+.message-modal.success .message-button:hover {
+  background: #15803d;
+}
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.message-modal.error::before {
+  background: #ef4444;
+}
+
+.message-modal.error .message-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.message-modal.error .message-button {
+  background: #dc2626;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.22);
+}
+
+.message-modal.error .message-button:hover {
+  background: #b91c1c;
+}
+
+/* =========================================================
+   WARNING
+========================================================= */
+
+.message-modal.warning::before {
+  background: #f59e0b;
+}
+
+.message-modal.warning .message-icon {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.message-modal.warning .message-button {
+  background: #d97706;
+  box-shadow: 0 8px 20px rgba(217, 119, 6, 0.22);
+}
+
+.message-modal.warning .message-button:hover {
+  background: #b45309;
+}
+
+/* =========================================================
+   INFO
+========================================================= */
+
+.message-modal.info::before {
+  background: #3b82f6;
+}
+
+.message-modal.info .message-icon {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.message-modal.info .message-button {
+  background: #2563eb;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+}
+
+.message-modal.info .message-button:hover {
+  background: #1d4ed8;
+}
+
+/* =========================================================
+   MODAL TITLE
+========================================================= */
+
+.message-modal h3 {
+  margin: 0 0 12px;
+
+  color: #1e293b;
+
+  font-family: "Cairo", "Tahoma", sans-serif;
+
+  font-size: 21px;
+  font-weight: 800;
+
+  line-height: 1.5;
+}
+
+/* =========================================================
+   MODAL MESSAGE
+========================================================= */
+
+.message-modal p {
+  margin: 0 auto 25px;
+
+  max-width: 350px;
+
+  color: #64748b;
+
+  font-family: "Cairo", "Tahoma", sans-serif;
+
+  font-size: 15px;
+  font-weight: 500;
+
+  line-height: 1.9;
+
+  white-space: pre-line;
+}
+
+/* =========================================================
+   MODAL BUTTON
+========================================================= */
+
+.message-button {
+  width: 100%;
+  min-height: 48px;
+
+  border: none;
+  border-radius: 13px;
+
+  color: #ffffff;
+
+  font-family: "Cairo", "Tahoma", sans-serif;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+
+  outline: none;
+}
+
+.message-button:hover {
+  transform: translateY(-2px);
+}
+
+.message-button:active {
+  transform: translateY(0);
+}
+
+.message-button:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.25);
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   MODAL ANIMATIONS
+========================================================= */
+
+@keyframes messageOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes messageModalShow {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 600px) {
+  .message-overlay {
+    padding: 16px;
+  }
+
+  .message-modal {
+    width: 100%;
+    max-width: 390px;
+
+    padding: 28px 22px 22px;
+
+    border-radius: 20px;
+  }
+
+  .message-icon {
+    width: 68px;
+    height: 68px;
+
+    font-size: 30px;
+
+    margin-bottom: 17px;
+  }
+
+  .message-modal h3 {
+    font-size: 19px;
+  }
+
+  .message-modal p {
+    font-size: 14px;
+    line-height: 1.8;
+
+    margin-bottom: 22px;
+  }
+
+  .message-button {
+    min-height: 46px;
+    font-size: 14px;
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .message-overlay,
+  .message-modal {
+    animation: none;
+  }
+
+  .message-button {
+    transition: none;
+  }
+}
