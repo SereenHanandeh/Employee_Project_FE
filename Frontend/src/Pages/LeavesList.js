@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import API from "../api/api";
 import * as XLSX from "xlsx";
-import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
 
 import {
@@ -21,14 +20,15 @@ import {
   FaPaperclip,
   FaDownload,
   FaSave,
-  FaTimes as FaClose,
+  FaUser,
+  FaBriefcase,
+  FaRegCalendarAlt,
+  FaStickyNote,
 } from "react-icons/fa";
 
 import "./LeaveList.css";
 
 export default function LeavesList() {
-  const navigate = useNavigate();
-
   // =========================================================
   // STATES
   // =========================================================
@@ -42,7 +42,8 @@ export default function LeavesList() {
   const [filterStatus, setFilterStatus] = useState("");
 
   const [selectedLeave, setSelectedLeave] = useState(null);
-  const [selectedAttachment, setSelectedAttachment] = useState(null);
+  const [selectedAttachment, setSelectedAttachment] =
+    useState(null);
 
   const [editingLeave, setEditingLeave] = useState(null);
 
@@ -81,7 +82,7 @@ export default function LeavesList() {
   };
 
   // =========================================================
-  // FETCH LEAVES
+  // FETCH
   // =========================================================
 
   const fetchLeaves = async () => {
@@ -121,8 +122,9 @@ export default function LeavesList() {
   const getEmployeeName = (leave) => {
     return (
       leave?.employee_name ||
-      leave?.employee?.name ||
+      leave?.employee_full_name ||
       leave?.full_name ||
+      leave?.employee?.name ||
       leave?.name ||
       "غير معروف"
     );
@@ -131,13 +133,15 @@ export default function LeavesList() {
   const getEmployeeRole = (leave) => {
     return (
       leave?.employee_role ||
+      leave?.job_title ||
+      leave?.position ||
       leave?.employee?.role ||
       leave?.role ||
       "موظف"
     );
   };
 
-  const getStatusKey = (status) => {
+  const normalizeStatus = (status) => {
     const value = String(status || "")
       .trim()
       .toLowerCase();
@@ -146,7 +150,7 @@ export default function LeavesList() {
       value === "approved" ||
       value === "accepted" ||
       value === "مقبول" ||
-      value === "approved "
+      value === "مقبولة"
     ) {
       return "approved";
     }
@@ -154,7 +158,8 @@ export default function LeavesList() {
     if (
       value === "rejected" ||
       value === "رفض" ||
-      value === "مرفوض"
+      value === "مرفوض" ||
+      value === "مرفوضة"
     ) {
       return "rejected";
     }
@@ -163,13 +168,13 @@ export default function LeavesList() {
   };
 
   const getStatusLabel = (status) => {
-    const statusKey = getStatusKey(status);
+    const normalized = normalizeStatus(status);
 
-    if (statusKey === "approved") {
+    if (normalized === "approved") {
       return "مقبولة";
     }
 
-    if (statusKey === "rejected") {
+    if (normalized === "rejected") {
       return "مرفوضة";
     }
 
@@ -177,17 +182,31 @@ export default function LeavesList() {
   };
 
   const getStatusClass = (status) => {
-    const statusKey = getStatusKey(status);
+    const normalized = normalizeStatus(status);
 
-    if (statusKey === "approved") {
-      return "approved";
+    if (normalized === "approved") {
+      return "status-approved";
     }
 
-    if (statusKey === "rejected") {
-      return "rejected";
+    if (normalized === "rejected") {
+      return "status-rejected";
     }
 
-    return "pending";
+    return "status-pending";
+  };
+
+  const getStatusIcon = (status) => {
+    const normalized = normalizeStatus(status);
+
+    if (normalized === "approved") {
+      return <FaCheckCircle />;
+    }
+
+    if (normalized === "rejected") {
+      return <FaTimesCircle />;
+    }
+
+    return <FaClock />;
   };
 
   const getLeaveTypeLabel = (type) => {
@@ -195,37 +214,44 @@ export default function LeavesList() {
 
     const value = String(type).trim();
 
-    const types = {
-      annual: "سنوية",
-      sick: "مرضية",
-      emergency: "طارئة",
-      unpaid: "بدون راتب",
-      maternity: "أمومة",
-      paternity: "أبوة",
-      marriage: "زواج",
-      bereavement: "وفاة",
-      vacation: "إجازة",
+    const map = {
+      annual: "إجازة سنوية",
+      yearly: "إجازة سنوية",
+      vacation: "إجازة سنوية",
+      sick: "إجازة مرضية",
+      emergency: "إجازة طارئة",
+      unpaid: "إجازة بدون راتب",
+      maternity: "إجازة أمومة",
+      paternity: "إجازة أبوة",
+      marriage: "إجازة زواج",
+      bereavement: "إجازة وفاة",
       "إجازة سنوية": "إجازة سنوية",
       "إجازة مرضية": "إجازة مرضية",
       "إجازة طارئة": "إجازة طارئة",
       "إجازة بدون راتب": "إجازة بدون راتب",
+      "إجازة أمومة": "إجازة أمومة",
+      "إجازة أبوة": "إجازة أبوة",
+      "إجازة زواج": "إجازة زواج",
+      "إجازة وفاة": "إجازة وفاة",
     };
 
-    return types[value] || value;
+    return map[value] || value;
   };
 
   const formatDate = (date) => {
     if (!date) return "-";
 
-    try {
-      return new Date(date).toLocaleDateString("ar-SA", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
-    } catch {
-      return date;
+    const parsed = new Date(date);
+
+    if (Number.isNaN(parsed.getTime())) {
+      return String(date);
     }
+
+    return parsed.toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
   };
 
   const formatInputDate = (date) => {
@@ -240,6 +266,29 @@ export default function LeavesList() {
     return value.substring(0, 10);
   };
 
+  const calculateDays = (fromDate, toDate) => {
+    if (!fromDate || !toDate) return 0;
+
+    const from = new Date(`${fromDate}T00:00:00`);
+    const to = new Date(`${toDate}T00:00:00`);
+
+    if (
+      Number.isNaN(from.getTime()) ||
+      Number.isNaN(to.getTime())
+    ) {
+      return 0;
+    }
+
+    if (to < from) return 0;
+
+    return (
+      Math.floor(
+        (to.getTime() - from.getTime()) /
+          (1000 * 60 * 60 * 24)
+      ) + 1
+    );
+  };
+
   const getAttachmentUrl = (leave) => {
     return (
       leave?.attachment ||
@@ -252,54 +301,26 @@ export default function LeavesList() {
   const isPdfFile = (url) => {
     if (!url) return false;
 
+    return String(url)
+      .toLowerCase()
+      .includes(".pdf");
+  };
+
+  const isImageFile = (url) => {
+    if (!url) return false;
+
     const value = String(url).toLowerCase();
 
     return (
-      value.includes(".pdf") ||
-      value.includes("application/pdf")
+      value.includes(".jpg") ||
+      value.includes(".jpeg") ||
+      value.includes(".png") ||
+      value.includes(".webp")
     );
   };
 
   // =========================================================
-  // FILTERED LEAVES
-  // =========================================================
-
-  const filteredLeaves = useMemo(() => {
-    return leaves.filter((leave) => {
-      const employeeName = getEmployeeName(leave);
-
-      const searchValue = String(search || "")
-        .trim()
-        .toLowerCase();
-
-      const matchesSearch =
-        !searchValue ||
-        employeeName.toLowerCase().includes(searchValue) ||
-        String(leave?.type || "")
-          .toLowerCase()
-          .includes(searchValue) ||
-        String(leave?.notes || "")
-          .toLowerCase()
-          .includes(searchValue);
-
-      const matchesType =
-        !filterType ||
-        String(leave?.type || "") === filterType;
-
-      const matchesStatus =
-        !filterStatus ||
-        getStatusKey(leave?.status) === filterStatus;
-
-      return (
-        matchesSearch &&
-        matchesType &&
-        matchesStatus
-      );
-    });
-  }, [leaves, search, filterType, filterStatus]);
-
-  // =========================================================
-  // UNIQUE TYPES
+  // FILTERS
   // =========================================================
 
   const leaveTypes = useMemo(() => {
@@ -310,15 +331,101 @@ export default function LeavesList() {
     return [...new Set(types)];
   }, [leaves]);
 
+  const filteredLeaves = useMemo(() => {
+    const searchValue = String(search || "")
+      .trim()
+      .toLowerCase();
+
+    return leaves.filter((leave) => {
+      const employeeName = getEmployeeName(leave)
+        .toLowerCase();
+
+      const type = String(leave?.type || "")
+        .toLowerCase();
+
+      const notes = String(leave?.notes || "")
+        .toLowerCase();
+
+      const matchesSearch =
+        !searchValue ||
+        employeeName.includes(searchValue) ||
+        type.includes(searchValue) ||
+        notes.includes(searchValue);
+
+      const matchesType =
+        !filterType ||
+        String(leave?.type || "") === filterType;
+
+      const matchesStatus =
+        !filterStatus ||
+        normalizeStatus(leave?.status) ===
+          filterStatus;
+
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesStatus
+      );
+    });
+  }, [
+    leaves,
+    search,
+    filterType,
+    filterStatus,
+  ]);
+
   // =========================================================
-  // VIEW LEAVE
+  // STATISTICS
   // =========================================================
 
-  const openLeaveDetails = (leave) => {
+  const statistics = useMemo(() => {
+    let pending = 0;
+    let approved = 0;
+    let rejected = 0;
+
+    leaves.forEach((leave) => {
+      const status = normalizeStatus(
+        leave.status
+      );
+
+      if (status === "pending") {
+        pending++;
+      } else if (status === "approved") {
+        approved++;
+      } else if (status === "rejected") {
+        rejected++;
+      }
+    });
+
+    return {
+      total: leaves.length,
+      pending,
+      approved,
+      rejected,
+    };
+  }, [leaves]);
+
+  // =========================================================
+  // RESET FILTERS
+  // =========================================================
+
+  const resetFilters = () => {
+    setSearch("");
+    setFilterType("");
+    setFilterStatus("");
+  };
+
+  // =========================================================
+  // VIEW DETAILS
+  // =========================================================
+
+  const openDetails = (leave) => {
     setSelectedLeave(leave);
   };
 
-  const closeLeaveDetails = () => {
+  const closeDetails = () => {
+    if (saving) return;
+
     setSelectedLeave(null);
   };
 
@@ -333,7 +440,8 @@ export default function LeavesList() {
       showMessage({
         type: "warning",
         title: "لا يوجد مرفق",
-        message: "طلب الإجازة هذا لا يحتوي على مرفق.",
+        message:
+          "طلب الإجازة هذا لا يحتوي على مرفق.",
       });
 
       return;
@@ -341,8 +449,9 @@ export default function LeavesList() {
 
     setSelectedAttachment({
       url,
-      isPdf: isPdfFile(url),
       employeeName: getEmployeeName(leave),
+      isPdf: isPdfFile(url),
+      isImage: isImageFile(url),
     });
   };
 
@@ -351,7 +460,7 @@ export default function LeavesList() {
   };
 
   // =========================================================
-  // STATUS CHANGE CONFIRMATION
+  // STATUS CONFIRMATION
   // =========================================================
 
   const requestStatusChange = (id, status) => {
@@ -373,6 +482,8 @@ export default function LeavesList() {
         id,
         status,
       });
+
+      return;
     }
 
     if (status === "rejected") {
@@ -411,7 +522,8 @@ export default function LeavesList() {
                 ...leave,
                 ...(updatedLeave || {}),
                 status:
-                  updatedLeave?.status || status,
+                  updatedLeave?.status ||
+                  status,
               }
             : leave
         )
@@ -431,8 +543,8 @@ export default function LeavesList() {
             : "تم رفض الإجازة",
         message:
           status === "approved"
-            ? "تم قبول طلب الإجازة بنجاح، ويمكنك الآن تعديل الطلب إذا لزم الأمر."
-            : "تم رفض طلب الإجازة بنجاح، ويمكنك أيضًا تعديل الطلب إذا لزم الأمر.",
+            ? "تم قبول طلب الإجازة بنجاح. يمكنك تعديل الطلب لاحقًا إذا احتجت."
+            : "تم رفض طلب الإجازة بنجاح. يمكنك تعديل الطلب لاحقًا إذا احتجت.",
       });
     } catch (error) {
       console.error(
@@ -454,10 +566,10 @@ export default function LeavesList() {
   };
 
   // =========================================================
-  // CONFIRM DELETE
+  // DELETE
   // =========================================================
 
-  const requestDeleteLeave = (id) => {
+  const requestDelete = (id) => {
     const leave = leaves.find(
       (item) => item.leave_id === id
     );
@@ -475,10 +587,6 @@ export default function LeavesList() {
       id,
     });
   };
-
-  // =========================================================
-  // DELETE LEAVE
-  // =========================================================
 
   const deleteLeave = async (id) => {
     try {
@@ -499,10 +607,14 @@ export default function LeavesList() {
       showMessage({
         type: "success",
         title: "تم الحذف",
-        message: "تم حذف طلب الإجازة بنجاح.",
+        message:
+          "تم حذف طلب الإجازة بنجاح.",
       });
     } catch (error) {
-      console.error("Delete Leave Error:", error);
+      console.error(
+        "Delete Leave Error:",
+        error
+      );
 
       showMessage({
         type: "error",
@@ -524,16 +636,20 @@ export default function LeavesList() {
   const confirmAction = () => {
     if (!confirmModal) return;
 
-    const { type, id, status } =
-      confirmModal;
+    if (
+      confirmModal.type === "approve" ||
+      confirmModal.type === "reject"
+    ) {
+      updateStatus(
+        confirmModal.id,
+        confirmModal.status
+      );
 
-    if (type === "approve" || type === "reject") {
-      updateStatus(id, status);
       return;
     }
 
-    if (type === "delete") {
-      deleteLeave(id);
+    if (confirmModal.type === "delete") {
+      deleteLeave(confirmModal.id);
     }
   };
 
@@ -544,10 +660,10 @@ export default function LeavesList() {
   };
 
   // =========================================================
-  // EDIT LEAVE
+  // EDIT
   // =========================================================
 
-  const openEditLeave = (leave) => {
+  const openEditModal = (leave) => {
     setEditingLeave(leave);
 
     setEditForm({
@@ -586,7 +702,7 @@ export default function LeavesList() {
     }));
   };
 
-  const handleEditFileChange = (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files?.[0];
 
     if (!file) {
@@ -611,7 +727,7 @@ export default function LeavesList() {
         type: "warning",
         title: "نوع الملف غير مسموح",
         message:
-          "يسمح فقط برفع ملفات JPG أو PNG أو WEBP أو PDF.",
+          "يسمح فقط برفع JPG أو PNG أو WEBP أو PDF.",
       });
 
       e.target.value = "";
@@ -638,10 +754,6 @@ export default function LeavesList() {
     }));
   };
 
-  // =========================================================
-  // SAVE EDIT
-  // =========================================================
-
   const saveEdit = async () => {
     if (!editingLeave) return;
 
@@ -650,7 +762,7 @@ export default function LeavesList() {
         type: "warning",
         title: "نوع الإجازة مطلوب",
         message:
-          "يرجى اختيار أو إدخال نوع الإجازة.",
+          "يرجى اختيار نوع الإجازة.",
       });
 
       return;
@@ -664,40 +776,23 @@ export default function LeavesList() {
         type: "warning",
         title: "التاريخ مطلوب",
         message:
-          "يرجى إدخال تاريخ بداية ونهاية الإجازة.",
+          "يرجى إدخال تاريخ البداية والنهاية.",
       });
 
       return;
     }
 
-    const from = new Date(
-      `${editForm.from_date}T00:00:00`
+    const days = calculateDays(
+      editForm.from_date,
+      editForm.to_date
     );
 
-    const to = new Date(
-      `${editForm.to_date}T00:00:00`
-    );
-
-    if (
-      Number.isNaN(from.getTime()) ||
-      Number.isNaN(to.getTime())
-    ) {
-      showMessage({
-        type: "warning",
-        title: "تاريخ غير صالح",
-        message:
-          "يرجى التأكد من صحة تواريخ الإجازة.",
-      });
-
-      return;
-    }
-
-    if (to < from) {
+    if (days <= 0) {
       showMessage({
         type: "warning",
         title: "التواريخ غير صحيحة",
         message:
-          "تاريخ النهاية يجب أن يكون بعد أو يساوي تاريخ البداية.",
+          "تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية.",
       });
 
       return;
@@ -879,11 +974,13 @@ export default function LeavesList() {
       "طلبات الإجازات"
     );
 
-    const excelBuffer =
-      XLSX.write(workbook, {
+    const excelBuffer = XLSX.write(
+      workbook,
+      {
         bookType: "xlsx",
         type: "array",
-      });
+      }
+    );
 
     const blob = new Blob(
       [excelBuffer],
@@ -904,40 +1001,9 @@ export default function LeavesList() {
       type: "success",
       title: "تم التصدير",
       message:
-        "تم تصدير بيانات طلبات الإجازات إلى ملف Excel بنجاح.",
+        "تم تصدير طلبات الإجازات إلى ملف Excel بنجاح.",
     });
   };
-
-  // =========================================================
-  // STATISTICS
-  // =========================================================
-
-  const stats = useMemo(() => {
-    const pending = leaves.filter(
-      (leave) =>
-        getStatusKey(leave.status) ===
-        "pending"
-    ).length;
-
-    const approved = leaves.filter(
-      (leave) =>
-        getStatusKey(leave.status) ===
-        "approved"
-    ).length;
-
-    const rejected = leaves.filter(
-      (leave) =>
-        getStatusKey(leave.status) ===
-        "rejected"
-    ).length;
-
-    return {
-      total: leaves.length,
-      pending,
-      approved,
-      rejected,
-    };
-  }, [leaves]);
 
   // =========================================================
   // RENDER
@@ -949,18 +1015,32 @@ export default function LeavesList() {
           HEADER
       ===================================================== */}
 
-      <div className="page-header">
-        <div>
-          <div className="page-title">
-            <div className="page-title-icon">
+      <header className="top-header">
+        <div className="header-right">
+          <div className="breadcrumb">
+            <span>الرئيسية</span>
+
+            <span className="breadcrumb-arrow">
+              /
+            </span>
+
+            <strong>
+              طلبات الإجازات
+            </strong>
+          </div>
+
+          <div className="title-wrapper">
+            <div className="title-icon">
               <FaCalendarAlt />
             </div>
 
             <div>
-              <h1>طلبات الإجازات</h1>
+              <h1 className="page-title">
+                طلبات الإجازات
+              </h1>
 
-              <p>
-                إدارة ومتابعة جميع طلبات إجازات
+              <p className="page-description">
+                إدارة ومتابعة طلبات إجازات
                 الموظفين
               </p>
             </div>
@@ -970,577 +1050,698 @@ export default function LeavesList() {
         <div className="header-actions">
           <button
             type="button"
-            className="header-button refresh"
+            className="secondary-header-button"
             onClick={fetchLeaves}
             disabled={loading}
           >
             <FaSyncAlt
               className={
                 loading
-                  ? "spin-icon"
+                  ? "refresh-spin"
                   : ""
               }
             />
 
-            <span>تحديث</span>
+            تحديث
           </button>
 
           <button
             type="button"
-            className="header-button excel"
+            className="primary-button"
             onClick={exportToExcel}
           >
             <FaFileExcel />
 
-            <span>تصدير Excel</span>
+            تصدير Excel
           </button>
         </div>
-      </div>
-
-      {/* =====================================================
-          STATS
-      ===================================================== */}
-
-      <div className="leave-stats">
-        <div className="stat-card total">
-          <div className="stat-icon">
-            <FaCalendarAlt />
-          </div>
-
-          <div>
-            <span>إجمالي الطلبات</span>
-            <strong>{stats.total}</strong>
-          </div>
-        </div>
-
-        <div className="stat-card pending">
-          <div className="stat-icon">
-            <FaClock />
-          </div>
-
-          <div>
-            <span>قيد الانتظار</span>
-            <strong>{stats.pending}</strong>
-          </div>
-        </div>
-
-        <div className="stat-card approved">
-          <div className="stat-icon">
-            <FaCheckCircle />
-          </div>
-
-          <div>
-            <span>المقبولة</span>
-            <strong>{stats.approved}</strong>
-          </div>
-        </div>
-
-        <div className="stat-card rejected">
-          <div className="stat-icon">
-            <FaTimesCircle />
-          </div>
-
-          <div>
-            <span>المرفوضة</span>
-            <strong>{stats.rejected}</strong>
-          </div>
-        </div>
-      </div>
-
-      {/* =====================================================
-          FILTERS
-      ===================================================== */}
-
-      <div className="filters-card">
-        <div className="filter-search">
-          <FaSearch />
-
-          <input
-            type="text"
-            placeholder="ابحث باسم الموظف أو نوع الإجازة..."
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-          />
-        </div>
-
-        <div className="filter-group">
-          <select
-            value={filterType}
-            onChange={(e) =>
-              setFilterType(e.target.value)
-            }
-          >
-            <option value="">
-              جميع أنواع الإجازات
-            </option>
-
-            {leaveTypes.map((type) => (
-              <option
-                key={type}
-                value={type}
-              >
-                {getLeaveTypeLabel(type)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <select
-            value={filterStatus}
-            onChange={(e) =>
-              setFilterStatus(e.target.value)
-            }
-          >
-            <option value="">
-              جميع الحالات
-            </option>
-
-            <option value="pending">
-              قيد الانتظار
-            </option>
-
-            <option value="approved">
-              مقبولة
-            </option>
-
-            <option value="rejected">
-              مرفوضة
-            </option>
-          </select>
-        </div>
-
-        {(search ||
-          filterType ||
-          filterStatus) && (
-          <button
-            type="button"
-            className="clear-filters"
-            onClick={() => {
-              setSearch("");
-              setFilterType("");
-              setFilterStatus("");
-            }}
-          >
-            <FaTimes />
-            مسح الفلاتر
-          </button>
-        )}
-      </div>
+      </header>
 
       {/* =====================================================
           CONTENT
       ===================================================== */}
 
-      <div className="leaves-content">
-        {loading ? (
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
+      <main className="content">
+        {/* ===================================================
+            STATISTICS
+        =================================================== */}
 
-            <p>
-              جاري تحميل طلبات الإجازات...
-            </p>
-          </div>
-        ) : filteredLeaves.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">
-              <FaCalendarAlt />
+        <div className="stats-grid">
+          <div className="stat-card total-card">
+            <div className="stat-card-top">
+              <div className="stat-icon">
+                <FaCalendarAlt />
+              </div>
+
+              <span className="stat-mini">
+                جميع الطلبات
+              </span>
             </div>
 
-            <h3>
-              لا توجد طلبات إجازات
-            </h3>
+            <span className="stat-label">
+              إجمالي الطلبات
+            </span>
 
-            <p>
-              لا توجد بيانات مطابقة
-              للفلاتر الحالية.
-            </p>
+            <strong className="stat-number">
+              {statistics.total}
+            </strong>
           </div>
-        ) : (
-          <>
-            {/* =================================================
-                DESKTOP TABLE
-            ================================================= */}
 
-            <div className="table-container">
-              <table className="leaves-table">
-                <thead>
-                  <tr>
-                    <th>الموظف</th>
-                    <th>نوع الإجازة</th>
-                    <th>الفترة</th>
-                    <th>الأيام</th>
-                    <th>الحالة</th>
-                    <th>المرفق</th>
-                    <th>الإجراءات</th>
-                  </tr>
-                </thead>
+          <div className="stat-card pending-card">
+            <div className="stat-card-top">
+              <div className="stat-icon">
+                <FaClock />
+              </div>
 
-                <tbody>
-                  {filteredLeaves.map(
-                    (leave) => {
-                      const statusKey =
-                        getStatusKey(
-                          leave.status
-                        );
+              <span className="stat-mini">
+                بحاجة للمراجعة
+              </span>
+            </div>
 
-                      return (
-                        <tr
-                          key={
-                            leave.leave_id
-                          }
-                        >
-                          {/* EMPLOYEE */}
-                          <td>
-                            <div className="employee-cell">
-                              <div className="employee-avatar">
+            <span className="stat-label">
+              قيد الانتظار
+            </span>
+
+            <strong className="stat-number">
+              {statistics.pending}
+            </strong>
+          </div>
+
+          <div className="stat-card approved-card">
+            <div className="stat-card-top">
+              <div className="stat-icon">
+                <FaCheckCircle />
+              </div>
+
+              <span className="stat-mini">
+                تمت الموافقة
+              </span>
+            </div>
+
+            <span className="stat-label">
+              الإجازات المقبولة
+            </span>
+
+            <strong className="stat-number">
+              {statistics.approved}
+            </strong>
+          </div>
+
+          <div className="stat-card rejected-card">
+            <div className="stat-card-top">
+              <div className="stat-icon">
+                <FaTimesCircle />
+              </div>
+
+              <span className="stat-mini">
+                غير مقبولة
+              </span>
+            </div>
+
+            <span className="stat-label">
+              الإجازات المرفوضة
+            </span>
+
+            <strong className="stat-number">
+              {statistics.rejected}
+            </strong>
+          </div>
+        </div>
+
+        {/* ===================================================
+            TOOLBAR
+        =================================================== */}
+
+        <div className="toolbar">
+          <div className="search-wrapper">
+            <FaSearch className="search-icon" />
+
+            <input
+              type="text"
+              className="search-input"
+              placeholder="ابحث باسم الموظف أو نوع الإجازة..."
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+            />
+
+            {search && (
+              <button
+                type="button"
+                className="clear-search"
+                onClick={() =>
+                  setSearch("")
+                }
+                title="مسح البحث"
+              >
+                <FaTimes />
+              </button>
+            )}
+          </div>
+
+          <div className="filters">
+            <select
+              className="select-filter"
+              value={filterType}
+              onChange={(e) =>
+                setFilterType(e.target.value)
+              }
+            >
+              <option value="">
+                جميع أنواع الإجازات
+              </option>
+
+              {leaveTypes.map((type) => (
+                <option
+                  key={type}
+                  value={type}
+                >
+                  {getLeaveTypeLabel(type)}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="select-filter"
+              value={filterStatus}
+              onChange={(e) =>
+                setFilterStatus(e.target.value)
+              }
+            >
+              <option value="">
+                جميع الحالات
+              </option>
+
+              <option value="pending">
+                قيد الانتظار
+              </option>
+
+              <option value="approved">
+                مقبولة
+              </option>
+
+              <option value="rejected">
+                مرفوضة
+              </option>
+            </select>
+
+            <button
+              type="button"
+              className="excel-button"
+              onClick={exportToExcel}
+            >
+              <FaFileExcel />
+              Excel
+            </button>
+
+            {(search ||
+              filterType ||
+              filterStatus) && (
+              <button
+                type="button"
+                className="reset-filters"
+                onClick={resetFilters}
+              >
+                <FaSyncAlt />
+                إعادة ضبط
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ===================================================
+            TABLE CONTAINER
+        =================================================== */}
+
+        <section className="table-container">
+          <div className="table-header">
+            <div className="section-title-row">
+              <div className="count-badge">
+                {filteredLeaves.length}
+              </div>
+
+              <div>
+                <h2 className="section-title">
+                  قائمة طلبات الإجازات
+                </h2>
+
+                <p className="results-count">
+                  عرض{" "}
+                  <strong>
+                    {filteredLeaves.length}
+                  </strong>{" "}
+                  من أصل{" "}
+                  <strong>
+                    {leaves.length}
+                  </strong>{" "}
+                  طلب
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="refresh-button"
+              onClick={fetchLeaves}
+              disabled={loading}
+              title="تحديث"
+            >
+              <FaSyncAlt
+                className={
+                  loading
+                    ? "refresh-spin"
+                    : ""
+                }
+              />
+            </button>
+          </div>
+
+          {/* =================================================
+              LOADING
+          ================================================= */}
+
+          {loading ? (
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+
+              <p>
+                جاري تحميل طلبات الإجازات...
+              </p>
+            </div>
+          ) : filteredLeaves.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">
+                <FaCalendarAlt />
+              </div>
+
+              <h3>
+                لا توجد طلبات إجازات
+              </h3>
+
+              <p>
+                لا توجد طلبات مطابقة
+                للبحث أو الفلاتر الحالية.
+              </p>
+
+              {(search ||
+                filterType ||
+                filterStatus) && (
+                <button
+                  type="button"
+                  className="reset-filters empty-reset"
+                  onClick={resetFilters}
+                >
+                  <FaSyncAlt />
+                  إعادة ضبط الفلاتر
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* =============================================
+                  DESKTOP TABLE
+              ============================================= */}
+
+              <div className="desktop-table">
+                <div className="table-head">
+                  <div>الموظف</div>
+                  <div>نوع الإجازة</div>
+                  <div>من</div>
+                  <div>إلى</div>
+                  <div>الحالة</div>
+                  <div>المرفق</div>
+                  <div>الإجراءات</div>
+                </div>
+
+                {filteredLeaves.map(
+                  (leave) => {
+                    const status =
+                      normalizeStatus(
+                        leave.status
+                      );
+
+                    return (
+                      <div
+                        className="table-row"
+                        key={
+                          leave.leave_id
+                        }
+                      >
+                        {/* EMPLOYEE */}
+                        <div>
+                          <div className="employee-cell">
+                            <div className="avatar">
+                              {getEmployeeName(
+                                leave
+                              )
+                                .charAt(0)
+                                .toUpperCase()}
+                            </div>
+
+                            <div className="employee-info">
+                              <strong className="employee-name">
                                 {getEmployeeName(
                                   leave
-                                )
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </div>
-
-                              <div>
-                                <strong>
-                                  {getEmployeeName(
-                                    leave
-                                  )}
-                                </strong>
-
-                                <span>
-                                  {getEmployeeRole(
-                                    leave
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* TYPE */}
-                          <td>
-                            <span className="leave-type">
-                              {getLeaveTypeLabel(
-                                leave.type
-                              )}
-                            </span>
-                          </td>
-
-                          {/* DATES */}
-                          <td>
-                            <div className="date-range">
-                              <span>
-                                {formatDate(
-                                  leave.from_date
                                 )}
-                              </span>
+                              </strong>
 
-                              <span className="date-arrow">
-                                ←
-                              </span>
-
-                              <span>
-                                {formatDate(
-                                  leave.to_date
+                              <span className="employee-role">
+                                {getEmployeeRole(
+                                  leave
                                 )}
                               </span>
                             </div>
-                          </td>
+                          </div>
+                        </div>
 
-                          {/* DAYS */}
-                          <td>
-                            <span className="days-badge">
-                              {leave.days ?? "-"}{" "}
-                              يوم
-                            </span>
-                          </td>
+                        {/* TYPE */}
+                        <div>
+                          <span className="leave-type-badge">
+                            <FaFileAlt />
 
-                          {/* STATUS */}
-                          <td>
-                            <span
-                              className={`status-badge ${getStatusClass(
+                            {getLeaveTypeLabel(
+                              leave.type
+                            )}
+                          </span>
+                        </div>
+
+                        {/* FROM */}
+                        <div className="date-cell">
+                          {formatDate(
+                            leave.from_date
+                          )}
+                        </div>
+
+                        {/* TO */}
+                        <div className="date-cell">
+                          {formatDate(
+                            leave.to_date
+                          )}
+                        </div>
+
+                        {/* STATUS */}
+                        <div>
+                          <span
+                            className={`status-badge ${getStatusClass(
+                              leave.status
+                            )}`}
+                          >
+                            <span className="status-dot">
+                              {getStatusIcon(
                                 leave.status
-                              )}`}
-                            >
-                              {statusKey ===
-                                "approved" && (
-                                <FaCheckCircle />
-                              )}
-
-                              {statusKey ===
-                                "rejected" && (
-                                <FaTimesCircle />
-                              )}
-
-                              {statusKey ===
-                                "pending" && (
-                                <FaClock />
-                              )}
-
-                              {getStatusLabel(
-                                leave.status
                               )}
                             </span>
-                          </td>
 
-                          {/* ATTACHMENT */}
-                          <td>
+                            {getStatusLabel(
+                              leave.status
+                            )}
+                          </span>
+                        </div>
+
+                        {/* ATTACHMENT */}
+                        <div>
+                          <div className="attachment-cell">
                             {getAttachmentUrl(
                               leave
                             ) ? (
                               <button
                                 type="button"
-                                className="attachment-button"
+                                className="attachment-preview-button"
                                 onClick={() =>
                                   openAttachment(
                                     leave
                                   )
                                 }
                               >
-                                <FaPaperclip />
-                                <span>
-                                  عرض
-                                </span>
+                                {isImageFile(
+                                  getAttachmentUrl(
+                                    leave
+                                  )
+                                ) ? (
+                                  <img
+                                    src={getAttachmentUrl(
+                                      leave
+                                    )}
+                                    alt=""
+                                    className="attachment-image-mini"
+                                  />
+                                ) : (
+                                  <FaPaperclip />
+                                )}
+
+                                عرض
                               </button>
                             ) : (
                               <span className="no-attachment">
                                 لا يوجد
                               </span>
                             )}
-                          </td>
+                          </div>
+                        </div>
 
-                          {/* ACTIONS */}
-                          <td>
-                            <div className="action-buttons">
-                              {/* ACCEPT + REJECT ONLY PENDING */}
-                              {statusKey ===
-                                "pending" && (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="action-button accept"
-                                    title="قبول الطلب"
-                                    onClick={() =>
-                                      requestStatusChange(
-                                        leave.leave_id,
-                                        "approved"
-                                      )
-                                    }
-                                    disabled={
-                                      saving
-                                    }
-                                  >
-                                    <FaCheck />
-
-                                    <span className="action-tooltip">
-                                      قبول
-                                    </span>
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    className="action-button reject"
-                                    title="رفض الطلب"
-                                    onClick={() =>
-                                      requestStatusChange(
-                                        leave.leave_id,
-                                        "rejected"
-                                      )
-                                    }
-                                    disabled={
-                                      saving
-                                    }
-                                  >
-                                    <FaTimes />
-
-                                    <span className="action-tooltip">
-                                      رفض
-                                    </span>
-                                  </button>
-                                </>
-                              )}
-
-                              {/* EDIT ALWAYS VISIBLE */}
+                        {/* ACTIONS */}
+                        <div>
+                          <div className="actions">
+                            {/* ACCEPT */}
+                            {status ===
+                              "pending" && (
                               <button
                                 type="button"
-                                className="action-button edit"
-                                title="تعديل الطلب"
+                                className="action-button accept"
                                 onClick={() =>
-                                  openEditLeave(
-                                    leave
+                                  requestStatusChange(
+                                    leave.leave_id,
+                                    "approved"
                                   )
                                 }
                                 disabled={saving}
                               >
-                                <FaEdit />
+                                <FaCheck />
 
                                 <span className="action-tooltip">
-                                  تعديل
+                                  قبول
                                 </span>
                               </button>
+                            )}
 
-                              {/* VIEW */}
+                            {/* REJECT */}
+                            {status ===
+                              "pending" && (
                               <button
                                 type="button"
-                                className="action-button view"
-                                title="عرض التفاصيل"
+                                className="action-button reject"
                                 onClick={() =>
-                                  openLeaveDetails(
-                                    leave
+                                  requestStatusChange(
+                                    leave.leave_id,
+                                    "rejected"
                                   )
                                 }
                                 disabled={saving}
                               >
-                                <FaEye />
+                                <FaTimes />
 
                                 <span className="action-tooltip">
-                                  عرض
+                                  رفض
                                 </span>
                               </button>
+                            )}
 
-                              {/* DELETE */}
-                              <button
-                                type="button"
-                                className="action-button delete"
-                                title="حذف الطلب"
-                                onClick={() =>
-                                  requestDeleteLeave(
-                                    leave.leave_id
-                                  )
-                                }
-                                disabled={saving}
-                              >
-                                <FaTrash />
+                            {/* EDIT - ALWAYS */}
+                            <button
+                              type="button"
+                              className="action-button edit"
+                              onClick={() =>
+                                openEditModal(
+                                  leave
+                                )
+                              }
+                              disabled={saving}
+                            >
+                              <FaEdit />
 
-                                <span className="action-tooltip">
-                                  حذف
-                                </span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    }
-                  )}
-                </tbody>
-              </table>
-            </div>
+                              <span className="action-tooltip">
+                                تعديل
+                              </span>
+                            </button>
 
-            {/* =================================================
-                MOBILE CARDS
-            ================================================= */}
+                            {/* VIEW */}
+                            <button
+                              type="button"
+                              className="action-button view"
+                              onClick={() =>
+                                openDetails(
+                                  leave
+                                )
+                              }
+                              disabled={saving}
+                            >
+                              <FaEye />
 
-            <div className="mobile-leaves-list">
-              {filteredLeaves.map(
-                (leave) => {
-                  const statusKey =
-                    getStatusKey(
-                      leave.status
+                              <span className="action-tooltip">
+                                عرض
+                              </span>
+                            </button>
+
+                            {/* DELETE */}
+                            <button
+                              type="button"
+                              className="action-button delete"
+                              onClick={() =>
+                                requestDelete(
+                                  leave.leave_id
+                                )
+                              }
+                              disabled={saving}
+                            >
+                              <FaTrash />
+
+                              <span className="action-tooltip">
+                                حذف
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     );
+                  }
+                )}
+              </div>
 
-                  return (
-                    <div
-                      className="leave-mobile-card"
-                      key={
-                        leave.leave_id
-                      }
-                    >
-                      <div className="mobile-card-header">
-                        <div className="employee-cell">
-                          <div className="employee-avatar">
-                            {getEmployeeName(
-                              leave
-                            )
-                              .charAt(0)
-                              .toUpperCase()}
+              {/* =============================================
+                  MOBILE CARDS
+              ============================================= */}
+
+              <div className="mobile-cards">
+                {filteredLeaves.map(
+                  (leave) => {
+                    const status =
+                      normalizeStatus(
+                        leave.status
+                      );
+
+                    return (
+                      <div
+                        className="mobile-leave-card"
+                        key={
+                          leave.leave_id
+                        }
+                      >
+                        <div className="mobile-leave-top">
+                          <div className="mobile-info">
+                            <div className="avatar">
+                              {getEmployeeName(
+                                leave
+                              )
+                                .charAt(0)
+                                .toUpperCase()}
+                            </div>
+
+                            <div>
+                              <strong>
+                                {getEmployeeName(
+                                  leave
+                                )}
+                              </strong>
+
+                              <span>
+                                {getEmployeeRole(
+                                  leave
+                                )}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`status-badge ${getStatusClass(
+                              leave.status
+                            )}`}
+                          >
+                            <span className="status-dot">
+                              {getStatusIcon(
+                                leave.status
+                              )}
+                            </span>
+
+                            {getStatusLabel(
+                              leave.status
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="mobile-leave-grid">
+                          <div>
+                            <span>
+                              نوع الإجازة
+                            </span>
+
+                            <strong>
+                              {getLeaveTypeLabel(
+                                leave.type
+                              )}
+                            </strong>
                           </div>
 
                           <div>
+                            <span>
+                              عدد الأيام
+                            </span>
+
                             <strong>
-                              {getEmployeeName(
-                                leave
+                              {leave.days ??
+                                calculateDays(
+                                  formatInputDate(
+                                    leave.from_date
+                                  ),
+                                  formatInputDate(
+                                    leave.to_date
+                                  )
+                                )}{" "}
+                              يوم
+                            </strong>
+                          </div>
+
+                          <div>
+                            <span>
+                              تاريخ البداية
+                            </span>
+
+                            <strong>
+                              {formatDate(
+                                leave.from_date
                               )}
                             </strong>
+                          </div>
 
+                          <div>
                             <span>
-                              {getEmployeeRole(
-                                leave
-                              )}
+                              تاريخ النهاية
                             </span>
+
+                            <strong>
+                              {formatDate(
+                                leave.to_date
+                              )}
+                            </strong>
                           </div>
                         </div>
 
-                        <span
-                          className={`status-badge ${getStatusClass(
-                            leave.status
-                          )}`}
-                        >
-                          {getStatusLabel(
-                            leave.status
-                          )}
-                        </span>
-                      </div>
-
-                      <div className="mobile-card-body">
-                        <div className="mobile-info-row">
-                          <span>
-                            نوع الإجازة
-                          </span>
-
-                          <strong>
-                            {getLeaveTypeLabel(
-                              leave.type
-                            )}
-                          </strong>
-                        </div>
-
-                        <div className="mobile-info-row">
-                          <span>
-                            تاريخ البداية
-                          </span>
-
-                          <strong>
-                            {formatDate(
-                              leave.from_date
-                            )}
-                          </strong>
-                        </div>
-
-                        <div className="mobile-info-row">
-                          <span>
-                            تاريخ النهاية
-                          </span>
-
-                          <strong>
-                            {formatDate(
-                              leave.to_date
-                            )}
-                          </strong>
-                        </div>
-
-                        <div className="mobile-info-row">
-                          <span>
-                            عدد الأيام
-                          </span>
-
-                          <strong>
-                            {leave.days ??
-                              "-"}{" "}
-                            يوم
-                          </strong>
-                        </div>
-
                         {leave.notes && (
-                          <div className="mobile-notes">
-                            <span>
-                              الملاحظات
-                            </span>
+                          <div className="mobile-leave-grid">
+                            <div
+                              style={{
+                                gridColumn:
+                                  "1 / -1",
+                              }}
+                            >
+                              <span>
+                                الملاحظات
+                              </span>
 
-                            <p>
-                              {leave.notes}
-                            </p>
+                              <strong>
+                                {leave.notes}
+                              </strong>
+                            </div>
                           </div>
                         )}
 
@@ -1557,17 +1758,14 @@ export default function LeavesList() {
                             }
                           >
                             <FaPaperclip />
-
                             عرض المرفق
                           </button>
                         )}
-                      </div>
 
-                      <div className="mobile-card-actions">
-                        {/* ACCEPT + REJECT ONLY PENDING */}
-                        {statusKey ===
-                          "pending" && (
-                          <>
+                        <div className="mobile-actions">
+                          {/* ACCEPT */}
+                          {status ===
+                            "pending" && (
                             <button
                               type="button"
                               className="mobile-action accept"
@@ -1582,7 +1780,11 @@ export default function LeavesList() {
                               <FaCheck />
                               قبول
                             </button>
+                          )}
 
+                          {/* REJECT */}
+                          {status ===
+                            "pending" && (
                             <button
                               type="button"
                               className="mobile-action reject"
@@ -1597,60 +1799,62 @@ export default function LeavesList() {
                               <FaTimes />
                               رفض
                             </button>
-                          </>
-                        )}
+                          )}
 
-                        {/* EDIT ALWAYS VISIBLE */}
-                        <button
-                          type="button"
-                          className="mobile-action edit"
-                          onClick={() =>
-                            openEditLeave(
-                              leave
-                            )
-                          }
-                          disabled={saving}
-                        >
-                          <FaEdit />
-                          تعديل
-                        </button>
+                          {/* EDIT ALWAYS */}
+                          <button
+                            type="button"
+                            className="mobile-action edit"
+                            onClick={() =>
+                              openEditModal(
+                                leave
+                              )
+                            }
+                            disabled={saving}
+                          >
+                            <FaEdit />
+                            تعديل
+                          </button>
 
-                        <button
-                          type="button"
-                          className="mobile-action view"
-                          onClick={() =>
-                            openLeaveDetails(
-                              leave
-                            )
-                          }
-                          disabled={saving}
-                        >
-                          <FaEye />
-                          عرض
-                        </button>
+                          {/* VIEW */}
+                          <button
+                            type="button"
+                            className="mobile-action view"
+                            onClick={() =>
+                              openDetails(
+                                leave
+                              )
+                            }
+                            disabled={saving}
+                          >
+                            <FaEye />
+                            عرض
+                          </button>
 
-                        <button
-                          type="button"
-                          className="mobile-action delete"
-                          onClick={() =>
-                            requestDeleteLeave(
-                              leave.leave_id
-                            )
-                          }
-                          disabled={saving}
-                        >
-                          <FaTrash />
-                          حذف
-                        </button>
+                          {/* DELETE */}
+                          <button
+                            type="button"
+                            className="mobile-action delete"
+                            onClick={() =>
+                              requestDelete(
+                                leave.leave_id
+                              )
+                            }
+                            disabled={saving}
+                          >
+                            <FaTrash />
+                            حذف
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                }
-              )}
-            </div>
-          </>
-        )}
-      </div>
+                    );
+                  }
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      </main>
 
       {/* =====================================================
           DETAILS MODAL
@@ -1659,39 +1863,44 @@ export default function LeavesList() {
       {selectedLeave && (
         <div
           className="modal-overlay"
-          onClick={closeLeaveDetails}
+          onClick={closeDetails}
         >
           <div
-            className="details-modal"
+            className="modal"
             onClick={(e) =>
               e.stopPropagation()
             }
           >
             <div className="modal-header">
-              <div>
-                <h2>
-                  تفاصيل طلب الإجازة
-                </h2>
+              <div className="modal-heading">
+                <div className="modal-icon">
+                  <FaCalendarAlt />
+                </div>
 
-                <p>
-                  معلومات كاملة عن الطلب
-                </p>
+                <div>
+                  <h3 className="modal-title">
+                    تفاصيل طلب الإجازة
+                  </h3>
+
+                  <p className="modal-subtitle">
+                    معلومات وتفاصيل الطلب
+                  </p>
+                </div>
               </div>
 
               <button
                 type="button"
-                className="modal-close"
-                onClick={
-                  closeLeaveDetails
-                }
+                className="close-button"
+                onClick={closeDetails}
+                disabled={saving}
               >
-                <FaClose />
+                <FaTimes />
               </button>
             </div>
 
-            <div className="details-content">
-              <div className="detail-employee">
-                <div className="detail-avatar">
+            <div className="modal-body">
+              <div className="employee-profile">
+                <div className="large-avatar">
                   {getEmployeeName(
                     selectedLeave
                   )
@@ -1700,23 +1909,40 @@ export default function LeavesList() {
                 </div>
 
                 <div>
-                  <h3>
+                  <h4>
                     {getEmployeeName(
                       selectedLeave
                     )}
-                  </h3>
+                  </h4>
 
-                  <p>
+                  <span>
                     {getEmployeeRole(
                       selectedLeave
                     )}
-                  </p>
+                  </span>
                 </div>
+
+                <span
+                  className={`status-badge ${getStatusClass(
+                    selectedLeave.status
+                  )}`}
+                >
+                  <span className="status-dot">
+                    {getStatusIcon(
+                      selectedLeave.status
+                    )}
+                  </span>
+
+                  {getStatusLabel(
+                    selectedLeave.status
+                  )}
+                </span>
               </div>
 
-              <div className="details-grid">
+              <div className="detail-grid">
                 <div className="detail-item">
                   <span>
+                    <FaFileAlt />
                     نوع الإجازة
                   </span>
 
@@ -1728,17 +1954,28 @@ export default function LeavesList() {
                 </div>
 
                 <div className="detail-item">
-                  <span>الحالة</span>
+                  <span>
+                    <FaClock />
+                    عدد الأيام
+                  </span>
 
                   <strong>
-                    {getStatusLabel(
-                      selectedLeave.status
-                    )}
+                    {selectedLeave.days ??
+                      calculateDays(
+                        formatInputDate(
+                          selectedLeave.from_date
+                        ),
+                        formatInputDate(
+                          selectedLeave.to_date
+                        )
+                      )}{" "}
+                    يوم
                   </strong>
                 </div>
 
                 <div className="detail-item">
                   <span>
+                    <FaRegCalendarAlt />
                     تاريخ البداية
                   </span>
 
@@ -1751,6 +1988,7 @@ export default function LeavesList() {
 
                 <div className="detail-item">
                   <span>
+                    <FaRegCalendarAlt />
                     تاريخ النهاية
                   </span>
 
@@ -1760,37 +1998,13 @@ export default function LeavesList() {
                     )}
                   </strong>
                 </div>
-
-                <div className="detail-item">
-                  <span>
-                    عدد الأيام
-                  </span>
-
-                  <strong>
-                    {selectedLeave.days ??
-                      "-"}{" "}
-                    يوم
-                  </strong>
-                </div>
-
-                <div className="detail-item">
-                  <span>المرفق</span>
-
-                  <strong>
-                    {getAttachmentUrl(
-                      selectedLeave
-                    )
-                      ? "يوجد مرفق"
-                      : "لا يوجد"}
-                  </strong>
-                </div>
               </div>
 
               {selectedLeave.notes && (
-                <div className="details-notes">
-                  <h4>
-                    الملاحظات
-                  </h4>
+                <div className="notes-box">
+                  <span>
+                    <FaStickyNote /> الملاحظات
+                  </span>
 
                   <p>
                     {selectedLeave.notes}
@@ -1803,143 +2017,110 @@ export default function LeavesList() {
               ) && (
                 <button
                   type="button"
-                  className="details-attachment-button"
+                  className="modal-attachment-button"
                   onClick={() =>
                     openAttachment(
                       selectedLeave
                     )
                   }
                 >
-                  <FaPaperclip />
-                  عرض المرفق
+                  <span>
+                    <FaPaperclip />
+                    عرض المرفق
+                  </span>
+
+                  <FaEye />
                 </button>
               )}
             </div>
 
             <div className="modal-footer">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={
-                  closeLeaveDetails
-                }
-              >
-                إغلاق
-              </button>
+              {/* ACCEPT */}
+              {normalizeStatus(
+                selectedLeave.status
+              ) === "pending" && (
+                <button
+                  type="button"
+                  className="modal-action-button accept"
+                  onClick={() => {
+                    setSelectedLeave(null);
 
+                    requestStatusChange(
+                      selectedLeave.leave_id,
+                      "approved"
+                    );
+                  }}
+                  disabled={saving}
+                >
+                  <FaCheck />
+                  قبول
+                </button>
+              )}
+
+              {/* REJECT */}
+              {normalizeStatus(
+                selectedLeave.status
+              ) === "pending" && (
+                <button
+                  type="button"
+                  className="modal-action-button reject"
+                  onClick={() => {
+                    setSelectedLeave(null);
+
+                    requestStatusChange(
+                      selectedLeave.leave_id,
+                      "rejected"
+                    );
+                  }}
+                  disabled={saving}
+                >
+                  <FaTimes />
+                  رفض
+                </button>
+              )}
+
+              {/* EDIT ALWAYS */}
               <button
                 type="button"
-                className="primary-button"
+                className="modal-action-button edit"
                 onClick={() => {
                   const leave =
                     selectedLeave;
 
-                  setSelectedLeave(
-                    null
-                  );
+                  setSelectedLeave(null);
 
-                  openEditLeave(leave);
+                  openEditModal(leave);
                 }}
+                disabled={saving}
               >
                 <FaEdit />
-                تعديل الطلب
+                تعديل
               </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* =====================================================
-          ATTACHMENT MODAL
-      ===================================================== */}
+              {/* DELETE */}
+              <button
+                type="button"
+                className="modal-action-button delete"
+                onClick={() => {
+                  const id =
+                    selectedLeave.leave_id;
 
-      {selectedAttachment && (
-        <div
-          className="modal-overlay attachment-overlay"
-          onClick={closeAttachment}
-        >
-          <div
-            className="attachment-modal"
-            onClick={(e) =>
-              e.stopPropagation()
-            }
-          >
-            <div className="modal-header">
-              <div>
-                <h2>
-                  مرفق طلب الإجازة
-                </h2>
+                  setSelectedLeave(null);
 
-                <p>
-                  {selectedAttachment.employeeName}
-                </p>
-              </div>
+                  requestDelete(id);
+                }}
+                disabled={saving}
+              >
+                <FaTrash />
+                حذف
+              </button>
 
               <button
                 type="button"
-                className="modal-close"
-                onClick={
-                  closeAttachment
-                }
+                className="secondary-button"
+                onClick={closeDetails}
+                disabled={saving}
               >
-                <FaClose />
-              </button>
-            </div>
-
-            <div className="attachment-preview">
-              {selectedAttachment.isPdf ? (
-                <iframe
-                  src={
-                    selectedAttachment.url
-                  }
-                  title="Leave Attachment"
-                  className="pdf-preview"
-                />
-              ) : (
-                <img
-                  src={
-                    selectedAttachment.url
-                  }
-                  alt="مرفق الإجازة"
-                  className="image-preview"
-                />
-              )}
-            </div>
-
-            <div className="attachment-actions">
-              <a
-                href={
-                  selectedAttachment.url
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="attachment-action-button open"
-              >
-                <FaEye />
-                فتح في نافذة جديدة
-              </a>
-
-              <a
-                href={
-                  selectedAttachment.url
-                }
-                download
-                target="_blank"
-                rel="noopener noreferrer"
-                className="attachment-action-button download"
-              >
-                <FaDownload />
-                تحميل المرفق
-              </a>
-
-              <button
-                type="button"
-                className="attachment-action-button close"
-                onClick={
-                  closeAttachment
-                }
-              >
-                <FaClose />
                 إغلاق
               </button>
             </div>
@@ -1961,120 +2142,187 @@ export default function LeavesList() {
           }}
         >
           <div
-            className="edit-modal"
+            className="modal"
             onClick={(e) =>
               e.stopPropagation()
             }
           >
             <div className="modal-header">
-              <div>
-                <h2>
-                  تعديل طلب الإجازة
-                </h2>
+              <div className="modal-heading">
+                <div className="modal-icon edit-icon">
+                  <FaEdit />
+                </div>
 
-                <p>
-                  {getEmployeeName(
-                    editingLeave
-                  )}
-                </p>
+                <div>
+                  <h3 className="modal-title">
+                    تعديل طلب الإجازة
+                  </h3>
+
+                  <p className="modal-subtitle">
+                    تعديل بيانات طلب الموظف
+                  </p>
+                </div>
               </div>
 
               <button
                 type="button"
-                className="modal-close"
+                className="close-button"
                 onClick={
                   closeEditModal
                 }
                 disabled={saving}
               >
-                <FaClose />
+                <FaTimes />
               </button>
             </div>
 
-            <div className="edit-form">
+            <div className="modal-body">
+              <div className="edit-employee-preview">
+                <div className="avatar">
+                  {getEmployeeName(
+                    editingLeave
+                  )
+                    .charAt(0)
+                    .toUpperCase()}
+                </div>
+
+                <div>
+                  <strong>
+                    {getEmployeeName(
+                      editingLeave
+                    )}
+                  </strong>
+
+                  <span>
+                    {getEmployeeRole(
+                      editingLeave
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* TYPE */}
               <div className="form-group">
-                <label>
+                <label className="form-label">
                   نوع الإجازة
                 </label>
 
-                <select
-                  name="type"
-                  value={
-                    editForm.type
-                  }
-                  onChange={
-                    handleEditChange
-                  }
-                  disabled={saving}
-                >
-                  <option value="">
-                    اختر نوع الإجازة
-                  </option>
+                <div className="input-with-icon">
+                  <FaFileAlt />
 
-                  {leaveTypes.map(
-                    (type) => (
-                      <option
-                        key={type}
-                        value={type}
-                      >
-                        {getLeaveTypeLabel(
-                          type
-                        )}
-                      </option>
-                    )
-                  )}
-                </select>
+                  <select
+                    name="type"
+                    className="form-input"
+                    value={
+                      editForm.type
+                    }
+                    onChange={
+                      handleEditChange
+                    }
+                    disabled={saving}
+                  >
+                    <option value="">
+                      اختر نوع الإجازة
+                    </option>
+
+                    {leaveTypes.map(
+                      (type) => (
+                        <option
+                          key={type}
+                          value={type}
+                        >
+                          {getLeaveTypeLabel(
+                            type
+                          )}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
               </div>
 
-              <div className="form-row">
+              {/* DATES */}
+              <div className="edit-date-grid">
                 <div className="form-group">
-                  <label>
+                  <label className="form-label">
                     تاريخ البداية
                   </label>
 
-                  <input
-                    type="date"
-                    name="from_date"
-                    value={
-                      editForm.from_date
-                    }
-                    onChange={
-                      handleEditChange
-                    }
-                    disabled={saving}
-                  />
+                  <div className="input-with-icon">
+                    <FaCalendarAlt />
+
+                    <input
+                      type="date"
+                      name="from_date"
+                      className="form-input"
+                      value={
+                        editForm.from_date
+                      }
+                      onChange={
+                        handleEditChange
+                      }
+                      disabled={saving}
+                    />
+                  </div>
                 </div>
 
                 <div className="form-group">
-                  <label>
+                  <label className="form-label">
                     تاريخ النهاية
                   </label>
 
-                  <input
-                    type="date"
-                    name="to_date"
-                    value={
-                      editForm.to_date
-                    }
-                    min={
-                      editForm.from_date ||
-                      undefined
-                    }
-                    onChange={
-                      handleEditChange
-                    }
-                    disabled={saving}
-                  />
+                  <div className="input-with-icon">
+                    <FaCalendarAlt />
+
+                    <input
+                      type="date"
+                      name="to_date"
+                      className="form-input"
+                      value={
+                        editForm.to_date
+                      }
+                      min={
+                        editForm.from_date ||
+                        undefined
+                      }
+                      onChange={
+                        handleEditChange
+                      }
+                      disabled={saving}
+                    />
+                  </div>
                 </div>
               </div>
 
+              {/* DAYS */}
+              {editForm.from_date &&
+                editForm.to_date && (
+                  <div className="days-preview">
+                    <FaClock />
+
+                    <span>
+                      مدة الإجازة
+                    </span>
+
+                    <strong>
+                      {calculateDays(
+                        editForm.from_date,
+                        editForm.to_date
+                      )}{" "}
+                      يوم
+                    </strong>
+                  </div>
+                )}
+
+              {/* NOTES */}
               <div className="form-group">
-                <label>
+                <label className="form-label">
                   الملاحظات
                 </label>
 
                 <textarea
                   name="notes"
+                  className="form-textarea"
                   value={
                     editForm.notes
                   }
@@ -2082,50 +2330,53 @@ export default function LeavesList() {
                     handleEditChange
                   }
                   placeholder="أدخل الملاحظات إن وجدت..."
-                  rows="4"
                   disabled={saving}
                 />
               </div>
 
+              {/* ATTACHMENT */}
               <div className="form-group">
-                <label>
+                <label className="form-label">
                   المرفق
                 </label>
 
                 {getAttachmentUrl(
                   editingLeave
                 ) && (
-                  <div className="current-attachment">
-                    <div>
+                  <button
+                    type="button"
+                    className="modal-attachment-button"
+                    onClick={() =>
+                      openAttachment(
+                        editingLeave
+                      )
+                    }
+                    disabled={saving}
+                  >
+                    <span>
                       <FaPaperclip />
+                      عرض المرفق الحالي
+                    </span>
 
-                      <span>
-                        يوجد مرفق حالي
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openAttachment(
-                          editingLeave
-                        )
-                      }
-                      disabled={saving}
-                    >
-                      <FaEye />
-                      عرض
-                    </button>
-                  </div>
+                    <FaEye />
+                  </button>
                 )}
 
-                <label className="file-upload-box">
+                <label
+                  className="attachment-preview-button"
+                  style={{
+                    width: "100%",
+                    marginTop: "8px",
+                    justifyContent:
+                      "center",
+                    minHeight: "42px",
+                  }}
+                >
                   <FaPaperclip />
 
                   <span>
                     {editForm.attachment
-                      ? editForm
-                          .attachment
+                      ? editForm.attachment
                           .name
                       : "اختيار مرفق جديد"}
                   </span>
@@ -2134,20 +2385,31 @@ export default function LeavesList() {
                     type="file"
                     accept=".jpg,.jpeg,.png,.webp,.pdf"
                     onChange={
-                      handleEditFileChange
+                      handleFileChange
                     }
                     disabled={saving}
+                    style={{
+                      display: "none",
+                    }}
                   />
                 </label>
 
-                <small>
-                  يسمح بـ JPG, PNG, WEBP,
-                  PDF — الحد الأقصى 5MB
+                <small
+                  style={{
+                    display: "block",
+                    marginTop: "6px",
+                    color: "#94a3b8",
+                    fontSize: "9px",
+                    fontWeight: 600,
+                  }}
+                >
+                  JPG / PNG / WEBP / PDF — الحد
+                  الأقصى 5MB
                 </small>
               </div>
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-footer edit-footer">
               <button
                 type="button"
                 className="secondary-button"
@@ -2156,19 +2418,19 @@ export default function LeavesList() {
                 }
                 disabled={saving}
               >
-                <FaClose />
+                <FaTimes />
                 إلغاء
               </button>
 
               <button
                 type="button"
-                className="primary-button"
+                className="save-button"
                 onClick={saveEdit}
                 disabled={saving}
               >
                 {saving ? (
                   <>
-                    <FaSyncAlt className="spin-icon" />
+                    <FaSyncAlt className="refresh-spin" />
                     جاري الحفظ...
                   </>
                 ) : (
@@ -2184,7 +2446,7 @@ export default function LeavesList() {
       )}
 
       {/* =====================================================
-          CONFIRMATION MODAL
+          CONFIRM MODAL
       ===================================================== */}
 
       {confirmModal && (
@@ -2210,10 +2472,10 @@ export default function LeavesList() {
               {confirmModal.message}
             </p>
 
-            <div className="confirm-actions">
+            <div className="confirm-footer">
               <button
                 type="button"
-                className="confirm-cancel"
+                className="secondary-button"
                 onClick={
                   closeConfirmModal
                 }
@@ -2224,7 +2486,7 @@ export default function LeavesList() {
 
               <button
                 type="button"
-                className={`confirm-submit ${confirmModal.type}`}
+                className={`confirm-button ${confirmModal.type}`}
                 onClick={
                   confirmAction
                 }
@@ -2232,12 +2494,117 @@ export default function LeavesList() {
               >
                 {saving ? (
                   <>
-                    <FaSyncAlt className="spin-icon" />
+                    <span className="button-spinner"></span>
                     جاري التنفيذ...
                   </>
                 ) : (
-                  confirmModal.confirmText
+                  <>
+                    {confirmModal.icon}
+                    {
+                      confirmModal.confirmText
+                    }
+                  </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          ATTACHMENT MODAL
+      ===================================================== */}
+
+      {selectedAttachment && (
+        <div
+          className="modal-overlay"
+          onClick={closeAttachment}
+        >
+          <div
+            className="attachment-modal"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+            <div className="attachment-modal-header">
+              <div>
+                <h3>
+                  مرفق طلب الإجازة
+                </h3>
+
+                <p>
+                  {
+                    selectedAttachment.employeeName
+                  }
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="close-button"
+                onClick={
+                  closeAttachment
+                }
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="attachment-modal-body">
+              {selectedAttachment.isPdf ? (
+                <iframe
+                  src={
+                    selectedAttachment.url
+                  }
+                  title="مرفق الإجازة"
+                  className="pdf-viewer"
+                />
+              ) : (
+                <img
+                  src={
+                    selectedAttachment.url
+                  }
+                  alt="مرفق الإجازة"
+                  className="attachment-full-image"
+                />
+              )}
+            </div>
+
+            <div className="attachment-modal-footer">
+              <a
+                href={
+                  selectedAttachment.url
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="download-button"
+              >
+                <FaEye />
+                فتح
+              </a>
+
+              <a
+                href={
+                  selectedAttachment.url
+                }
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="download-button"
+              >
+                <FaDownload />
+                تحميل
+              </a>
+
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={
+                  closeAttachment
+                }
+              >
+                <FaTimes />
+                إغلاق
               </button>
             </div>
           </div>
