@@ -1,6 +1,15 @@
-
 import { useCallback, useEffect, useMemo, useState } from "react";
+
 import API from "../api/api";
+
+import {
+  FaCalendarAlt,
+  FaCheckCircle,
+  FaClock,
+  FaHourglassHalf,
+  FaTimesCircle,
+} from "react-icons/fa";
+
 import "./SelectTask.css";
 
 export default function SelectTask() {
@@ -28,10 +37,14 @@ export default function SelectTask() {
   // البحث داخل قائمة الموظفين
   const [employeeSearch, setEmployeeSearch] = useState("");
 
-  // Form إضافة / تعديل مهمة
+  // =========================================================
+  // FORM
+  // =========================================================
+
   const [form, setForm] = useState({
     title: "",
     description: "",
+    due_date: "",
     employee_id: "",
   });
 
@@ -86,12 +99,7 @@ export default function SelectTask() {
   );
 
   /**
-   * استخراج IDs الموظفين المرتبطين بالمهمة.
-   *
-   * يدعم:
-   * employees: [{ employee_id: 1 }, ...]
-   * employee_ids: [1,2,3]
-   * employee_id: 1
+   * استخراج IDs الموظفين المرتبطين بالمهمة
    */
   const getTaskEmployeeIds = useCallback(
     (task) => {
@@ -135,7 +143,10 @@ export default function SelectTask() {
       ) {
         const id = Number(task.employee_id);
 
-        if (Number.isInteger(id) && id > 0) {
+        if (
+          Number.isInteger(id) &&
+          id > 0
+        ) {
           return [id];
         }
       }
@@ -158,7 +169,19 @@ export default function SelectTask() {
             Number(getEmployeeId(item)) === Number(id)
         );
 
+        // إذا كان الـ Backend يرجع الموظف داخل المهمة
+        const taskEmployee = Array.isArray(
+          task?.employees
+        )
+          ? task.employees.find(
+              (item) =>
+                Number(getEmployeeId(item)) ===
+                Number(id)
+            )
+          : null;
+
         return (
+          taskEmployee ||
           employee || {
             employee_id: id,
             name: `موظف #${id}`,
@@ -166,8 +189,122 @@ export default function SelectTask() {
         );
       });
     },
-    [employees, getEmployeeId, getTaskEmployeeIds]
+    [
+      employees,
+      getEmployeeId,
+      getTaskEmployeeIds,
+    ]
   );
+
+  // =========================================================
+  // FORMAT DATE
+  // =========================================================
+
+  const formatDate = (date) => {
+    if (!date) return "غير محدد";
+
+    return new Date(date).toLocaleDateString(
+      "ar-SA",
+      {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }
+    );
+  };
+
+  // =========================================================
+  // FORMAT DATE FOR INPUT
+  // =========================================================
+
+  const formatDateForInput = (date) => {
+    if (!date) return "";
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "";
+    }
+
+    const year = parsedDate.getFullYear();
+
+    const month = String(
+      parsedDate.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+      parsedDate.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  // =========================================================
+  // GET EMPLOYEE TASK STATUS
+  // =========================================================
+
+  const getEmployeeTaskStatus = (employee) => {
+    if (
+      employee?.status === "completed" ||
+      employee?.task_status === "completed"
+    ) {
+      return {
+        text: "تم الإنجاز",
+        className: "completed",
+        icon: <FaCheckCircle />,
+      };
+    }
+
+    return {
+      text: "قيد التنفيذ",
+      className: "pending",
+      icon: <FaHourglassHalf />,
+    };
+  };
+
+  // =========================================================
+  // GET TASK OVERALL STATUS
+  // =========================================================
+
+  const getTaskOverallStatus = (task) => {
+    const employeeIds = getTaskEmployeeIds(task);
+
+    // لا يوجد موظفون
+    if (employeeIds.length === 0) {
+      return {
+        text: "غير معينة",
+        className: "unassigned",
+        icon: <FaTimesCircle />,
+      };
+    }
+
+    const taskEmployees = getTaskEmployees(task);
+
+    const completedCount = taskEmployees.filter(
+      (employee) =>
+        employee?.status === "completed" ||
+        employee?.task_status === "completed"
+    ).length;
+
+    // جميع الموظفين أنجزوا المهمة
+    if (
+      completedCount === taskEmployees.length &&
+      taskEmployees.length > 0
+    ) {
+      return {
+        text: "مكتملة",
+        className: "completed",
+        icon: <FaCheckCircle />,
+      };
+    }
+
+    // يوجد موظفون ولم ينتهوا جميعًا
+    return {
+      text: "قيد التنفيذ",
+      className: "pending",
+      icon: <FaHourglassHalf />,
+    };
+  };
 
   // =========================================================
   // FETCH TASKS
@@ -216,7 +353,10 @@ export default function SelectTask() {
         ) {
           const id = Number(task.employee_id);
 
-          if (Number.isInteger(id) && id > 0) {
+          if (
+            Number.isInteger(id) &&
+            id > 0
+          ) {
             employeeIds = [id];
           }
         }
@@ -234,21 +374,26 @@ export default function SelectTask() {
 
         return {
           ...task,
+
           employee_ids: employeeIds,
+
           employee_id:
             employeeIds.length > 0
               ? employeeIds[0]
               : null,
+
+          due_date:
+            task.due_date ||
+            task.deadline ||
+            null,
         };
       });
 
       setTasks(normalizedTasks);
     } catch (error) {
-      console.error("FETCH TASKS ERROR:", error);
-
-      alert(
-        error?.response?.data?.message ||
-          "حدث خطأ أثناء جلب المهام"
+      console.error(
+        "FETCH TASKS ERROR:",
+        error
       );
     } finally {
       setLoading(false);
@@ -261,7 +406,9 @@ export default function SelectTask() {
 
   const fetchEmployees = useCallback(async () => {
     try {
-      const res = await API.get("/tasks/employees");
+      const res = await API.get(
+        "/tasks/employees"
+      );
 
       const data = Array.isArray(res.data)
         ? res.data
@@ -271,11 +418,9 @@ export default function SelectTask() {
 
       setEmployees(data);
     } catch (error) {
-      console.error("FETCH EMPLOYEES ERROR:", error);
-
-      alert(
-        error?.response?.data?.message ||
-          "حدث خطأ أثناء جلب الموظفين"
+      console.error(
+        "FETCH EMPLOYEES ERROR:",
+        error
       );
     }
   }, []);
@@ -300,7 +445,9 @@ export default function SelectTask() {
   // =========================================================
 
   const filteredTasks = useMemo(() => {
-    const value = search.trim().toLowerCase();
+    const value = search
+      .trim()
+      .toLowerCase();
 
     if (!value) {
       return tasks;
@@ -315,16 +462,17 @@ export default function SelectTask() {
         task.description || ""
       ).toLowerCase();
 
-      const employeeNames = getTaskEmployees(task)
-        .map(
-          (employee) =>
-            employee.name ||
-            employee.full_name ||
-            employee.username ||
-            ""
-        )
-        .join(" ")
-        .toLowerCase();
+      const employeeNames =
+        getTaskEmployees(task)
+          .map(
+            (employee) =>
+              employee.name ||
+              employee.full_name ||
+              employee.username ||
+              ""
+          )
+          .join(" ")
+          .toLowerCase();
 
       return (
         title.includes(value) ||
@@ -332,7 +480,11 @@ export default function SelectTask() {
         employeeNames.includes(value)
       );
     });
-  }, [tasks, search, getTaskEmployees]);
+  }, [
+    tasks,
+    search,
+    getTaskEmployees,
+  ]);
 
   // =========================================================
   // STATISTICS
@@ -340,12 +492,28 @@ export default function SelectTask() {
 
   const totalTasks = tasks.length;
 
-  const assignedTasks = tasks.filter((task) => {
-    return getTaskEmployeeIds(task).length > 0;
-  }).length;
+  const assignedTasks = tasks.filter(
+    (task) => {
+      return (
+        getTaskEmployeeIds(task).length > 0
+      );
+    }
+  ).length;
 
   const unassignedTasks =
     totalTasks - assignedTasks;
+
+  const completedTasks = tasks.filter(
+    (task) =>
+      getTaskOverallStatus(task).className ===
+      "completed"
+  ).length;
+
+  const pendingTasks = tasks.filter(
+    (task) =>
+      getTaskOverallStatus(task).className ===
+      "pending"
+  ).length;
 
   // =========================================================
   // FORM
@@ -370,6 +538,7 @@ export default function SelectTask() {
     setForm({
       title: "",
       description: "",
+      due_date: "",
       employee_id: "",
     });
 
@@ -389,6 +558,9 @@ export default function SelectTask() {
     setForm({
       title: task.title || "",
       description: task.description || "",
+      due_date: formatDateForInput(
+        task.due_date
+      ),
       employee_id:
         employeeIds.length > 0
           ? String(employeeIds[0])
@@ -406,11 +578,13 @@ export default function SelectTask() {
     if (saving) return;
 
     setShowModal(false);
+
     setEditingTask(null);
 
     setForm({
       title: "",
       description: "",
+      due_date: "",
       employee_id: "",
     });
   };
@@ -425,16 +599,18 @@ export default function SelectTask() {
     if (saving) return;
 
     const title = form.title.trim();
-    const description = form.description.trim();
+
+    const description =
+      form.description.trim();
 
     if (!title) {
-      alert("يرجى إدخال عنوان المهمة");
       return;
     }
 
     const taskData = {
       title,
       description,
+      due_date: form.due_date || null,
       employee_id: form.employee_id
         ? Number(form.employee_id)
         : null,
@@ -459,15 +635,18 @@ export default function SelectTask() {
               ? {
                   ...task,
                   ...updatedTask,
+
                   task_id:
                     updatedTask?.task_id ??
                     task.task_id,
+
+                  due_date:
+                    updatedTask?.due_date ??
+                    taskData.due_date,
                 }
               : task
           )
         );
-
-        alert("تم تعديل المهمة بنجاح ✅");
       } else {
         const res = await API.post(
           "/tasks",
@@ -481,22 +660,23 @@ export default function SelectTask() {
           setTasks((prev) => [
             {
               ...newTask,
+
               employee_ids: [],
+
+              due_date:
+                newTask.due_date ??
+                taskData.due_date,
             },
             ...prev,
           ]);
         }
-
-        alert("تم إنشاء المهمة بنجاح ✅");
       }
 
       closeModal();
     } catch (error) {
-      console.error("SAVE TASK ERROR:", error);
-
-      alert(
-        error?.response?.data?.message ||
-          "حدث خطأ أثناء حفظ المهمة"
+      console.error(
+        "SAVE TASK ERROR:",
+        error
       );
     } finally {
       setSaving(false);
@@ -530,14 +710,10 @@ export default function SelectTask() {
             Number(task.task_id)
         )
       );
-
-      alert("تم حذف المهمة بنجاح ✅");
     } catch (error) {
-      console.error("DELETE TASK ERROR:", error);
-
-      alert(
-        error?.response?.data?.message ||
-          "حدث خطأ أثناء حذف المهمة"
+      console.error(
+        "DELETE TASK ERROR:",
+        error
       );
     } finally {
       setSaving(false);
@@ -571,7 +747,9 @@ export default function SelectTask() {
     if (saving) return;
 
     setAssigningTask(null);
+
     setSelectedEmployees([]);
+
     setEmployeeSearch("");
   };
 
@@ -621,7 +799,7 @@ export default function SelectTask() {
   };
 
   // =========================================================
-  // FILTER EMPLOYEES IN ASSIGN MODAL
+  // FILTER EMPLOYEES
   // =========================================================
 
   const filteredEmployees = useMemo(() => {
@@ -661,14 +839,13 @@ export default function SelectTask() {
   ]);
 
   // =========================================================
-  // ASSIGN TASK TO MULTIPLE EMPLOYEES
+  // ASSIGN TASK
   // =========================================================
 
   const assignTask = async () => {
     if (saving) return;
 
     if (!assigningTask) {
-      alert("لم يتم تحديد المهمة");
       return;
     }
 
@@ -682,28 +859,20 @@ export default function SelectTask() {
           .map(Number)
           .filter(
             (id) =>
-              Number.isInteger(id) && id > 0
+              Number.isInteger(id) &&
+              id > 0
           )
       ),
     ];
-
-    console.log("ASSIGN DATA:", {
-      employee_ids: employeeIds,
-      task_id: taskId,
-    });
 
     if (
       !Number.isInteger(taskId) ||
       taskId <= 0
     ) {
-      alert("معرّف المهمة غير صحيح");
       return;
     }
 
     if (employeeIds.length === 0) {
-      alert(
-        "يرجى اختيار موظف واحد على الأقل"
-      );
       return;
     }
 
@@ -718,14 +887,10 @@ export default function SelectTask() {
         }
       );
 
-      console.log(
-        "ASSIGN RESPONSE:",
-        res.data
-      );
-
-      // الموظفون الذين تم إرجاعهم من السيرفر
       const returnedEmployees =
-        Array.isArray(res.data?.employees)
+        Array.isArray(
+          res.data?.employees
+        )
           ? res.data.employees
           : employeeIds.map((id) => {
               const employee =
@@ -740,11 +905,23 @@ export default function SelectTask() {
                 employee || {
                   employee_id: id,
                   name: `موظف #${id}`,
+                  status: "pending",
                 }
               );
             });
 
-      // تحديث المهمة مباشرة بدون إعادة تحميل الصفحة
+      // بعد التعيين جميع الموظفين يبدأون المهمة
+      // بحالة قيد التنفيذ
+      const normalizedEmployees =
+        returnedEmployees.map(
+          (employee) => ({
+            ...employee,
+            status:
+              employee.status ||
+              "pending",
+          })
+        );
+
       setTasks((prev) =>
         prev.map((task) => {
           if (
@@ -759,24 +936,15 @@ export default function SelectTask() {
 
             employee_ids: employeeIds,
 
-            // للحفاظ على توافق الكود القديم
             employee_id:
               employeeIds.length > 0
                 ? employeeIds[0]
                 : null,
 
             employees:
-              returnedEmployees,
+              normalizedEmployees,
           };
         })
-      );
-
-      alert(
-        `تم تعيين المهمة لـ ${employeeIds.length} موظف ${
-          employeeIds.length === 1
-            ? "بنجاح"
-            : "بنجاح"
-        } ✅`
       );
 
       closeAssignModal();
@@ -790,11 +958,6 @@ export default function SelectTask() {
         "SERVER DATA:",
         error?.response?.data
       );
-
-      alert(
-        error?.response?.data?.message ||
-          "حدث خطأ أثناء تعيين المهمة"
-      );
     } finally {
       setSaving(false);
     }
@@ -805,7 +968,10 @@ export default function SelectTask() {
   // =========================================================
 
   return (
-    <div className="select-task-page" dir="rtl">
+    <div
+      className="select-task-page"
+      dir="rtl"
+    >
       {/* =====================================================
           HEADER
       ====================================================== */}
@@ -835,28 +1001,61 @@ export default function SelectTask() {
 
       <div className="task-stats">
         <div className="stat-card">
-          <div className="stat-icon">📋</div>
+          <div className="stat-icon">
+            📋
+          </div>
 
           <div>
             <span>إجمالي المهام</span>
+
             <strong>{totalTasks}</strong>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">👥</div>
+          <div className="stat-icon">
+            👥
+          </div>
 
           <div>
             <span>المهام المعينة</span>
+
             <strong>{assignedTasks}</strong>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">⏳</div>
+          <div className="stat-icon">
+            ⏳
+          </div>
+
+          <div>
+            <span>قيد التنفيذ</span>
+
+            <strong>{pendingTasks}</strong>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">
+            ✅
+          </div>
+
+          <div>
+            <span>المهام المكتملة</span>
+
+            <strong>{completedTasks}</strong>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">
+            📭
+          </div>
 
           <div>
             <span>غير المعينة</span>
+
             <strong>{unassignedTasks}</strong>
           </div>
         </div>
@@ -906,11 +1105,16 @@ export default function SelectTask() {
       {loading ? (
         <div className="loading-state">
           <div className="loader"></div>
-          <p>جاري تحميل المهام...</p>
+
+          <p>
+            جاري تحميل المهام...
+          </p>
         </div>
       ) : filteredTasks.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📋</div>
+          <div className="empty-icon">
+            📋
+          </div>
 
           <h3>
             {search
@@ -948,6 +1152,9 @@ export default function SelectTask() {
 
             const isAssigned =
               employeeCount > 0;
+
+            const overallStatus =
+              getTaskOverallStatus(task);
 
             return (
               <div
@@ -999,9 +1206,43 @@ export default function SelectTask() {
                     </p>
                   )}
 
-                  {/* =========================================
-                      EMPLOYEES
-                  ========================================== */}
+                  {/* =================================================
+                      DATE + STATUS
+                  ================================================= */}
+
+                  <div className="task-meta">
+                    {/* DUE DATE */}
+
+                    <div className="task-due-date">
+                      <FaCalendarAlt />
+
+                      <div>
+                        <span>
+                          تاريخ الاستحقاق
+                        </span>
+
+                        <strong>
+                          {formatDate(
+                            task.due_date
+                          )}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* OVERALL STATUS */}
+
+                    <div
+                      className={`task-overall-status ${overallStatus.className}`}
+                    >
+                      {overallStatus.icon}
+
+                      <span>
+                        {overallStatus.text}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* EMPLOYEES */}
 
                   <div className="task-employees-section">
                     <div className="section-title">
@@ -1025,6 +1266,7 @@ export default function SelectTask() {
                     {!isAssigned ? (
                       <div className="no-employees">
                         <span>👤</span>
+
                         <span>
                           لم يتم تعيين موظفين
                         </span>
@@ -1032,7 +1274,10 @@ export default function SelectTask() {
                     ) : (
                       <div className="assigned-employees">
                         {taskEmployees.map(
-                          (employee, index) => {
+                          (
+                            employee,
+                            index
+                          ) => {
                             const employeeId =
                               getEmployeeId(
                                 employee
@@ -1044,6 +1289,11 @@ export default function SelectTask() {
                               employee.username ||
                               `موظف #${employeeId}`;
 
+                            const employeeStatus =
+                              getEmployeeTaskStatus(
+                                employee
+                              );
+
                             return (
                               <div
                                 className="employee-chip"
@@ -1051,12 +1301,31 @@ export default function SelectTask() {
                               >
                                 <span className="employee-avatar">
                                   {name
-                                    .charAt(0)
+                                    .charAt(
+                                      0
+                                    )
                                     .toUpperCase()}
                                 </span>
 
                                 <span className="employee-name">
                                   {name}
+                                </span>
+
+                                {/* حالة الموظف */}
+
+                                <span
+                                  className={`employee-task-status ${employeeStatus.className}`}
+                                  title={
+                                    employeeStatus.text
+                                  }
+                                >
+                                  {
+                                    employeeStatus.icon
+                                  }
+
+                                  {
+                                    employeeStatus.text
+                                  }
                                 </span>
                               </div>
                             );
@@ -1116,7 +1385,8 @@ export default function SelectTask() {
           className="modal-overlay"
           onMouseDown={(e) => {
             if (
-              e.target === e.currentTarget
+              e.target ===
+              e.currentTarget
             ) {
               closeModal();
             }
@@ -1152,6 +1422,8 @@ export default function SelectTask() {
             </div>
 
             <form onSubmit={saveTask}>
+              {/* TITLE */}
+
               <div className="form-group">
                 <label>
                   عنوان المهمة
@@ -1161,12 +1433,16 @@ export default function SelectTask() {
                   type="text"
                   name="title"
                   value={form.title}
-                  onChange={handleFormChange}
+                  onChange={
+                    handleFormChange
+                  }
                   placeholder="مثال: إعداد التقرير الشهري"
                   disabled={saving}
                   autoFocus
                 />
               </div>
+
+              {/* DESCRIPTION */}
 
               <div className="form-group">
                 <label>
@@ -1175,20 +1451,57 @@ export default function SelectTask() {
 
                 <textarea
                   name="description"
-                  value={form.description}
-                  onChange={handleFormChange}
+                  value={
+                    form.description
+                  }
+                  onChange={
+                    handleFormChange
+                  }
                   placeholder="اكتب وصف المهمة هنا..."
                   rows={5}
                   disabled={saving}
                 />
               </div>
 
+              {/* =================================================
+                  DUE DATE
+              ================================================= */}
+
+              <div className="form-group">
+                <label>
+                  تاريخ استحقاق المهمة
+                </label>
+
+                <div className="date-input-wrapper">
+                  <FaCalendarAlt />
+
+                  <input
+                    type="date"
+                    name="due_date"
+                    value={
+                      form.due_date
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    disabled={saving}
+                  />
+                </div>
+
+                <small className="form-help-text">
+                  التاريخ الذي يجب إنجاز المهمة
+                  قبله.
+                </small>
+              </div>
+
               <div className="form-note">
-                💡 بعد إنشاء المهمة يمكنك الضغط على
+                💡 بعد إنشاء المهمة يمكنك
+                الضغط على{" "}
                 <strong>
                   "تعيين موظفين"
-                </strong>
-                لاختيار موظف واحد أو عدة موظفين.
+                </strong>{" "}
+                لاختيار موظف واحد أو عدة
+                موظفين.
               </div>
 
               <div className="modal-actions">
@@ -1230,7 +1543,8 @@ export default function SelectTask() {
           className="modal-overlay"
           onMouseDown={(e) => {
             if (
-              e.target === e.currentTarget
+              e.target ===
+              e.currentTarget
             ) {
               closeAssignModal();
             }
@@ -1258,11 +1572,31 @@ export default function SelectTask() {
               <button
                 type="button"
                 className="modal-close"
-                onClick={closeAssignModal}
+                onClick={
+                  closeAssignModal
+                }
                 disabled={saving}
               >
                 ×
               </button>
+            </div>
+
+            {/* TASK DATE */}
+
+            <div className="assign-task-date">
+              <FaCalendarAlt />
+
+              <div>
+                <span>
+                  تاريخ استحقاق المهمة
+                </span>
+
+                <strong>
+                  {formatDate(
+                    assigningTask.due_date
+                  )}
+                </strong>
+              </div>
             </div>
 
             {/* SELECTED COUNT */}
@@ -1290,7 +1624,9 @@ export default function SelectTask() {
 
               <input
                 type="text"
-                value={employeeSearch}
+                value={
+                  employeeSearch
+                }
                 onChange={(e) =>
                   setEmployeeSearch(
                     e.target.value
@@ -1304,7 +1640,9 @@ export default function SelectTask() {
                 <button
                   type="button"
                   onClick={() =>
-                    setEmployeeSearch("")
+                    setEmployeeSearch(
+                      ""
+                    )
                   }
                 >
                   ×
@@ -1317,7 +1655,9 @@ export default function SelectTask() {
             <div className="employees-actions">
               <button
                 type="button"
-                onClick={selectAllEmployees}
+                onClick={
+                  selectAllEmployees
+                }
                 disabled={
                   saving ||
                   employees.length === 0
@@ -1328,7 +1668,9 @@ export default function SelectTask() {
 
               <button
                 type="button"
-                onClick={clearSelectedEmployees}
+                onClick={
+                  clearSelectedEmployees
+                }
                 disabled={
                   saving ||
                   selectedEmployees.length ===
@@ -1348,24 +1690,31 @@ export default function SelectTask() {
                   <span>🔍</span>
 
                   <p>
-                    لا يوجد موظفون مطابقون للبحث
+                    لا يوجد موظفون مطابقون
+                    للبحث
                   </p>
                 </div>
               ) : (
                 filteredEmployees.map(
                   (employee) => {
                     const employeeId =
-                      getEmployeeId(employee);
+                      getEmployeeId(
+                        employee
+                      );
 
                     if (
-                      employeeId === null ||
-                      employeeId === undefined
+                      employeeId ===
+                        null ||
+                      employeeId ===
+                        undefined
                     ) {
                       return null;
                     }
 
                     const id =
-                      String(employeeId);
+                      String(
+                        employeeId
+                      );
 
                     const checked =
                       selectedEmployees.includes(
@@ -1379,11 +1728,14 @@ export default function SelectTask() {
                       `موظف #${employeeId}`;
 
                     const email =
-                      employee.email || "";
+                      employee.email ||
+                      "";
 
                     return (
                       <label
-                        key={employeeId}
+                        key={
+                          employeeId
+                        }
                         className={
                           checked
                             ? "employee-check-item selected"
@@ -1402,12 +1754,15 @@ export default function SelectTask() {
                         />
 
                         <span className="custom-checkbox">
-                          {checked && "✓"}
+                          {checked &&
+                            "✓"}
                         </span>
 
                         <span className="employee-check-avatar">
                           {name
-                            .charAt(0)
+                            .charAt(
+                              0
+                            )
                             .toUpperCase()}
                         </span>
 
@@ -1446,7 +1801,9 @@ export default function SelectTask() {
                   <>
                     تم اختيار{" "}
                     <strong>
-                      {selectedEmployees.length}
+                      {
+                        selectedEmployees.length
+                      }
                     </strong>{" "}
                     موظف
                   </>
@@ -1457,7 +1814,9 @@ export default function SelectTask() {
                 <button
                   type="button"
                   className="cancel-btn"
-                  onClick={closeAssignModal}
+                  onClick={
+                    closeAssignModal
+                  }
                   disabled={saving}
                 >
                   إلغاء

@@ -14,6 +14,17 @@ export default function AddTask() {
     message: "",
   });
 
+  // الحصول على تاريخ اليوم بصيغة YYYY-MM-DD
+  const getToday = () => {
+    const today = new Date();
+
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
   const showModal = (type, title, message) => {
     setModal({
       open: true,
@@ -44,7 +55,7 @@ export default function AddTask() {
       showModal(
         "warning",
         "تاريخ المهمة مطلوب",
-        "يرجى تحديد تاريخ المهمة."
+        "يرجى تحديد تاريخ استحقاق المهمة."
       );
       return;
     }
@@ -114,7 +125,7 @@ export default function AddTask() {
           />
         </div>
 
-        {/* تاريخ المهمة */}
+        {/* تاريخ استحقاق المهمة */}
         <div style={styles.field}>
           <label style={styles.label}>
             تاريخ استحقاق المهمة
@@ -124,8 +135,13 @@ export default function AddTask() {
             type="date"
             style={styles.input}
             value={dueDate}
+            min={getToday()}
             onChange={(e) => setDueDate(e.target.value)}
           />
+
+          <small style={styles.dateHint}>
+            حدد آخر تاريخ يجب إنجاز المهمة قبله.
+          </small>
         </div>
 
         {/* حالة المهمة */}
@@ -134,7 +150,9 @@ export default function AddTask() {
             <input
               type="checkbox"
               checked={completed}
-              onChange={(e) => setCompleted(e.target.checked)}
+              onChange={(e) =>
+                setCompleted(e.target.checked)
+              }
             />
 
             <span>
@@ -185,8 +203,6 @@ export default function AddTask() {
             >
               {modal.type === "success"
                 ? "✓"
-                : modal.type === "error"
-                ? "!"
                 : "!"}
             </div>
 
@@ -281,6 +297,11 @@ const styles = {
     fontSize: "14px",
     background: "#fff",
     color: "#172033",
+  },
+
+  dateHint: {
+    color: "#cbd5e1",
+    fontSize: "11px",
   },
 
   statusBox: {

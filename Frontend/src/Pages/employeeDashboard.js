@@ -15,6 +15,8 @@ import {
   FaTasks,
   FaCog,
   FaChevronLeft,
+  FaExclamationTriangle,
+  FaUndo,
 } from "react-icons/fa";
 
 import "./employeeDashboard.css";
@@ -29,6 +31,35 @@ export default function EmployeeDashboard() {
   const [loadingEmployee, setLoadingEmployee] = useState(true);
   const [loadingLeaves, setLoadingLeaves] = useState(true);
   const [loadingTasks, setLoadingTasks] = useState(true);
+
+  // =========================================================
+  // TASK MODAL
+  // =========================================================
+
+  const [taskModal, setTaskModal] = useState({
+    open: false,
+    type: "confirm",
+    taskId: null,
+    title: "",
+    message: "",
+  });
+
+  const [completingTaskId, setCompletingTaskId] = useState(null);
+
+  // =========================================================
+  // SUCCESS / ERROR MODAL
+  // =========================================================
+
+  const [messageModal, setMessageModal] = useState({
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
+
+  // =========================================================
+  // LOAD DATA
+  // =========================================================
 
   useEffect(() => {
     fetchEmployee();
@@ -72,6 +103,7 @@ export default function EmployeeDashboard() {
       setLeaves(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Leaves Error:", err);
+
       setLeaves([]);
     } finally {
       setLoadingLeaves(false);
@@ -91,6 +123,7 @@ export default function EmployeeDashboard() {
       setTasks(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Tasks Error:", err);
+
       setTasks([]);
     } finally {
       setLoadingTasks(false);
@@ -152,18 +185,243 @@ export default function EmployeeDashboard() {
   };
 
   // =========================================================
+  // TASK STATUS
+  // =========================================================
+
+  const getTaskStatus = (status) => {
+    if (status === "completed") {
+      return {
+        text: "تم الإنجاز",
+        icon: <FaCheckCircle />,
+        className: "completed",
+      };
+    }
+
+    return {
+      text: "قيد التنفيذ",
+      icon: <FaHourglassHalf />,
+      className: "pending",
+    };
+  };
+
+  // =========================================================
+  // OPEN COMPLETE MODAL
+  // =========================================================
+
+  const openCompleteTaskModal = (taskId) => {
+    const selectedTask = tasks.find(
+      (task) => task.employee_task_id === taskId
+    );
+
+    if (!selectedTask) return;
+
+    setTaskModal({
+      open: true,
+      type: "complete",
+      taskId,
+      title: "إنهاء المهمة",
+      message: `هل أنت متأكد من أنك أنجزت المهمة "${selectedTask.title}"؟`,
+    });
+  };
+
+  // =========================================================
+  // OPEN REOPEN MODAL
+  // =========================================================
+
+  const openReopenTaskModal = (taskId) => {
+    const selectedTask = tasks.find(
+      (task) => task.employee_task_id === taskId
+    );
+
+    if (!selectedTask) return;
+
+    setTaskModal({
+      open: true,
+      type: "reopen",
+      taskId,
+      title: "إعادة فتح المهمة",
+      message: `هل تريد إعادة المهمة "${selectedTask.title}" إلى حالة قيد التنفيذ؟`,
+    });
+  };
+
+  // =========================================================
+  // CLOSE TASK MODAL
+  // =========================================================
+
+  const closeTaskModal = () => {
+    if (completingTaskId) return;
+
+    setTaskModal({
+      open: false,
+      type: "confirm",
+      taskId: null,
+      title: "",
+      message: "",
+    });
+  };
+
+  // =========================================================
+  // COMPLETE TASK
+  // =========================================================
+
+  const completeTask = async () => {
+    const taskId = taskModal.taskId;
+
+    if (!taskId) return;
+
+    try {
+      setCompletingTaskId(taskId);
+
+      await API.put(`/tasks/${taskId}/complete`);
+
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.employee_task_id === taskId
+            ? {
+                ...task,
+                status: "completed",
+              }
+            : task
+        )
+      );
+
+      setTaskModal({
+        open: false,
+        type: "confirm",
+        taskId: null,
+        title: "",
+        message: "",
+      });
+
+      setMessageModal({
+        open: true,
+        type: "success",
+        title: "تم إنجاز المهمة",
+        message: "تم تسجيل المهمة كمهمة منجزة بنجاح.",
+      });
+    } catch (err) {
+      console.error("Complete Task Error:", err);
+
+      setTaskModal({
+        open: false,
+        type: "confirm",
+        taskId: null,
+        title: "",
+        message: "",
+      });
+
+      setMessageModal({
+        open: true,
+        type: "error",
+        title: "تعذر إنهاء المهمة",
+        message:
+          err?.response?.data?.message ||
+          "حدث خطأ أثناء تسجيل المهمة كمكتملة. حاول مرة أخرى.",
+      });
+    } finally {
+      setCompletingTaskId(null);
+    }
+  };
+
+  // =========================================================
+  // REOPEN TASK
+  // =========================================================
+
+  const reopenTask = async () => {
+    const taskId = taskModal.taskId;
+
+    if (!taskId) return;
+
+    try {
+      setCompletingTaskId(taskId);
+
+      await API.put(`/tasks/${taskId}/reopen`);
+
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.employee_task_id === taskId
+            ? {
+                ...task,
+                status: "pending",
+              }
+            : task
+        )
+      );
+
+      setTaskModal({
+        open: false,
+        type: "confirm",
+        taskId: null,
+        title: "",
+        message: "",
+      });
+
+      setMessageModal({
+        open: true,
+        type: "success",
+        title: "تمت إعادة فتح المهمة",
+        message: "تمت إعادة المهمة إلى حالة قيد التنفيذ.",
+      });
+    } catch (err) {
+      console.error("Reopen Task Error:", err);
+
+      setTaskModal({
+        open: false,
+        type: "confirm",
+        taskId: null,
+        title: "",
+        message: "",
+      });
+
+      setMessageModal({
+        open: true,
+        type: "error",
+        title: "تعذر إعادة فتح المهمة",
+        message:
+          err?.response?.data?.message ||
+          "حدث خطأ أثناء إعادة فتح المهمة. حاول مرة أخرى.",
+      });
+    } finally {
+      setCompletingTaskId(null);
+    }
+  };
+
+  // =========================================================
+  // CLOSE MESSAGE MODAL
+  // =========================================================
+
+  const closeMessageModal = () => {
+    setMessageModal({
+      open: false,
+      type: "success",
+      title: "",
+      message: "",
+    });
+  };
+
+  // =========================================================
+  // TASK COUNTS
+  // =========================================================
+
+  const completedTasks = tasks.filter(
+    (task) => task.status === "completed"
+  ).length;
+
+  const pendingTasks = tasks.filter(
+    (task) => task.status !== "completed"
+  ).length;
+
+  // =========================================================
   // RENDER
   // =========================================================
 
   return (
     <div className="employee-dashboard" dir="rtl">
-
       {/* =====================================================
           SIDEBAR
       ===================================================== */}
 
       <aside className="employee-sidebar">
-
         {/* BRAND */}
 
         <div className="brand">
@@ -180,7 +438,6 @@ export default function EmployeeDashboard() {
         {/* MENU */}
 
         <div className="sidebar-menu">
-
           {/* DASHBOARD */}
 
           <button
@@ -188,7 +445,6 @@ export default function EmployeeDashboard() {
             onClick={() => nav("/employee")}
           >
             <FaClipboardList />
-
             <span>لوحة التحكم</span>
           </button>
 
@@ -199,7 +455,6 @@ export default function EmployeeDashboard() {
             onClick={() => nav("/leave")}
           >
             <FaCalendarAlt />
-
             <span>طلب إجازة</span>
           </button>
 
@@ -215,21 +470,20 @@ export default function EmployeeDashboard() {
 
             <FaChevronLeft className="sidebar-arrow" />
           </button>
-
         </div>
 
         {/* USER */}
 
         <div className="sidebar-user">
-
           <div className="user-avatar">
-            {employee?.name
-              ? employee.name.charAt(0)
-              : <FaUser />}
+            {employee?.name ? (
+              employee.name.charAt(0)
+            ) : (
+              <FaUser />
+            )}
           </div>
 
           <div className="user-info">
-
             <span>مرحباً</span>
 
             <strong>
@@ -237,9 +491,7 @@ export default function EmployeeDashboard() {
                 ? "جاري التحميل..."
                 : employee?.name || "الموظف"}
             </strong>
-
           </div>
-
         </div>
 
         {/* LOGOUT */}
@@ -249,10 +501,8 @@ export default function EmployeeDashboard() {
           onClick={handleLogout}
         >
           <FaSignOutAlt />
-
           <span>تسجيل الخروج</span>
         </button>
-
       </aside>
 
       {/* =====================================================
@@ -260,13 +510,10 @@ export default function EmployeeDashboard() {
       ===================================================== */}
 
       <main className="employee-main">
-
         {/* HEADER */}
 
         <header className="dashboard-header">
-
           <div>
-
             <span className="welcome-small">
               لوحة الموظف
             </span>
@@ -279,7 +526,6 @@ export default function EmployeeDashboard() {
             <p>
               تابع مهامك وإجازاتك من مكان واحد.
             </p>
-
           </div>
 
           <button
@@ -287,10 +533,8 @@ export default function EmployeeDashboard() {
             onClick={() => nav("/leave")}
           >
             <FaPlus />
-
             طلب إجازة
           </button>
-
         </header>
 
         {/* =====================================================
@@ -298,9 +542,9 @@ export default function EmployeeDashboard() {
         ===================================================== */}
 
         <section className="statistics">
+          {/* TOTAL TASKS */}
 
           <div className="stat-card blue">
-
             <div className="stat-icon">
               <FaTasks />
             </div>
@@ -309,16 +553,14 @@ export default function EmployeeDashboard() {
               <span>المهام الموكلة</span>
 
               <strong>
-                {loadingTasks
-                  ? "..."
-                  : tasks.length}
+                {loadingTasks ? "..." : tasks.length}
               </strong>
             </div>
-
           </div>
 
-          <div className="stat-card purple">
+          {/* LEAVES */}
 
+          <div className="stat-card purple">
             <div className="stat-icon">
               <FaCalendarAlt />
             </div>
@@ -327,56 +569,42 @@ export default function EmployeeDashboard() {
               <span>طلبات الإجازة</span>
 
               <strong>
-                {loadingLeaves
-                  ? "..."
-                  : leaves.length}
+                {loadingLeaves ? "..." : leaves.length}
               </strong>
             </div>
-
           </div>
 
-          <div className="stat-card green">
+          {/* COMPLETED TASKS */}
 
+          <div className="stat-card green">
             <div className="stat-icon">
               <FaCheckCircle />
             </div>
 
             <div>
-              <span>الإجازات المقبولة</span>
+              <span>المهام المنجزة</span>
 
               <strong>
-                {
-                  leaves.filter(
-                    (leave) =>
-                      leave.status === "approved"
-                  ).length
-                }
+                {loadingTasks ? "..." : completedTasks}
               </strong>
             </div>
-
           </div>
 
-          <div className="stat-card orange">
+          {/* PENDING TASKS */}
 
+          <div className="stat-card orange">
             <div className="stat-icon">
               <FaHourglassHalf />
             </div>
 
             <div>
-              <span>قيد المراجعة</span>
+              <span>مهام قيد التنفيذ</span>
 
               <strong>
-                {
-                  leaves.filter(
-                    (leave) =>
-                      leave.status === "pending"
-                  ).length
-                }
+                {loadingTasks ? "..." : pendingTasks}
               </strong>
             </div>
-
           </div>
-
         </section>
 
         {/* =====================================================
@@ -384,9 +612,7 @@ export default function EmployeeDashboard() {
         ===================================================== */}
 
         <section className="dashboard-section">
-
           <div className="section-header">
-
             <div>
               <h2>
                 <FaTasks />
@@ -401,19 +627,14 @@ export default function EmployeeDashboard() {
             <span className="count-badge">
               {tasks.length} مهمة
             </span>
-
           </div>
 
           {loadingTasks ? (
-
             <div className="empty-state">
               جاري تحميل المهام...
             </div>
-
           ) : tasks.length === 0 ? (
-
             <div className="empty-state">
-
               <div className="empty-icon">
                 <FaTasks />
               </div>
@@ -425,58 +646,122 @@ export default function EmployeeDashboard() {
               <p>
                 لم يتم تعيين أي مهام لك من قبل المسؤول.
               </p>
-
             </div>
-
           ) : (
-
             <div className="tasks-grid">
+              {tasks.map((task) => {
+                const isCompleted =
+                  task.status === "completed";
 
-              {tasks.map((task) => (
+                const taskStatus =
+                  getTaskStatus(task.status);
 
-                <div
-                  className="task-card"
-                  key={task.employee_task_id}
-                >
+                return (
+                  <div
+                    className={`task-card ${
+                      isCompleted ? "task-completed" : ""
+                    }`}
+                    key={task.employee_task_id}
+                  >
+                    {/* TASK TOP */}
 
-                  <div className="task-top">
+                    <div className="task-top">
+                      <div className="task-icon">
+                        {isCompleted ? (
+                          <FaCheckCircle />
+                        ) : (
+                          <FaClipboardList />
+                        )}
+                      </div>
 
-                    <div className="task-icon">
-                      <FaClipboardList />
+                      <span
+                        className={`task-status ${taskStatus.className}`}
+                      >
+                        {taskStatus.icon}
+                        {taskStatus.text}
+                      </span>
                     </div>
 
-                    <span className="task-status">
-                      مهمة موكلة
-                    </span>
+                    {/* TITLE */}
 
+                    <h3>{task.title}</h3>
+
+                    {/* DESCRIPTION */}
+
+                    <p>
+                      {task.description ||
+                        "لا يوجد وصف لهذه المهمة."}
+                    </p>
+
+                    {/* DUE DATE */}
+
+                    <div className="task-date">
+                      <FaCalendarAlt />
+
+                      <span>
+                        تاريخ الاستحقاق:
+                      </span>
+
+                      <strong>
+                        {formatDate(task.due_date)}
+                      </strong>
+                    </div>
+
+                    {/* TASK FOOTER */}
+
+                    <div className="task-footer">
+                      {isCompleted ? (
+                        <div className="task-completed-actions">
+                          <span className="completed-text">
+                            <FaCheckCircle />
+                            تم إنهاء المهمة
+                          </span>
+
+                          <button
+                            type="button"
+                            className="reopen-task-btn"
+                            onClick={() =>
+                              openReopenTaskModal(
+                                task.employee_task_id
+                              )
+                            }
+                            disabled={
+                              completingTaskId ===
+                              task.employee_task_id
+                            }
+                          >
+                            <FaUndo />
+                            إعادة فتح
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="complete-task-btn"
+                          onClick={() =>
+                            openCompleteTaskModal(
+                              task.employee_task_id
+                            )
+                          }
+                          disabled={
+                            completingTaskId ===
+                            task.employee_task_id
+                          }
+                        >
+                          <FaCheckCircle />
+
+                          {completingTaskId ===
+                          task.employee_task_id
+                            ? "جاري الحفظ..."
+                            : "إنهاء المهمة"}
+                        </button>
+                      )}
+                    </div>
                   </div>
-
-                  <h3>
-                    {task.title}
-                  </h3>
-
-                  <p>
-                    {task.description ||
-                      "لا يوجد وصف لهذه المهمة."}
-                  </p>
-
-                  <div className="task-footer">
-
-                    <span>
-                      <FaCheckCircle />
-                      معينة لك
-                    </span>
-
-                  </div>
-
-                </div>
-
-              ))}
-
+                );
+              })}
             </div>
-
           )}
-
         </section>
 
         {/* =====================================================
@@ -484,11 +769,8 @@ export default function EmployeeDashboard() {
         ===================================================== */}
 
         <section className="dashboard-section">
-
           <div className="section-header">
-
             <div>
-
               <h2>
                 <FaCalendarAlt />
                 إجازاتي
@@ -497,7 +779,6 @@ export default function EmployeeDashboard() {
               <p>
                 جميع طلبات الإجازة الخاصة بك
               </p>
-
             </div>
 
             <button
@@ -507,19 +788,14 @@ export default function EmployeeDashboard() {
               <FaPlus />
               طلب جديد
             </button>
-
           </div>
 
           {loadingLeaves ? (
-
             <div className="empty-state">
               جاري تحميل الإجازات...
             </div>
-
           ) : leaves.length === 0 ? (
-
             <div className="empty-state">
-
               <div className="empty-icon">
                 <FaCalendarAlt />
               </div>
@@ -539,37 +815,28 @@ export default function EmployeeDashboard() {
                 <FaPlus />
                 تقديم طلب إجازة
               </button>
-
             </div>
-
           ) : (
-
             <div className="leaves-list">
-
               {leaves.map((leave, index) => {
-
                 const status =
                   getStatus(leave.status);
 
                 return (
-
                   <div
                     className="leave-card"
                     key={leave.id || index}
                   >
-
                     <div className="leave-icon">
                       <FaCalendarAlt />
                     </div>
 
                     <div className="leave-info">
-
                       <h3>
                         {leave.type || "إجازة"}
                       </h3>
 
                       <div className="leave-date">
-
                         <span>
                           {formatDate(
                             leave.from_date
@@ -585,41 +852,142 @@ export default function EmployeeDashboard() {
                             leave.to_date
                           )}
                         </span>
-
                       </div>
 
                       <div className="leave-days">
-
                         <FaClock />
 
                         {leave.days || 0} أيام
-
                       </div>
-
                     </div>
 
                     <div
                       className={`leave-status ${status.className}`}
                     >
                       {status.icon}
-
                       {status.text}
                     </div>
-
                   </div>
-
                 );
-
               })}
-
             </div>
-
           )}
-
         </section>
-
       </main>
 
+      {/* =====================================================
+          TASK CONFIRMATION MODAL
+      ===================================================== */}
+
+      {taskModal.open && (
+        <div
+          className="task-confirm-modal-overlay"
+          onClick={closeTaskModal}
+        >
+          <div
+            className="task-confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className={`task-confirm-icon ${
+                taskModal.type === "complete"
+                  ? "success"
+                  : "warning"
+              }`}
+            >
+              {taskModal.type === "complete" ? (
+                <FaCheckCircle />
+              ) : (
+                <FaUndo />
+              )}
+            </div>
+
+            <h3>{taskModal.title}</h3>
+
+            <p>{taskModal.message}</p>
+
+            <div className="task-confirm-actions">
+              <button
+                type="button"
+                className="task-modal-cancel"
+                onClick={closeTaskModal}
+                disabled={!!completingTaskId}
+              >
+                إلغاء
+              </button>
+
+              <button
+                type="button"
+                className={`task-modal-confirm ${
+                  taskModal.type === "complete"
+                    ? "complete"
+                    : "reopen"
+                }`}
+                onClick={
+                  taskModal.type === "complete"
+                    ? completeTask
+                    : reopenTask
+                }
+                disabled={!!completingTaskId}
+              >
+                {completingTaskId ? (
+                  "جاري الحفظ..."
+                ) : taskModal.type === "complete" ? (
+                  <>
+                    <FaCheckCircle />
+                    نعم، تم إنجازها
+                  </>
+                ) : (
+                  <>
+                    <FaUndo />
+                    نعم، إعادة فتح
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          SUCCESS / ERROR MESSAGE MODAL
+      ===================================================== */}
+
+      {messageModal.open && (
+        <div
+          className="task-message-modal-overlay"
+          onClick={closeMessageModal}
+        >
+          <div
+            className="task-message-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className={`task-message-icon ${
+                messageModal.type
+              }`}
+            >
+              {messageModal.type === "success" ? (
+                <FaCheckCircle />
+              ) : (
+                <FaExclamationTriangle />
+              )}
+            </div>
+
+            <h3>{messageModal.title}</h3>
+
+            <p>{messageModal.message}</p>
+
+            <button
+              type="button"
+              className="task-message-button"
+              onClick={closeMessageModal}
+            >
+              حسناً
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

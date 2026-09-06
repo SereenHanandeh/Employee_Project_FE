@@ -1433,3 +1433,364 @@
   }
 
 }
+
+/* =========================================================
+   TASK STATUS
+========================================================= */
+
+.task-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-status.completed {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.task-status.pending {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.task-card.task-completed {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.task-card.task-completed .task-icon {
+  color: #16a34a;
+}
+
+/* =========================================================
+   TASK DATE
+========================================================= */
+
+.task-date {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 18px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.task-date svg {
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.task-date span {
+  color: #64748b;
+}
+
+.task-date strong {
+  color: #334155;
+  font-weight: 700;
+}
+
+/* =========================================================
+   COMPLETE TASK BUTTON
+========================================================= */
+
+.complete-task-btn {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #16a34a;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.complete-task-btn:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.complete-task-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* =========================================================
+   COMPLETED TASK
+========================================================= */
+
+.task-completed-actions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.completed-text {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.completed-text svg {
+  font-size: 16px;
+}
+
+.reopen-task-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  transition: 0.2s ease;
+}
+
+.reopen-task-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.reopen-task-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   TASK CONFIRMATION MODAL
+========================================================= */
+
+.task-confirm-modal-overlay,
+.task-message-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modalOverlayShow 0.2s ease;
+}
+
+.task-confirm-modal,
+.task-message-modal {
+  width: 100%;
+  max-width: 430px;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 30px;
+  text-align: center;
+  box-shadow: 0 25px 70px rgba(15, 23, 42, 0.22);
+  animation: modalShow 0.25s ease;
+}
+
+.task-confirm-icon,
+.task-message-icon {
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 27px;
+}
+
+.task-confirm-icon.success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.task-confirm-icon.warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.task-confirm-modal h3,
+.task-message-modal h3 {
+  margin: 0 0 10px;
+  color: #1e293b;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.task-confirm-modal p,
+.task-message-modal p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* =========================================================
+   MODAL BUTTONS
+========================================================= */
+
+.task-confirm-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.task-modal-cancel,
+.task-modal-confirm,
+.task-message-button {
+  border: none;
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 0 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.task-modal-cancel {
+  flex: 1;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.task-modal-cancel:hover {
+  background: #e2e8f0;
+}
+
+.task-modal-confirm {
+  flex: 1.4;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.task-modal-confirm.complete {
+  background: #16a34a;
+}
+
+.task-modal-confirm.complete:hover {
+  background: #15803d;
+}
+
+.task-modal-confirm.reopen {
+  background: #6366f1;
+}
+
+.task-modal-confirm.reopen:hover {
+  background: #4f46e5;
+}
+
+.task-modal-cancel:disabled,
+.task-modal-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   MESSAGE MODAL
+========================================================= */
+
+.task-message-icon.success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.task-message-icon.error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.task-message-button {
+  width: 100%;
+  margin-top: 24px;
+  background: #334155;
+  color: #fff;
+}
+
+.task-message-button:hover {
+  background: #1e293b;
+}
+
+/* =========================================================
+   MODAL ANIMATION
+========================================================= */
+
+@keyframes modalOverlayShow {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalShow {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+  .task-confirm-modal,
+  .task-message-modal {
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+
+  .task-confirm-actions {
+    flex-direction: column;
+  }
+
+  .task-modal-cancel,
+  .task-modal-confirm {
+    width: 100%;
+  }
+
+  .task-completed-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .reopen-task-btn {
+    padding-right: 0;
+  }
+
+  .task-date {
+    font-size: 12px;
+  }
+}

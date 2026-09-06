@@ -1921,3 +1921,206 @@
     font-size: 8px;
   }
 }
+/* =========================================================
+   TASK DATE + STATUS
+========================================================= */
+
+.task-meta {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+
+.task-due-date {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.task-due-date > svg {
+  flex-shrink: 0;
+  color: #6366f1;
+  font-size: 17px;
+}
+
+.task-due-date div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.task-due-date span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.task-due-date strong {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.task-overall-status {
+  min-width: 105px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.task-overall-status.completed {
+  color: #15803d;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.task-overall-status.pending {
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.task-overall-status.unassigned {
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+/* =========================================================
+   EMPLOYEE TASK STATUS
+========================================================= */
+
+.employee-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.employee-task-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: auto;
+  padding: 4px 7px;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.employee-task-status.completed {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.employee-task-status.pending {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+/* =========================================================
+   DATE INPUT
+========================================================= */
+
+.date-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.date-input-wrapper > svg {
+  position: absolute;
+  right: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.date-input-wrapper input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 42px;
+}
+
+.form-help-text {
+  display: block;
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+/* =========================================================
+   ASSIGN MODAL DATE
+========================================================= */
+
+.assign-task-date {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.assign-task-date > svg {
+  color: #6366f1;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.assign-task-date div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.assign-task-date span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.assign-task-date strong {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+  .task-meta {
+    flex-direction: column;
+  }
+
+  .task-overall-status {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .employee-chip {
+    flex-wrap: wrap;
+  }
+
+  .employee-task-status {
+    margin-right: 0;
+  }
+}
