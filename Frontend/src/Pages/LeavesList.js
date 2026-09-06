@@ -25,7 +25,7 @@ import {
   FaRegCalendarAlt,
   FaStickyNote,
 } from "react-icons/fa";
-
+import { useNavigate } from "react-router-dom"; 
 import "./LeaveList.css";
 
 export default function LeavesList() {
@@ -46,6 +46,8 @@ export default function LeavesList() {
     useState(null);
 
   const [editingLeave, setEditingLeave] = useState(null);
+
+  const nav = useNavigate();
 
   const [editForm, setEditForm] = useState({
     type: "",
@@ -1064,7 +1066,14 @@ export default function LeavesList() {
 
             تحديث
           </button>
-
+ <button
+    type="button"
+    className="primary-button"
+    onClick={() => nav("/leave")}
+  >
+    <FaCalendarAlt />
+    إضافة إجازة
+  </button>
           <button
             type="button"
             className="primary-button"
