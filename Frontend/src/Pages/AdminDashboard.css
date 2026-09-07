@@ -1110,6 +1110,10 @@
   }
 }
 
+.stat-card.cyan {
+  background: linear-gradient(135deg, #0891b2, #06b6d4);
+}
+
 @media (max-width: 400px) {
 
   .stats-grid {

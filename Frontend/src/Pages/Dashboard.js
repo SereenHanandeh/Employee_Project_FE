@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
+
 import "./AdminDashboard.css";
 
 export default function Dashboard() {
@@ -8,6 +9,7 @@ export default function Dashboard() {
 
   const [stats, setStats] = useState({
     employees: 0,
+    departments: 0,
     evaluations: 0,
     leaves: 0,
     tasks: 0,
@@ -16,144 +18,181 @@ export default function Dashboard() {
   const [leaves, setLeaves] = useState([]);
   const [evaluations, setEvaluations] = useState([]);
   const [tasks, setTasks] = useState([]);
-
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
- const fetchDashboardData = async () => {
-  try {
-    setLoading(true);
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
 
-    const results = await Promise.allSettled([
-      API.get("/employees"),
-      API.get("/evaluations"),
-      API.get("/leaves"),
-      API.get("/tasks"),
-    ]);
+      const results = await Promise.allSettled([
+        API.get("/employees"),
+        API.get("/departments/active"),
+        API.get("/evaluations"),
+        API.get("/leaves"),
+        API.get("/tasks"),
+      ]);
 
-    const [empRes, evalRes, leaveRes, taskRes] = results;
+      const [
+        empRes,
+        deptRes,
+        evalRes,
+        leaveRes,
+        taskRes,
+      ] = results;
 
-    // ================================
-    // EMPLOYEES
-    // ================================
-    const employees =
-      empRes.status === "fulfilled"
-        ? Array.isArray(empRes.value.data)
-          ? empRes.value.data
-          : empRes.value.data?.employees || []
-        : [];
+      // ================================
+      // EMPLOYEES
+      // ================================
 
-    // ================================
-    // EVALUATIONS
-    // ================================
-    const evaluations =
-      evalRes.status === "fulfilled"
-        ? Array.isArray(evalRes.value.data)
-          ? evalRes.value.data
-          : evalRes.value.data?.evaluations || []
-        : [];
+      const employees =
+        empRes.status === "fulfilled"
+          ? Array.isArray(empRes.value.data)
+            ? empRes.value.data
+            : empRes.value.data?.employees || []
+          : [];
 
-    // ================================
-    // LEAVES
-    // ================================
-    const allLeaves =
-      leaveRes.status === "fulfilled"
-        ? Array.isArray(leaveRes.value.data)
-          ? leaveRes.value.data
-          : leaveRes.value.data?.leaves || []
-        : [];
+      // ================================
+      // DEPARTMENTS
+      // ================================
 
-    // ================================
-    // TASKS
-    // ================================
-    const allTasks =
-      taskRes.status === "fulfilled"
-        ? Array.isArray(taskRes.value.data)
-          ? taskRes.value.data
-          : taskRes.value.data?.tasks || []
-        : [];
+      const departments =
+        deptRes.status === "fulfilled"
+          ? Array.isArray(deptRes.value.data)
+            ? deptRes.value.data
+            : deptRes.value.data?.departments || []
+          : [];
 
-    // ================================
-    // LOG ERRORS
-    // ================================
-    if (empRes.status === "rejected") {
-      console.error(
-        "Employees Error:",
-        empRes.reason?.response?.data || empRes.reason
+      // ================================
+      // EVALUATIONS
+      // ================================
+
+      const evaluations =
+        evalRes.status === "fulfilled"
+          ? Array.isArray(evalRes.value.data)
+            ? evalRes.value.data
+            : evalRes.value.data?.evaluations || []
+          : [];
+
+      // ================================
+      // LEAVES
+      // ================================
+
+      const allLeaves =
+        leaveRes.status === "fulfilled"
+          ? Array.isArray(leaveRes.value.data)
+            ? leaveRes.value.data
+            : leaveRes.value.data?.leaves || []
+          : [];
+
+      // ================================
+      // TASKS
+      // ================================
+
+      const allTasks =
+        taskRes.status === "fulfilled"
+          ? Array.isArray(taskRes.value.data)
+            ? taskRes.value.data
+            : taskRes.value.data?.tasks || []
+          : [];
+
+      // ================================
+      // LOG ERRORS
+      // ================================
+
+      if (empRes.status === "rejected") {
+        console.error(
+          "Employees Error:",
+          empRes.reason?.response?.data || empRes.reason
+        );
+      }
+
+      if (deptRes.status === "rejected") {
+        console.error(
+          "Departments Error:",
+          deptRes.reason?.response?.data || deptRes.reason
+        );
+      }
+
+      if (evalRes.status === "rejected") {
+        console.error(
+          "Evaluations Error:",
+          evalRes.reason?.response?.data || evalRes.reason
+        );
+      }
+
+      if (leaveRes.status === "rejected") {
+        console.error(
+          "Leaves Error:",
+          leaveRes.reason?.response?.data || leaveRes.reason
+        );
+      }
+
+      if (taskRes.status === "rejected") {
+        console.error(
+          "Tasks Error:",
+          taskRes.reason?.response?.data || taskRes.reason
+        );
+      }
+
+      // ================================
+      // STATS
+      // ================================
+
+      setStats({
+        employees: employees.length,
+        departments: departments.length,
+        evaluations: evaluations.length,
+        leaves: allLeaves.length,
+        tasks: allTasks.length,
+      });
+
+      // ================================
+      // LAST 5 LEAVES
+      // ================================
+
+      setLeaves(
+        [...allLeaves]
+          .reverse()
+          .slice(0, 5)
       );
-    }
 
-    if (evalRes.status === "rejected") {
-      console.error(
-        "Evaluations Error:",
-        evalRes.reason?.response?.data || evalRes.reason
+      // ================================
+      // LAST 5 EVALUATIONS
+      // ================================
+
+      setEvaluations(
+        [...evaluations]
+          .reverse()
+          .slice(0, 5)
       );
-    }
 
-    if (leaveRes.status === "rejected") {
-      console.error(
-        "Leaves Error:",
-        leaveRes.reason?.response?.data || leaveRes.reason
+      // ================================
+      // PENDING TASKS
+      // ================================
+
+      const pendingTasks = allTasks.filter(
+        (task) =>
+          task.status !== "completed" &&
+          task.status !== "مكتملة"
       );
-    }
 
-    if (taskRes.status === "rejected") {
-      console.error(
-        "Tasks Error:",
-        taskRes.reason?.response?.data || taskRes.reason
+      setTasks(
+        pendingTasks.slice(0, 5)
       );
+    } catch (error) {
+      console.error("Dashboard Error:", error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // ================================
-    // STATS
-    // ================================
-    setStats({
-      employees: employees.length,
-      evaluations: evaluations.length,
-      leaves: allLeaves.length,
-      tasks: allTasks.length,
-    });
-
-    // ================================
-    // LAST 5 LEAVES
-    // ================================
-    setLeaves(
-      [...allLeaves]
-        .reverse()
-        .slice(0, 5)
-    );
-
-    // ================================
-    // LAST 5 EVALUATIONS
-    // ================================
-    setEvaluations(
-      [...evaluations]
-        .reverse()
-        .slice(0, 5)
-    );
-
-    // ================================
-    // PENDING TASKS
-    // ================================
-    const pendingTasks = allTasks.filter(
-      (task) =>
-        task.status !== "completed" &&
-        task.status !== "مكتملة"
-    );
-
-    setTasks(
-      pendingTasks.slice(0, 5)
-    );
-
-  } catch (error) {
-    console.error("Dashboard Error:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  // ================================
+  // STAT CARDS
+  // ================================
 
   const statCards = [
     {
@@ -162,6 +201,13 @@ export default function Dashboard() {
       icon: "👨‍💼",
       color: "blue",
       path: "/employees",
+    },
+    {
+      title: "الأقسام",
+      value: stats.departments,
+      icon: "🏢",
+      color: "cyan",
+      path: "/departments",
     },
     {
       title: "التقييمات",
@@ -192,9 +238,7 @@ export default function Dashboard() {
       {/* ================= HEADER ================= */}
 
       <header className="top-header">
-
         <div className="header-title">
-
           <span className="header-label">
             لوحة الإدارة
           </span>
@@ -206,11 +250,9 @@ export default function Dashboard() {
           <p>
             أهلاً بك 👋 إليك ملخص نظام إدارة الموظفين
           </p>
-
         </div>
 
         <div className="header-actions">
-
           <button
             className="notification-button"
             onClick={() => nav("/leaves-list")}
@@ -220,7 +262,6 @@ export default function Dashboard() {
           </button>
 
           <div className="admin-profile">
-
             <div className="avatar">
               A
             </div>
@@ -234,11 +275,8 @@ export default function Dashboard() {
                 مدير النظام
               </span>
             </div>
-
           </div>
-
         </div>
-
       </header>
 
       {/* ================= CONTENT ================= */}
@@ -248,9 +286,7 @@ export default function Dashboard() {
         {/* ================= WELCOME ================= */}
 
         <section className="welcome-card">
-
           <div className="welcome-content">
-
             <span className="welcome-label">
               مرحباً بك
             </span>
@@ -260,24 +296,20 @@ export default function Dashboard() {
             </h2>
 
             <p>
-              يمكنك من هنا متابعة الموظفين والإجازات
-              والتقييمات والمهام بسهولة.
+              يمكنك من هنا متابعة الموظفين والأقسام
+              والإجازات والتقييمات والمهام بسهولة.
             </p>
-
           </div>
 
           <div className="welcome-icon">
             📈
           </div>
-
         </section>
 
         {/* ================= STATS ================= */}
 
         <section className="stats-section">
-
           <div className="section-header">
-
             <div>
               <h2>
                 نظرة عامة
@@ -287,21 +319,16 @@ export default function Dashboard() {
                 إحصائيات النظام
               </p>
             </div>
-
           </div>
 
           <div className="stats-grid">
-
             {statCards.map((card) => (
-
               <div
                 key={card.title}
                 className={`stat-card ${card.color}`}
                 onClick={() => nav(card.path)}
               >
-
                 <div className="stat-top">
-
                   <div className="stat-icon">
                     {card.icon}
                   </div>
@@ -309,7 +336,6 @@ export default function Dashboard() {
                   <span className="stat-arrow">
                     ←
                   </span>
-
                 </div>
 
                 <div className="stat-number">
@@ -325,13 +351,9 @@ export default function Dashboard() {
                 <div className="stat-link">
                   عرض التفاصيل
                 </div>
-
               </div>
-
             ))}
-
           </div>
-
         </section>
 
         {/* ================= THREE COLUMNS ================= */}
@@ -341,9 +363,7 @@ export default function Dashboard() {
           {/* ================= LEAVES ================= */}
 
           <section className="dashboard-card">
-
             <div className="card-header">
-
               <div>
                 <h2>
                   آخر الإجازات
@@ -361,23 +381,16 @@ export default function Dashboard() {
               >
                 عرض الكل
               </button>
-
             </div>
 
             <div className="list">
-
               {leaves.length === 0 ? (
-
                 <div className="empty">
                   لا توجد إجازات حالياً
                 </div>
-
               ) : (
-
                 leaves.map((leave, index) => {
-
-                  const status =
-                    leave.status;
+                  const status = leave.status;
 
                   const isApproved =
                     status === "approved" ||
@@ -396,13 +409,11 @@ export default function Dashboard() {
                         index
                       }
                     >
-
                       <div className="item-avatar leave-avatar">
                         🏖️
                       </div>
 
                       <div className="item-info">
-
                         <strong>
                           {leave.employeeName ||
                             leave.employee?.name ||
@@ -415,7 +426,6 @@ export default function Dashboard() {
                             leave.from ||
                             "تاريخ غير محدد"}
                         </span>
-
                       </div>
 
                       <span
@@ -433,23 +443,17 @@ export default function Dashboard() {
                           ? "مرفوضة"
                           : "قيد الانتظار"}
                       </span>
-
                     </div>
                   );
                 })
-
               )}
-
             </div>
-
           </section>
 
           {/* ================= EVALUATIONS ================= */}
 
           <section className="dashboard-card">
-
             <div className="card-header">
-
               <div>
                 <h2>
                   آخر التقييمات
@@ -467,22 +471,16 @@ export default function Dashboard() {
               >
                 عرض الكل
               </button>
-
             </div>
 
             <div className="list">
-
               {evaluations.length === 0 ? (
-
                 <div className="empty">
                   لا توجد تقييمات حالياً
                 </div>
-
               ) : (
-
                 evaluations.map(
                   (evaluation, index) => (
-
                     <div
                       className="list-item"
                       key={
@@ -491,13 +489,11 @@ export default function Dashboard() {
                         index
                       }
                     >
-
                       <div className="item-avatar evaluation-avatar">
                         📊
                       </div>
 
                       <div className="item-info">
-
                         <strong>
                           {evaluation.employeeName ||
                             evaluation.employee?.name ||
@@ -510,7 +506,6 @@ export default function Dashboard() {
                             evaluation.createdAt ||
                             "تقييم حديث"}
                         </span>
-
                       </div>
 
                       <div className="rating">
@@ -519,24 +514,17 @@ export default function Dashboard() {
                           evaluation.score ||
                           "-"}
                       </div>
-
                     </div>
-
                   )
                 )
-
               )}
-
             </div>
-
           </section>
 
           {/* ================= TASKS ================= */}
 
           <section className="dashboard-card">
-
             <div className="card-header">
-
               <div>
                 <h2>
                   المهام المعلقة
@@ -554,21 +542,15 @@ export default function Dashboard() {
               >
                 عرض الكل
               </button>
-
             </div>
 
             <div className="list">
-
               {tasks.length === 0 ? (
-
                 <div className="empty success">
                   🎉 لا توجد مهام معلقة
                 </div>
-
               ) : (
-
                 tasks.map((task, index) => (
-
                   <div
                     className="task-item"
                     key={
@@ -577,13 +559,11 @@ export default function Dashboard() {
                       index
                     }
                   >
-
                     <div className="task-check">
                       ○
                     </div>
 
                     <div className="item-info">
-
                       <strong>
                         {task.title ||
                           task.name ||
@@ -595,33 +575,23 @@ export default function Dashboard() {
                           task.employee?.name ||
                           "غير محدد"}
                       </span>
-
                     </div>
 
                     <span className="task-priority">
-
                       {task.priority === "high"
                         ? "عالية"
                         : task.priority === "low"
                         ? "منخفضة"
                         : "متوسطة"}
-
                     </span>
-
                   </div>
-
                 ))
-
               )}
-
             </div>
-
           </section>
 
         </div>
-
       </div>
-
     </div>
   );
 }

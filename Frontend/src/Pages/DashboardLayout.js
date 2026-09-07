@@ -1,4 +1,5 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+
 import "./DashboardLayout.css";
 
 export default function DashboardLayout() {
@@ -18,13 +19,20 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout" dir="rtl">
 
-      {/* ================= SIDEBAR ================= */}
+      {/* =====================================================
+          SIDEBAR
+      ===================================================== */}
+
       <aside className="sidebar">
 
-        {/* LOGO */}
+        {/* ===================================================
+            LOGO
+        =================================================== */}
+
         <div className="sidebar-logo">
+
           <div className="logo-icon">
             HR
           </div>
@@ -33,10 +41,19 @@ export default function DashboardLayout() {
             <h2>HR System</h2>
             <span>إدارة الموظفين</span>
           </div>
+
         </div>
 
-        {/* MENU */}
+
+        {/* ===================================================
+            MENU
+        =================================================== */}
+
         <div className="sidebar-menu">
+
+          {/* =================================================
+              الرئيسية
+          ================================================= */}
 
           <div className="menu-title">
             الرئيسية
@@ -44,7 +61,9 @@ export default function DashboardLayout() {
 
           <button
             className={`menu-item ${
-              isActive("/admin-dashboard") ? "active" : ""
+              isActive("/admin-dashboard")
+                ? "active"
+                : ""
             }`}
             onClick={() => nav("/admin-dashboard")}
           >
@@ -52,13 +71,22 @@ export default function DashboardLayout() {
             <span>لوحة التحكم</span>
           </button>
 
+
+          {/* =================================================
+              إدارة الموظفين
+          ================================================= */}
+
           <div className="menu-title">
             إدارة الموظفين
           </div>
 
+          {/* الموظفين */}
+
           <button
             className={`menu-item ${
-              isActive("/employees") ? "active" : ""
+              isActive("/employees")
+                ? "active"
+                : ""
             }`}
             onClick={() => nav("/employees")}
           >
@@ -67,13 +95,36 @@ export default function DashboardLayout() {
           </button>
 
 
+          {/* الأقسام */}
+
+          <button
+            className={`menu-item ${
+              isActive("/departments")
+                ? "active"
+                : ""
+            }`}
+            onClick={() => nav("/departments")}
+          >
+            <span>🏢</span>
+            <span>الأقسام</span>
+          </button>
+
+
+          {/* =================================================
+              الإدارة
+          ================================================= */}
+
           <div className="menu-title">
             الإدارة
           </div>
 
+          {/* الإجازات */}
+
           <button
             className={`menu-item ${
-              isActive("/leaves-list") ? "active" : ""
+              isActive("/leaves-list")
+                ? "active"
+                : ""
             }`}
             onClick={() => nav("/leaves-list")}
           >
@@ -81,9 +132,14 @@ export default function DashboardLayout() {
             <span>الإجازات</span>
           </button>
 
+
+          {/* التقييمات */}
+
           <button
             className={`menu-item ${
-              isActive("/history") ? "active" : ""
+              isActive("/history")
+                ? "active"
+                : ""
             }`}
             onClick={() => nav("/history")}
           >
@@ -91,9 +147,14 @@ export default function DashboardLayout() {
             <span>التقييمات</span>
           </button>
 
+
+          {/* المهام */}
+
           <button
             className={`menu-item ${
-              isActive("/tasks") ? "active" : ""
+              isActive("/tasks")
+                ? "active"
+                : ""
             }`}
             onClick={() => nav("/tasks")}
           >
@@ -103,8 +164,13 @@ export default function DashboardLayout() {
 
         </div>
 
-        {/* LOGOUT */}
+
+        {/* ===================================================
+            LOGOUT
+        =================================================== */}
+
         <div className="sidebar-bottom">
+
           <button
             className="menu-item logout"
             onClick={handleLogout}
@@ -112,11 +178,16 @@ export default function DashboardLayout() {
             <span>🚪</span>
             <span>تسجيل الخروج</span>
           </button>
+
         </div>
 
       </aside>
 
-      {/* ================= PAGE CONTENT ================= */}
+
+      {/* =====================================================
+          PAGE CONTENT
+      ===================================================== */}
+
       <main className="layout-content">
         <Outlet />
       </main>
