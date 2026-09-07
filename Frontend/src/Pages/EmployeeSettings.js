@@ -24,12 +24,12 @@ import {
 
 import "./employeeSettings.css";
 
-/* =========================================================
-   PASSWORD INPUT
-   مهم جداً:
-   يجب أن يكون خارج EmployeeSettings حتى لا يفقد الـ input
-   التركيز عند كتابة كل حرف.
-========================================================= */
+// =========================================================
+// PASSWORD INPUT
+// مهم جداً:
+// خارج EmployeeSettings حتى لا يفقد input التركيز
+// عند كتابة كل حرف.
+// =========================================================
 
 function PasswordInput({
   label,
@@ -71,33 +71,39 @@ function PasswordInput({
   );
 }
 
-/* =========================================================
-   EMPLOYEE SETTINGS
-========================================================= */
+// =========================================================
+// EMPLOYEE SETTINGS
+// =========================================================
 
 export default function EmployeeSettings() {
   const nav = useNavigate();
 
-  const [employee, setEmployee] = useState(null);
+  // =======================================================
+  // EMPLOYEE
+  // =======================================================
 
+  const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const [savingProfile, setSavingProfile] = useState(false);
+  // =======================================================
+  // SAVING STATES
+  // =======================================================
 
+  const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
-  /* =========================================================
-     PROFILE
-  ========================================================= */
+  // =======================================================
+  // PROFILE
+  // =======================================================
 
   const [profile, setProfile] = useState({
     name: "",
     email: "",
   });
 
-  /* =========================================================
-     PASSWORD
-  ========================================================= */
+  // =======================================================
+  // PASSWORD
+  // =======================================================
 
   const [password, setPassword] = useState({
     currentPassword: "",
@@ -114,41 +120,78 @@ export default function EmployeeSettings() {
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
 
-  /* =========================================================
-     NOTIFICATIONS
-  ========================================================= */
+  // =======================================================
+  // NOTIFICATIONS
+  // =======================================================
 
-  const [notifications, setNotifications] = useState(
-    localStorage.getItem("employeeNotifications") !== "false"
-  );
+  const [notifications, setNotifications] = useState(() => {
+    return (
+      localStorage.getItem("employeeNotifications") !==
+      "false"
+    );
+  });
 
-  /* =========================================================
-     THEME
-  ========================================================= */
+  // =======================================================
+  // THEME
+  // =======================================================
 
-  const [theme, setTheme] = useState(
-    localStorage.getItem("employeeTheme") || "light"
-  );
+  const [theme, setTheme] = useState(() => {
+    return (
+      localStorage.getItem("employeeTheme") || "light"
+    );
+  });
 
-  /* =========================================================
-     LOAD EMPLOYEE
-  ========================================================= */
+  // =======================================================
+  // LOAD EMPLOYEE
+  // =======================================================
 
   useEffect(() => {
     fetchEmployee();
   }, []);
 
-  /* =========================================================
-     APPLY SAVED THEME
-  ========================================================= */
+  // =======================================================
+  // APPLY THEME
+  // =======================================================
 
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
 
-  /* =========================================================
-     FETCH EMPLOYEE
-  ========================================================= */
+  // =======================================================
+  // SYSTEM THEME LISTENER
+  // إذا اختار المستخدم "تلقائي"
+  // يتغير الثيم مع إعدادات الجهاز.
+  // =======================================================
+
+  useEffect(() => {
+    if (theme !== "system") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    );
+
+    const handleSystemThemeChange = () => {
+      applyTheme("system");
+    };
+
+    mediaQuery.addEventListener?.(
+      "change",
+      handleSystemThemeChange
+    );
+
+    return () => {
+      mediaQuery.removeEventListener?.(
+        "change",
+        handleSystemThemeChange
+      );
+    };
+  }, [theme]);
+
+  // =======================================================
+  // FETCH EMPLOYEE
+  // =======================================================
 
   const fetchEmployee = async () => {
     try {
@@ -175,15 +218,21 @@ export default function EmployeeSettings() {
         localStorage.removeItem("rememberEmail");
 
         nav("/login");
+        return;
       }
+
+      alert(
+        error?.response?.data?.message ||
+          "حدث خطأ أثناء تحميل بيانات الحساب"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  /* =========================================================
-     PROFILE INPUT CHANGE
-  ========================================================= */
+  // =======================================================
+  // PROFILE INPUT CHANGE
+  // =======================================================
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -194,15 +243,19 @@ export default function EmployeeSettings() {
     }));
   };
 
-  /* =========================================================
-     UPDATE PROFILE
-  ========================================================= */
+  // =======================================================
+  // UPDATE PROFILE
+  // =======================================================
 
   const updateProfile = async (e) => {
     e.preventDefault();
 
     const name = profile.name.trim();
     const email = profile.email.trim().toLowerCase();
+
+    // -------------------------------------------------------
+    // NAME VALIDATION
+    // -------------------------------------------------------
 
     if (!name) {
       alert("يرجى إدخال الاسم");
@@ -214,20 +267,37 @@ export default function EmployeeSettings() {
       return;
     }
 
+    // -------------------------------------------------------
+    // EMAIL VALIDATION
+    // -------------------------------------------------------
+
     if (!email) {
       alert("يرجى إدخال البريد الإلكتروني");
+      return;
+    }
+
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      alert("يرجى إدخال بريد إلكتروني صحيح");
       return;
     }
 
     try {
       setSavingProfile(true);
 
-      /*
-       * مهم:
-       * هذا هو الراوت الخاص بتعديل بيانات الموظف لنفسه
-       */
+      // =====================================================
+      // مهم جداً:
+      // Router عندك:
+      // PUT /employees/me
+      //
+      // وليس:
+      // PUT /employees/me/update
+      // =====================================================
+
       const res = await API.put(
-        "/employees/me/update",
+        "/employees/me",
         {
           name,
           email,
@@ -237,11 +307,23 @@ export default function EmployeeSettings() {
       const updatedEmployee =
         res.data?.employee || res.data;
 
-      setEmployee(updatedEmployee);
+      // -----------------------------------------------------
+      // UPDATE LOCAL STATE
+      // -----------------------------------------------------
+
+      setEmployee((prev) => ({
+        ...prev,
+        ...updatedEmployee,
+      }));
 
       setProfile({
-        name: updatedEmployee?.name || name,
-        email: updatedEmployee?.email || email,
+        name:
+          updatedEmployee?.name ||
+          name,
+
+        email:
+          updatedEmployee?.email ||
+          email,
       });
 
       alert("تم تحديث معلوماتك بنجاح");
@@ -250,6 +332,14 @@ export default function EmployeeSettings() {
         "Update Profile Error:",
         error
       );
+
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("rememberEmail");
+
+        nav("/login");
+        return;
+      }
 
       alert(
         error?.response?.data?.message ||
@@ -260,9 +350,9 @@ export default function EmployeeSettings() {
     }
   };
 
-  /* =========================================================
-     PASSWORD INPUT CHANGE
-  ========================================================= */
+  // =======================================================
+  // PASSWORD INPUT CHANGE
+  // =======================================================
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
@@ -273,9 +363,9 @@ export default function EmployeeSettings() {
     }));
   };
 
-  /* =========================================================
-     CHANGE PASSWORD
-  ========================================================= */
+  // =======================================================
+  // CHANGE PASSWORD
+  // =======================================================
 
   const changePassword = async (e) => {
     e.preventDefault();
@@ -289,17 +379,21 @@ export default function EmployeeSettings() {
     const confirmPassword =
       password.confirmPassword;
 
-    /* -----------------------------------------
-       VALIDATION
-    ----------------------------------------- */
+    // =====================================================
+    // VALIDATION
+    // =====================================================
 
     if (!currentPassword) {
-      alert("يرجى إدخال كلمة المرور الحالية");
+      alert(
+        "يرجى إدخال كلمة المرور الحالية"
+      );
       return;
     }
 
     if (!newPassword) {
-      alert("يرجى إدخال كلمة المرور الجديدة");
+      alert(
+        "يرجى إدخال كلمة المرور الجديدة"
+      );
       return;
     }
 
@@ -331,10 +425,6 @@ export default function EmployeeSettings() {
       return;
     }
 
-    /* -----------------------------------------
-       API
-    ----------------------------------------- */
-
     try {
       setSavingPassword(true);
 
@@ -346,9 +436,9 @@ export default function EmployeeSettings() {
         }
       );
 
-      /* -----------------------------------------
-         CLEAR PASSWORD FIELDS
-      ----------------------------------------- */
+      // ===================================================
+      // CLEAR PASSWORD FIELDS
+      // ===================================================
 
       setPassword({
         currentPassword: "",
@@ -369,6 +459,14 @@ export default function EmployeeSettings() {
         error
       );
 
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("rememberEmail");
+
+        nav("/login");
+        return;
+      }
+
       alert(
         error?.response?.data?.message ||
           "حدث خطأ أثناء تغيير كلمة المرور"
@@ -378,9 +476,9 @@ export default function EmployeeSettings() {
     }
   };
 
-  /* =========================================================
-     NOTIFICATIONS
-  ========================================================= */
+  // =======================================================
+  // NOTIFICATIONS
+  // =======================================================
 
   const toggleNotifications = () => {
     const newValue = !notifications;
@@ -393,40 +491,43 @@ export default function EmployeeSettings() {
     );
   };
 
-  /* =========================================================
-     APPLY THEME
-  ========================================================= */
+  // =======================================================
+  // APPLY THEME
+  // =======================================================
 
   const applyTheme = (value) => {
-    const root =
-      document.documentElement;
+    const root = document.documentElement;
 
     if (value === "dark") {
       root.classList.add("dark-mode");
-    } else if (value === "light") {
+      return;
+    }
+
+    if (value === "light") {
       root.classList.remove("dark-mode");
+      return;
+    }
+
+    // =====================================================
+    // SYSTEM
+    // =====================================================
+
+    const prefersDark =
+      window.matchMedia &&
+      window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+
+    if (prefersDark) {
+      root.classList.add("dark-mode");
     } else {
-      /*
-       * SYSTEM
-       */
-
-      const prefersDark =
-        window.matchMedia &&
-        window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
-
-      if (prefersDark) {
-        root.classList.add("dark-mode");
-      } else {
-        root.classList.remove("dark-mode");
-      }
+      root.classList.remove("dark-mode");
     }
   };
 
-  /* =========================================================
-     CHANGE THEME
-  ========================================================= */
+  // =======================================================
+  // CHANGE THEME
+  // =======================================================
 
   const changeTheme = (value) => {
     setTheme(value);
@@ -439,20 +540,23 @@ export default function EmployeeSettings() {
     applyTheme(value);
   };
 
-  /* =========================================================
-     LOGOUT
-  ========================================================= */
+  // =======================================================
+  // LOGOUT
+  // =======================================================
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("rememberEmail");
 
+    // اختياري: إزالة إعدادات الجلسة المحلية
+    // إذا أردتِ بقاء الثيم والإشعارات لا نحذفها.
+
     nav("/login");
   };
 
-  /* =========================================================
-     LOADING
-  ========================================================= */
+  // =======================================================
+  // LOADING
+  // =======================================================
 
   if (loading) {
     return (
@@ -475,9 +579,9 @@ export default function EmployeeSettings() {
     );
   }
 
-  /* =========================================================
-     UI
-  ========================================================= */
+  // =======================================================
+  // UI
+  // =======================================================
 
   return (
     <div
@@ -527,6 +631,7 @@ export default function EmployeeSettings() {
         ================================================= */}
 
         <section className="profile-banner">
+
           <div className="profile-avatar">
             {employee?.name ? (
               employee.name.charAt(0)
@@ -562,7 +667,9 @@ export default function EmployeeSettings() {
         ================================================= */}
 
         <section className="settings-card">
+
           <div className="settings-card-header">
+
             <div className="settings-section-icon blue">
               <FaUser />
             </div>
@@ -576,22 +683,26 @@ export default function EmployeeSettings() {
                 قم بتحديث بياناتك الشخصية الأساسية
               </p>
             </div>
+
           </div>
 
           <form
             className="settings-form"
             onSubmit={updateProfile}
           >
+
             <div className="settings-grid">
 
               {/* NAME */}
 
               <div className="settings-field">
+
                 <label>
                   الاسم الكامل
                 </label>
 
                 <div className="input-with-icon">
+
                   <FaUser />
 
                   <input
@@ -601,18 +712,23 @@ export default function EmployeeSettings() {
                     onChange={handleProfileChange}
                     placeholder="أدخل اسمك"
                     autoComplete="name"
+                    disabled={savingProfile}
                   />
+
                 </div>
+
               </div>
 
               {/* EMAIL */}
 
               <div className="settings-field">
+
                 <label>
                   البريد الإلكتروني
                 </label>
 
                 <div className="input-with-icon">
+
                   <FaEnvelope />
 
                   <input
@@ -622,43 +738,53 @@ export default function EmployeeSettings() {
                     onChange={handleProfileChange}
                     placeholder="example@email.com"
                     autoComplete="email"
+                    disabled={savingProfile}
                   />
+
                 </div>
+
               </div>
 
               {/* DEPARTMENT */}
 
               <div className="settings-field">
+
                 <label>
                   القسم
                 </label>
 
                 <div className="input-with-icon readonly">
+
                   <FaBuilding />
 
                   <input
                     type="text"
                     value={
                       employee?.department ||
+                      employee?.department_name ||
                       "غير محدد"
                     }
                     readOnly
                   />
+
                 </div>
 
                 <small>
                   يتم تعديل القسم من قبل الإدارة
                 </small>
+
               </div>
 
               {/* POSITION */}
 
               <div className="settings-field">
+
                 <label>
                   المنصب الوظيفي
                 </label>
 
                 <div className="input-with-icon readonly">
+
                   <FaBriefcase />
 
                   <input
@@ -669,28 +795,37 @@ export default function EmployeeSettings() {
                     }
                     readOnly
                   />
+
                 </div>
 
                 <small>
                   يتم تعديل المنصب من قبل الإدارة
                 </small>
+
               </div>
+
             </div>
 
             <div className="form-actions">
+
               <button
                 type="submit"
                 className="primary-save-button"
                 disabled={savingProfile}
               >
+
                 <FaSave />
 
                 {savingProfile
                   ? "جاري الحفظ..."
                   : "حفظ التغييرات"}
+
               </button>
+
             </div>
+
           </form>
+
         </section>
 
         {/* =================================================
@@ -698,7 +833,9 @@ export default function EmployeeSettings() {
         ================================================= */}
 
         <section className="settings-card">
+
           <div className="settings-card-header">
+
             <div className="settings-section-icon purple">
               <FaLock />
             </div>
@@ -712,15 +849,15 @@ export default function EmployeeSettings() {
                 حافظ على أمان حسابك باستخدام كلمة مرور قوية
               </p>
             </div>
+
           </div>
 
           <form
             className="settings-form"
             onSubmit={changePassword}
           >
-            <div className="password-grid">
 
-              {/* CURRENT PASSWORD */}
+            <div className="password-grid">
 
               <PasswordInput
                 label="كلمة المرور الحالية"
@@ -729,7 +866,9 @@ export default function EmployeeSettings() {
                   password.currentPassword
                 }
                 placeholder="أدخل كلمة المرور الحالية"
-                show={showCurrentPassword}
+                show={
+                  showCurrentPassword
+                }
                 setShow={
                   setShowCurrentPassword
                 }
@@ -738,8 +877,6 @@ export default function EmployeeSettings() {
                 }
               />
 
-              {/* NEW PASSWORD */}
-
               <PasswordInput
                 label="كلمة المرور الجديدة"
                 name="newPassword"
@@ -747,7 +884,9 @@ export default function EmployeeSettings() {
                   password.newPassword
                 }
                 placeholder="6 أحرف على الأقل"
-                show={showNewPassword}
+                show={
+                  showNewPassword
+                }
                 setShow={
                   setShowNewPassword
                 }
@@ -756,8 +895,6 @@ export default function EmployeeSettings() {
                 }
               />
 
-              {/* CONFIRM PASSWORD */}
-
               <PasswordInput
                 label="تأكيد كلمة المرور الجديدة"
                 name="confirmPassword"
@@ -765,7 +902,9 @@ export default function EmployeeSettings() {
                   password.confirmPassword
                 }
                 placeholder="أعد كتابة كلمة المرور"
-                show={showConfirmPassword}
+                show={
+                  showConfirmPassword
+                }
                 setShow={
                   setShowConfirmPassword
                 }
@@ -773,35 +912,40 @@ export default function EmployeeSettings() {
                   handlePasswordChange
                 }
               />
+
             </div>
 
-            {/* PASSWORD HINT */}
-
             <div className="password-hint">
+
               <FaInfoCircle />
 
               <span>
                 يجب أن تحتوي كلمة المرور الجديدة
                 على 6 أحرف على الأقل.
               </span>
+
             </div>
 
-            {/* BUTTON */}
-
             <div className="form-actions">
+
               <button
                 type="submit"
                 className="password-save-button"
                 disabled={savingPassword}
               >
+
                 <FaLock />
 
                 {savingPassword
                   ? "جاري التغيير..."
                   : "تغيير كلمة المرور"}
+
               </button>
+
             </div>
+
           </form>
+
         </section>
 
         {/* =================================================
@@ -809,7 +953,9 @@ export default function EmployeeSettings() {
         ================================================= */}
 
         <section className="settings-card">
+
           <div className="settings-card-header">
+
             <div className="settings-section-icon orange">
               <FaBell />
             </div>
@@ -823,10 +969,13 @@ export default function EmployeeSettings() {
                 تحكم في تفضيلات الإشعارات الخاصة بك
               </p>
             </div>
+
           </div>
 
           <div className="setting-row">
+
             <div className="setting-row-info">
+
               <div className="setting-row-icon">
                 <FaBell />
               </div>
@@ -840,6 +989,7 @@ export default function EmployeeSettings() {
                   استقبال تنبيهات حول الإجازات والمهام
                 </span>
               </div>
+
             </div>
 
             <button
@@ -852,11 +1002,18 @@ export default function EmployeeSettings() {
               onClick={
                 toggleNotifications
               }
-              aria-label="تفعيل الإشعارات"
+              aria-label={
+                notifications
+                  ? "إيقاف الإشعارات"
+                  : "تفعيل الإشعارات"
+              }
+              aria-pressed={notifications}
             >
               <span />
             </button>
+
           </div>
+
         </section>
 
         {/* =================================================
@@ -864,7 +1021,9 @@ export default function EmployeeSettings() {
         ================================================= */}
 
         <section className="settings-card">
+
           <div className="settings-card-header">
+
             <div className="settings-section-icon green">
               <FaSun />
             </div>
@@ -878,6 +1037,7 @@ export default function EmployeeSettings() {
                 اختر المظهر المناسب لك
               </p>
             </div>
+
           </div>
 
           <div className="theme-options">
@@ -893,6 +1053,9 @@ export default function EmployeeSettings() {
               }`}
               onClick={() =>
                 changeTheme("light")
+              }
+              aria-pressed={
+                theme === "light"
               }
             >
               <FaSun />
@@ -920,6 +1083,9 @@ export default function EmployeeSettings() {
               onClick={() =>
                 changeTheme("dark")
               }
+              aria-pressed={
+                theme === "dark"
+              }
             >
               <FaMoon />
 
@@ -946,6 +1112,9 @@ export default function EmployeeSettings() {
               onClick={() =>
                 changeTheme("system")
               }
+              aria-pressed={
+                theme === "system"
+              }
             >
               <FaDesktop />
 
@@ -959,7 +1128,9 @@ export default function EmployeeSettings() {
                 />
               )}
             </button>
+
           </div>
+
         </section>
 
         {/* =================================================
@@ -967,7 +1138,9 @@ export default function EmployeeSettings() {
         ================================================= */}
 
         <section className="settings-card security-card">
+
           <div className="settings-card-header">
+
             <div className="settings-section-icon red">
               <FaShieldAlt />
             </div>
@@ -981,14 +1154,17 @@ export default function EmployeeSettings() {
                 إدارة أمان حسابك
               </p>
             </div>
+
           </div>
 
           <div className="security-info">
 
             <div className="security-item">
+
               <FaShieldAlt />
 
               <div>
+
                 <strong>
                   حساب محمي
                 </strong>
@@ -997,23 +1173,31 @@ export default function EmployeeSettings() {
                   بيانات حسابك محمية ولا يمكن للموظف
                   الوصول إلى بيانات موظفين آخرين.
                 </span>
+
               </div>
+
             </div>
 
             <div className="security-item">
+
               <FaLock />
 
               <div>
+
                 <strong>
                   كلمة المرور
                 </strong>
 
                 <span>
-                  يتم تخزين كلمات المرور بشكل مشفر.
+                  يتم تخزين كلمات المرور بشكل آمن بعد تجزئتها.
                 </span>
+
               </div>
+
             </div>
+
           </div>
+
         </section>
 
         {/* =================================================
@@ -1021,7 +1205,9 @@ export default function EmployeeSettings() {
         ================================================= */}
 
         <section className="logout-card">
+
           <div>
+
             <h3>
               تسجيل الخروج
             </h3>
@@ -1029,6 +1215,7 @@ export default function EmployeeSettings() {
             <p>
               سيتم إنهاء جلسة تسجيل الدخول الحالية.
             </p>
+
           </div>
 
           <button
@@ -1039,6 +1226,7 @@ export default function EmployeeSettings() {
 
             تسجيل الخروج
           </button>
+
         </section>
 
         {/* =================================================
@@ -1046,6 +1234,7 @@ export default function EmployeeSettings() {
         ================================================= */}
 
         <div className="settings-footer">
+
           <FaShieldAlt />
 
           <span>
@@ -1059,7 +1248,9 @@ export default function EmployeeSettings() {
           <span>
             حسابك محمي
           </span>
+
         </div>
+
       </main>
     </div>
   );
