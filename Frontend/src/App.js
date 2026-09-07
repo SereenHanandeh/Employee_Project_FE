@@ -39,7 +39,7 @@ import EmployeeSettings from "./Pages/EmployeeSettings";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
-import Departments from "./pages/Departments";
+import Departments from "./Pages/Departments";
 
 function App() {
   return (
