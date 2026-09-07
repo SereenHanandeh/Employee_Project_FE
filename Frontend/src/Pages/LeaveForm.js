@@ -56,7 +56,11 @@ export default function LeaveForm() {
 
   const [messageModal, setMessageModal] = useState(null);
 
-  const showMessage = ({ type = "info", title = "تنبيه", message = "" }) => {
+  const showMessage = ({
+    type = "info",
+    title = "تنبيه",
+    message = "",
+  }) => {
     setMessageModal({
       type,
       title,
@@ -74,11 +78,16 @@ export default function LeaveForm() {
 
   const [showPastDateConfirm, setShowPastDateConfirm] = useState(false);
 
-  const [showLongLeaveConfirm, setShowLongLeaveConfirm] = useState(false);
-  const [pendingLongLeaveSave, setPendingLongLeaveSave] = useState(false);
   const [pendingFromDate, setPendingFromDate] = useState("");
   const [previousFromDate, setPreviousFromDate] = useState("");
   const [previousToDate, setPreviousToDate] = useState("");
+
+  // =========================================================
+  // LONG LEAVE CONFIRMATION
+  // =========================================================
+
+  const [showLongLeaveConfirm, setShowLongLeaveConfirm] = useState(false);
+  const [pendingLongLeaveSave, setPendingLongLeaveSave] = useState(false);
 
   // =========================================================
   // LEAVE TYPES
@@ -124,7 +133,10 @@ export default function LeaveForm() {
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
 
-    return Array.from({ length: 11 }, (_, index) => currentYear - 5 + index);
+    return Array.from(
+      { length: 11 },
+      (_, index) => currentYear - 5 + index,
+    );
   }, []);
 
   // =========================================================
@@ -161,7 +173,8 @@ export default function LeaveForm() {
 
         setEmployees(list);
       } else {
-        const currentEmployeeId = user?.employee_id || user?.id || "";
+        const currentEmployeeId =
+          user?.employee_id || user?.id || "";
 
         setEmployeeId(String(currentEmployeeId));
       }
@@ -169,7 +182,8 @@ export default function LeaveForm() {
       console.error("Error loading employees:", error);
 
       const message =
-        error?.response?.data?.message || "حدث خطأ أثناء تحميل بيانات الموظفين";
+        error?.response?.data?.message ||
+        "حدث خطأ أثناء تحميل بيانات الموظفين";
 
       showMessage({
         type: "error",
@@ -188,16 +202,7 @@ export default function LeaveForm() {
   const handleLeaveTypeChange = (newType) => {
     setType(newType);
 
-    // إذا اختار السنوية
-    if (newType === "سنوية") {
-      // تنظيف التواريخ القديمة حتى يختار السنة
-      setFrom("");
-      setTo("");
-      return;
-    }
-
-    // إذا انتقل من السنوية إلى نوع آخر
-    // نمسح تواريخ السنة السابقة
+    // عند تغيير نوع الإجازة نبدأ باختيار تواريخ جديدة
     setFrom("");
     setTo("");
   };
@@ -219,7 +224,7 @@ export default function LeaveForm() {
   };
 
   // =========================================================
-  // NORMAL DATE
+  // NORMAL START DATE
   // =========================================================
 
   const handleFromDateChange = (e) => {
@@ -230,11 +235,13 @@ export default function LeaveForm() {
       return;
     }
 
+    // إذا التاريخ سابق لليوم
     if (isPastDate(value)) {
       setPreviousFromDate(from);
       setPreviousToDate(to);
 
       setPendingFromDate(value);
+
       setShowPastDateConfirm(true);
 
       return;
@@ -260,9 +267,24 @@ export default function LeaveForm() {
       return;
     }
 
-    // السنة كاملة
-    setFrom(`${year}-01-01`);
-    setTo(`${year}-12-31`);
+    const startDate = `${year}-01-01`;
+    const endDate = `${year}-12-31`;
+
+    // إذا كانت السنة الماضية
+    if (isPastDate(startDate)) {
+      setPreviousFromDate(from);
+      setPreviousToDate(to);
+
+      setPendingFromDate(startDate);
+
+      setShowPastDateConfirm(true);
+
+      return;
+    }
+
+    // السنة الحالية أو المستقبلية
+    setFrom(startDate);
+    setTo(endDate);
   };
 
   // =========================================================
@@ -281,7 +303,8 @@ export default function LeaveForm() {
       showMessage({
         type: "warning",
         title: "التاريخ غير صحيح",
-        message: "تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية.",
+        message:
+          "تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية.",
       });
 
       return;
@@ -302,8 +325,19 @@ export default function LeaveForm() {
 
     setFrom(pendingFromDate);
 
-    if (to && new Date(to) < new Date(pendingFromDate)) {
-      setTo("");
+    // إذا كان نوع الإجازة سنوية
+    if (type === "سنوية") {
+      const selectedYear = pendingFromDate.slice(0, 4);
+
+      setTo(`${selectedYear}-12-31`);
+    } else {
+      // الإجازة العادية
+      if (
+        to &&
+        new Date(to) < new Date(pendingFromDate)
+      ) {
+        setTo("");
+      }
     }
 
     setPendingFromDate("");
@@ -312,6 +346,10 @@ export default function LeaveForm() {
 
     setShowPastDateConfirm(false);
   };
+
+  // =========================================================
+  // CANCEL PAST DATE
+  // =========================================================
 
   const cancelPastDate = () => {
     setFrom(previousFromDate);
@@ -336,11 +374,16 @@ export default function LeaveForm() {
 
     const end = new Date(`${to}T00:00:00`);
 
-    const difference = end.getTime() - start.getTime();
+    const difference =
+      end.getTime() - start.getTime();
 
     if (difference < 0) return 0;
 
-    return Math.floor(difference / (1000 * 60 * 60 * 24)) + 1;
+    return (
+      Math.floor(
+        difference / (1000 * 60 * 60 * 24),
+      ) + 1
+    );
   };
 
   const days = calculateDays();
@@ -385,7 +428,8 @@ export default function LeaveForm() {
       showMessage({
         type: "warning",
         title: "نوع الملف غير مدعوم",
-        message: "يسمح فقط برفع JPG و PNG و WEBP و PDF.",
+        message:
+          "يسمح فقط برفع JPG و PNG و WEBP و PDF.",
       });
 
       e.target.value = "";
@@ -400,7 +444,8 @@ export default function LeaveForm() {
       showMessage({
         type: "warning",
         title: "حجم الملف كبير",
-        message: "حجم الملف يجب ألا يتجاوز 5 ميجابايت.",
+        message:
+          "حجم الملف يجب ألا يتجاوز 5 ميجابايت.",
       });
 
       e.target.value = "";
@@ -418,7 +463,8 @@ export default function LeaveForm() {
 
     // Image preview
     if (selectedFile.type.startsWith("image/")) {
-      const objectUrl = URL.createObjectURL(selectedFile);
+      const objectUrl =
+        URL.createObjectURL(selectedFile);
 
       setPreview(objectUrl);
     } else {
@@ -438,7 +484,8 @@ export default function LeaveForm() {
     setFile(null);
     setPreview("");
 
-    const input = document.getElementById("leave-file");
+    const input =
+      document.getElementById("leave-file");
 
     if (input) {
       input.value = "";
@@ -481,7 +528,10 @@ export default function LeaveForm() {
 
   const selectedEmployee = useMemo(() => {
     return employees.find(
-      (emp) => String(emp.id ?? emp.employee_id) === String(employeeId),
+      (emp) =>
+        String(
+          emp.id ?? emp.employee_id,
+        ) === String(employeeId),
     );
   }, [employees, employeeId]);
 
@@ -498,14 +548,15 @@ export default function LeaveForm() {
     "";
 
   const employeeDepartment =
-    selectedEmployee?.department_name || selectedEmployee?.department || "";
+    selectedEmployee?.department_name ||
+    selectedEmployee?.department ||
+    "";
 
   // =========================================================
   // LONG LEAVE CONFIRM
   // =========================================================
 
   const confirmLongLeave = async () => {
-    setShowLongLeaveConfirm(false);
     setPendingLongLeaveSave(true);
 
     try {
@@ -515,83 +566,128 @@ export default function LeaveForm() {
     }
   };
 
+  // =========================================================
+  // CANCEL LONG LEAVE
+  // =========================================================
+
   const cancelLongLeave = () => {
     setShowLongLeaveConfirm(false);
     setPendingLongLeaveSave(false);
   };
+
   // =========================================================
   // SAVE LEAVE
   // =========================================================
-  const saveLeave = async (skipLongLeaveConfirmation = false) => {
-    // Employee
+
+  const saveLeave = async (
+    skipLongLeaveConfirmation = false,
+  ) => {
+    // =======================================================
+    // EMPLOYEE VALIDATION
+    // =======================================================
+
     if (!employeeId) {
       showMessage({
         type: "warning",
         title: "الموظف مطلوب",
         message: "يرجى اختيار الموظف.",
       });
+
       return;
     }
 
-    // Type
+    // =======================================================
+    // TYPE VALIDATION
+    // =======================================================
+
     if (!type) {
       showMessage({
         type: "warning",
         title: "نوع الإجازة مطلوب",
-        message: "يرجى اختيار نوع الإجازة.",
+        message:
+          "يرجى اختيار نوع الإجازة.",
       });
+
       return;
     }
 
-    // From
+    // =======================================================
+    // FROM VALIDATION
+    // =======================================================
+
     if (!from) {
       showMessage({
         type: "warning",
         title: "تاريخ البداية مطلوب",
-        message: "يرجى اختيار تاريخ بداية الإجازة.",
+        message:
+          "يرجى اختيار تاريخ بداية الإجازة.",
       });
+
       return;
     }
 
-    // To
+    // =======================================================
+    // TO VALIDATION
+    // =======================================================
+
     if (!to) {
       showMessage({
         type: "warning",
         title: "تاريخ النهاية مطلوب",
-        message: "يرجى اختيار تاريخ نهاية الإجازة.",
+        message:
+          "يرجى اختيار تاريخ نهاية الإجازة.",
       });
+
       return;
     }
 
-    // Date validation
+    // =======================================================
+    // DATE VALIDATION
+    // =======================================================
+
     if (new Date(to) < new Date(from)) {
       showMessage({
         type: "warning",
         title: "التاريخ غير صحيح",
-        message: "تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية.",
+        message:
+          "تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية.",
       });
+
       return;
     }
 
-    // Days validation
+    // =======================================================
+    // DAYS VALIDATION
+    // =======================================================
+
     if (days <= 0) {
       showMessage({
         type: "warning",
         title: "مدة الإجازة غير صحيحة",
-        message: "عدد أيام الإجازة غير صحيح.",
+        message:
+          "عدد أيام الإجازة غير صحيح.",
       });
+
       return;
     }
 
-    // =========================================================
-    // LEAVE BALANCE VALIDATION
-    // =========================================================
-    if (days > 30 && !skipLongLeaveConfirmation) {
+    // =======================================================
+    // LONG LEAVE CONFIRMATION
+    // =======================================================
+
+    if (
+      days > 30 &&
+      !skipLongLeaveConfirmation
+    ) {
       setShowLongLeaveConfirm(true);
+
       return;
     }
 
-    // File validation
+    // =======================================================
+    // FILE VALIDATION
+    // =======================================================
+
     if (file) {
       const allowedTypes = [
         "image/jpeg",
@@ -604,8 +700,10 @@ export default function LeaveForm() {
         showMessage({
           type: "warning",
           title: "نوع الملف غير مدعوم",
-          message: "يسمح فقط برفع JPG و PNG و WEBP و PDF.",
+          message:
+            "يسمح فقط برفع JPG و PNG و WEBP و PDF.",
         });
+
         return;
       }
 
@@ -613,11 +711,17 @@ export default function LeaveForm() {
         showMessage({
           type: "warning",
           title: "حجم الملف كبير",
-          message: "حجم الملف يجب ألا يتجاوز 5 ميجابايت.",
+          message:
+            "حجم الملف يجب ألا يتجاوز 5 ميجابايت.",
         });
+
         return;
       }
     }
+
+    // =======================================================
+    // SEND
+    // =======================================================
 
     try {
       setSaving(true);
@@ -626,38 +730,72 @@ export default function LeaveForm() {
 
       // Admin sends employee_id
       if (isAdmin) {
-        formData.append("employee_id", String(employeeId));
+        formData.append(
+          "employee_id",
+          String(employeeId),
+        );
       }
 
       // Leave data
-      formData.append("type", type.trim());
-      formData.append("from_date", from);
-      formData.append("to_date", to);
-      formData.append("notes", notes.trim());
+      formData.append(
+        "type",
+        type.trim(),
+      );
+
+      formData.append(
+        "from_date",
+        from,
+      );
+
+      formData.append(
+        "to_date",
+        to,
+      );
+
+      formData.append(
+        "notes",
+        notes.trim(),
+      );
 
       // Attachment
       if (file) {
-        formData.append("attachment", file);
+        formData.append(
+          "attachment",
+          file,
+        );
       }
 
-      const response = await API.post("/leaves", formData);
+      const response = await API.post(
+        "/leaves",
+        formData,
+      );
 
-      console.log("Leave created successfully:", response.data);
+      console.log(
+        "Leave created successfully:",
+        response.data,
+      );
+
+      setShowLongLeaveConfirm(false);
 
       showMessage({
         type: "success",
         title: "تم إرسال الطلب",
-        message: "تم إرسال طلب الإجازة بنجاح وسيتم تحويله للمراجعة.",
+        message:
+          "تم إرسال طلب الإجازة بنجاح وسيتم تحويله للمراجعة.",
       });
 
       setTimeout(() => {
         nav("/leaves-list");
       }, 1500);
     } catch (error) {
-      console.error("Save leave error:", error);
+      console.error(
+        "Save leave error:",
+        error,
+      );
 
       const message =
-        error?.response?.data?.message || "حدث خطأ أثناء حفظ طلب الإجازة";
+        error?.response?.data?.message ||
+        "حدث خطأ أثناء حفظ طلب الإجازة";
 
       showMessage({
         type: "error",
@@ -688,14 +826,30 @@ export default function LeaveForm() {
     setFile(null);
     setPreview("");
 
-    const input = document.getElementById("leave-file");
+    setShowPastDateConfirm(false);
+    setShowLongLeaveConfirm(false);
+
+    setPendingFromDate("");
+    setPreviousFromDate("");
+    setPreviousToDate("");
+
+    setPendingLongLeaveSave(false);
+
+    const input =
+      document.getElementById("leave-file");
 
     if (input) {
       input.value = "";
     }
 
     if (!isAdmin && me) {
-      setEmployeeId(String(me?.employee_id || me?.id || ""));
+      setEmployeeId(
+        String(
+          me?.employee_id ||
+            me?.id ||
+            "",
+        ),
+      );
     } else {
       setEmployeeId("");
     }
@@ -713,7 +867,9 @@ export default function LeaveForm() {
 
           <h3>جاري تحميل النموذج</h3>
 
-          <p>يرجى الانتظار لحظات...</p>
+          <p>
+            يرجى الانتظار لحظات...
+          </p>
         </div>
       </div>
     );
@@ -725,6 +881,7 @@ export default function LeaveForm() {
 
   return (
     <div className="leave-page">
+
       {/* =====================================================
           Background decorations
       ====================================================== */}
@@ -734,12 +891,14 @@ export default function LeaveForm() {
       <div className="leave-bg-shape leave-bg-shape-3"></div>
 
       <div className="leave-container">
+
         {/* =====================================================
             Header
         ====================================================== */}
 
         <header className="leave-header">
           <div className="leave-header-main">
+
             <div className="leave-header-icon">
               <FaCalendarAlt />
             </div>
@@ -747,26 +906,38 @@ export default function LeaveForm() {
             <div>
               <div className="leave-breadcrumb">
                 لوحة التحكم
+
                 <FaChevronLeft />
+
                 طلبات الإجازات
+
                 <FaChevronLeft />
+
                 طلب جديد
               </div>
 
-              <h1>إنشاء طلب إجازة</h1>
+              <h1>
+                إنشاء طلب إجازة
+              </h1>
 
-              <p>قم بتعبئة البيانات التالية لإرسال طلب الإجازة</p>
+              <p>
+                قم بتعبئة البيانات التالية لإرسال طلب الإجازة
+              </p>
             </div>
           </div>
 
           <button
             type="button"
             className="leave-back-btn"
-            onClick={() => nav("/leaves-list")}
+            onClick={() =>
+              nav("/leaves-list")
+            }
           >
             <FaChevronLeft />
 
-            <span>العودة للطلبات</span>
+            <span>
+              العودة للطلبات
+            </span>
           </button>
         </header>
 
@@ -775,37 +946,63 @@ export default function LeaveForm() {
         ====================================================== */}
 
         <div className="leave-progress">
+
           <div className="progress-line"></div>
 
           <div className="progress-step active">
-            <div className="progress-number">01</div>
+
+            <div className="progress-number">
+              01
+            </div>
 
             <div>
-              <strong>بيانات الإجازة</strong>
+              <strong>
+                بيانات الإجازة
+              </strong>
 
-              <span>المعلومات الأساسية</span>
+              <span>
+                المعلومات الأساسية
+              </span>
             </div>
+
           </div>
 
           <div className="progress-step">
-            <div className="progress-number">02</div>
+
+            <div className="progress-number">
+              02
+            </div>
 
             <div>
-              <strong>المراجعة</strong>
+              <strong>
+                المراجعة
+              </strong>
 
-              <span>تأكد من البيانات</span>
+              <span>
+                تأكد من البيانات
+              </span>
             </div>
+
           </div>
 
           <div className="progress-step">
-            <div className="progress-number">03</div>
+
+            <div className="progress-number">
+              03
+            </div>
 
             <div>
-              <strong>الإرسال</strong>
+              <strong>
+                الإرسال
+              </strong>
 
-              <span>إرسال الطلب</span>
+              <span>
+                إرسال الطلب
+              </span>
             </div>
+
           </div>
+
         </div>
 
         {/* =====================================================
@@ -813,95 +1010,144 @@ export default function LeaveForm() {
         ====================================================== */}
 
         <main className="leave-form-layout">
+
           <div className="leave-form-main">
+
             {/* =================================================
                 Employee
             ================================================== */}
 
             <section className="leave-section">
+
               <div className="section-heading">
+
                 <div className="section-icon blue">
                   <FaUser />
                 </div>
 
                 <div>
-                  <h2>بيانات الموظف</h2>
+                  <h2>
+                    بيانات الموظف
+                  </h2>
 
-                  <p>حدد الموظف الذي سيتم تسجيل الإجازة له</p>
+                  <p>
+                    حدد الموظف الذي سيتم تسجيل الإجازة له
+                  </p>
                 </div>
 
-                <span className="section-badge">01</span>
+                <span className="section-badge">
+                  01
+                </span>
+
               </div>
 
               <div className="section-content">
+
                 {isAdmin ? (
                   <div className="field-group">
+
                     <label>
                       الموظف
                       <span>*</span>
                     </label>
 
                     <div className="select-wrapper">
+
                       <FaUser className="field-icon" />
 
                       <select
                         value={employeeId}
-                        onChange={(e) => setEmployeeId(e.target.value)}
+                        onChange={(e) =>
+                          setEmployeeId(
+                            e.target.value,
+                          )
+                        }
                       >
-                        <option value="">اختر الموظف</option>
 
-                        {employees.map((emp) => {
-                          const id = emp.id ?? emp.employee_id;
+                        <option value="">
+                          اختر الموظف
+                        </option>
 
-                          const name =
-                            emp.name ||
-                            emp.full_name ||
-                            emp.employee_name ||
-                            "موظف";
+                        {employees.map(
+                          (emp) => {
+                            const id =
+                              emp.id ??
+                              emp.employee_id;
 
-                          return (
-                            <option key={id} value={id}>
-                              {name}
-                            </option>
-                          );
-                        })}
+                            const name =
+                              emp.name ||
+                              emp.full_name ||
+                              emp.employee_name ||
+                              "موظف";
+
+                            return (
+                              <option
+                                key={id}
+                                value={id}
+                              >
+                                {name}
+                              </option>
+                            );
+                          },
+                        )}
+
                       </select>
 
                       <span className="select-arrow">
                         <FaChevronLeft />
                       </span>
+
                     </div>
 
                     {selectedEmployee && (
                       <div className="employee-mini-card">
+
                         <div className="employee-avatar">
                           <FaUser />
                         </div>
 
                         <div className="employee-mini-info">
-                          <strong>{employeeName}</strong>
+
+                          <strong>
+                            {employeeName}
+                          </strong>
 
                           <div>
-                            {employeeJob && <span>{employeeJob}</span>}
+
+                            {employeeJob && (
+                              <span>
+                                {employeeJob}
+                              </span>
+                            )}
 
                             {employeeDepartment && (
-                              <span>{employeeDepartment}</span>
+                              <span>
+                                {employeeDepartment}
+                              </span>
                             )}
+
                           </div>
+
                         </div>
 
                         <FaCheckCircle className="employee-check" />
+
                       </div>
                     )}
+
                   </div>
                 ) : (
                   <div className="employee-profile-card">
+
                     <div className="profile-avatar">
                       <FaUser />
                     </div>
 
                     <div className="profile-info">
-                      <span>الموظف</span>
+
+                      <span>
+                        الموظف
+                      </span>
 
                       <strong>
                         {me?.name ||
@@ -910,16 +1156,24 @@ export default function LeaveForm() {
                           "الموظف الحالي"}
                       </strong>
 
-                      <small>{me?.job_title || me?.position || "موظف"}</small>
+                      <small>
+                        {me?.job_title ||
+                          me?.position ||
+                          "موظف"}
+                      </small>
+
                     </div>
 
                     <div className="profile-status">
                       <FaCheckCircle />
                       بياناتك الحالية
                     </div>
+
                   </div>
                 )}
+
               </div>
+
             </section>
 
             {/* =================================================
@@ -927,54 +1181,91 @@ export default function LeaveForm() {
             ================================================== */}
 
             <section className="leave-section">
+
               <div className="section-heading">
+
                 <div className="section-icon purple">
                   <FaBriefcase />
                 </div>
 
                 <div>
-                  <h2>نوع الإجازة</h2>
 
-                  <p>اختر نوع الإجازة المناسب للطلب</p>
+                  <h2>
+                    نوع الإجازة
+                  </h2>
+
+                  <p>
+                    اختر نوع الإجازة المناسب للطلب
+                  </p>
+
                 </div>
 
-                <span className="section-badge">02</span>
+                <span className="section-badge">
+                  02
+                </span>
+
               </div>
 
               <div className="section-content">
+
                 <div className="leave-types-grid">
-                  {leaveTypes.map((item) => {
-                    const Icon = item.icon;
 
-                    const selected = type === item.value;
+                  {leaveTypes.map(
+                    (item) => {
+                      const Icon =
+                        item.icon;
 
-                    return (
-                      <button
-                        type="button"
-                        key={item.value}
-                        className={`leave-type-card ${
-                          selected ? "selected" : ""
-                        }`}
-                        onClick={() => handleLeaveTypeChange(item.value)}
-                      >
-                        <div className="leave-type-icon">
-                          <Icon />
-                        </div>
+                      const selected =
+                        type ===
+                        item.value;
 
-                        <div className="leave-type-text">
-                          <strong>{item.label}</strong>
+                      return (
+                        <button
+                          type="button"
+                          key={item.value}
+                          className={`leave-type-card ${
+                            selected
+                              ? "selected"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            handleLeaveTypeChange(
+                              item.value,
+                            )
+                          }
+                        >
 
-                          <span>{item.description}</span>
-                        </div>
+                          <div className="leave-type-icon">
+                            <Icon />
+                          </div>
 
-                        <div className="leave-type-check">
-                          {selected && <FaCheckCircle />}
-                        </div>
-                      </button>
-                    );
-                  })}
+                          <div className="leave-type-text">
+
+                            <strong>
+                              {item.label}
+                            </strong>
+
+                            <span>
+                              {item.description}
+                            </span>
+
+                          </div>
+
+                          <div className="leave-type-check">
+                            {selected && (
+                              <FaCheckCircle />
+                            )}
+                          </div>
+
+                        </button>
+                      );
+                    },
+                  )}
+
                 </div>
+
               </div>
+
             </section>
 
             {/* =================================================
@@ -982,73 +1273,115 @@ export default function LeaveForm() {
             ================================================== */}
 
             <section className="leave-section">
+
               <div className="section-heading">
+
                 <div className="section-icon orange">
                   <FaCalendarAlt />
                 </div>
 
                 <div>
-                  <h2>مدة الإجازة</h2>
+
+                  <h2>
+                    مدة الإجازة
+                  </h2>
 
                   <p>
                     {type === "سنوية"
                       ? "اختر سنة الإجازة"
                       : "حدد تاريخ بداية ونهاية الإجازة"}
                   </p>
+
                 </div>
 
-                <span className="section-badge">03</span>
+                <span className="section-badge">
+                  03
+                </span>
+
               </div>
 
               <div className="section-content">
+
                 <div className="dates-grid">
+
                   {/* ================================
                       START
                   ================================= */}
 
                   <div className="date-field">
+
                     <label>
-                      {type === "سنوية" ? "سنة الإجازة" : "تاريخ البداية"}
+                      {type === "سنوية"
+                        ? "سنة الإجازة"
+                        : "تاريخ البداية"}
 
                       <span>*</span>
                     </label>
 
                     <div className="date-input-wrapper">
+
                       <div className="date-icon">
                         <FaCalendarAlt />
                       </div>
 
                       {type === "سنوية" ? (
                         <select
-                          value={from ? from.slice(0, 4) : ""}
-                          onChange={handleAnnualYearChange}
+                          value={
+                            from
+                              ? from.slice(
+                                  0,
+                                  4,
+                                )
+                              : ""
+                          }
+                          onChange={
+                            handleAnnualYearChange
+                          }
                         >
-                          <option value="">اختر السنة</option>
 
-                          {years.map((year) => (
-                            <option key={year} value={year}>
-                              {year}
-                            </option>
-                          ))}
+                          <option value="">
+                            اختر السنة
+                          </option>
+
+                          {years.map(
+                            (year) => (
+                              <option
+                                key={year}
+                                value={year}
+                              >
+                                {year}
+                              </option>
+                            ),
+                          )}
+
                         </select>
                       ) : (
                         <input
                           type="date"
                           value={from}
-                          onChange={handleFromDateChange}
+                          onChange={
+                            handleFromDateChange
+                          }
                         />
                       )}
+
                     </div>
 
                     {from && (
                       <div className="date-readable">
+
                         <FaClock />
 
                         {type === "سنوية"
-                          ? `سنة ${from.slice(0, 4)}`
+                          ? `سنة ${from.slice(
+                              0,
+                              4,
+                            )}`
                           : formatDate(from)}
+
                       </div>
                     )}
+
                   </div>
 
                   {/* ================================
@@ -1056,11 +1389,13 @@ export default function LeaveForm() {
                   ================================= */}
 
                   <div className="date-connector">
+
                     <span></span>
 
                     <FaChevronLeft />
 
                     <span></span>
+
                   </div>
 
                   {/* ================================
@@ -1068,22 +1403,36 @@ export default function LeaveForm() {
                   ================================= */}
 
                   <div className="date-field">
+
                     <label>
-                      {type === "سنوية" ? "سنة النهاية" : "تاريخ النهاية"}
+
+                      {type === "سنوية"
+                        ? "سنة النهاية"
+                        : "تاريخ النهاية"}
 
                       <span>*</span>
+
                     </label>
 
                     <div className="date-input-wrapper">
+
                       <div className="date-icon">
                         <FaCalendarAlt />
                       </div>
 
                       {type === "سنوية" ? (
                         <select
-                          value={to ? to.slice(0, 4) : ""}
+                          value={
+                            to
+                              ? to.slice(
+                                  0,
+                                  4,
+                                )
+                              : ""
+                          }
                           onChange={(e) => {
-                            const year = e.target.value;
+                            const year =
+                              e.target.value;
 
                             if (!year) {
                               setTo("");
@@ -1092,11 +1441,18 @@ export default function LeaveForm() {
 
                             if (
                               from &&
-                              Number(year) < Number(from.slice(0, 4))
+                              Number(year) <
+                                Number(
+                                  from.slice(
+                                    0,
+                                    4,
+                                  ),
+                                )
                             ) {
                               showMessage({
                                 type: "warning",
-                                title: "السنة غير صحيحة",
+                                title:
+                                  "السنة غير صحيحة",
                                 message:
                                   "سنة النهاية يجب أن تكون بعد أو مساوية لسنة البداية.",
                               });
@@ -1104,67 +1460,113 @@ export default function LeaveForm() {
                               return;
                             }
 
-                            setTo(`${year}-12-31`);
+                            setTo(
+                              `${year}-12-31`,
+                            );
                           }}
                         >
-                          <option value="">اختر السنة</option>
 
-                          {years.map((year) => (
-                            <option key={year} value={year}>
-                              {year}
-                            </option>
-                          ))}
+                          <option value="">
+                            اختر السنة
+                          </option>
+
+                          {years.map(
+                            (year) => (
+                              <option
+                                key={year}
+                                value={year}
+                              >
+                                {year}
+                              </option>
+                            ),
+                          )}
+
                         </select>
                       ) : (
                         <input
                           type="date"
                           value={to}
-                          min={from || undefined}
-                          onChange={handleToDateChange}
+                          min={
+                            from ||
+                            undefined
+                          }
+                          onChange={
+                            handleToDateChange
+                          }
                         />
                       )}
+
                     </div>
 
                     {to && (
                       <div className="date-readable">
+
                         <FaClock />
 
                         {type === "سنوية"
-                          ? `سنة ${to.slice(0, 4)}`
+                          ? `سنة ${to.slice(
+                              0,
+                              4,
+                            )}`
                           : formatDate(to)}
+
                       </div>
                     )}
+
                   </div>
+
                 </div>
 
                 {/* =================================================
                     Days summary
                 ================================================== */}
 
-                <div className={`days-summary ${days > 0 ? "has-days" : ""}`}>
+                <div
+                  className={`days-summary ${
+                    days > 0
+                      ? "has-days"
+                      : ""
+                  }`}
+                >
+
                   <div className="days-summary-icon">
                     <FaCalendarAlt />
                   </div>
 
                   <div className="days-summary-text">
-                    <span>مدة الإجازة</span>
+
+                    <span>
+                      مدة الإجازة
+                    </span>
 
                     <strong>
+
                       {days > 0
-                        ? `${days} ${days === 1 ? "يوم" : "أيام"}`
+                        ? `${days} ${
+                            days === 1
+                              ? "يوم"
+                              : "أيام"
+                          }`
                         : "—"}
+
                     </strong>
+
                   </div>
 
                   {days > 0 && (
                     <div className="days-summary-message">
+
                       {type === "سنوية"
                         ? "تم تحديد السنة كاملة"
                         : "تم احتساب المدة تلقائيًا"}
+
                     </div>
                   )}
+
                 </div>
+
               </div>
+
             </section>
 
             {/* =================================================
@@ -1172,28 +1574,46 @@ export default function LeaveForm() {
             ================================================== */}
 
             <section className="leave-section">
+
               <div className="section-heading">
+
                 <div className="section-icon green">
                   <FaPaperclip />
                 </div>
 
                 <div>
-                  <h2>المرفق</h2>
 
-                  <p>يمكنك إرفاق مستند داعم لطلب الإجازة</p>
+                  <h2>
+                    المرفق
+                  </h2>
+
+                  <p>
+                    يمكنك إرفاق مستند داعم لطلب الإجازة
+                  </p>
+
                 </div>
 
-                <span className="optional-badge">اختياري</span>
+                <span className="optional-badge">
+                  اختياري
+                </span>
+
               </div>
 
               <div className="section-content">
+
                 {!file ? (
-                  <label htmlFor="leave-file" className="upload-area">
+                  <label
+                    htmlFor="leave-file"
+                    className="upload-area"
+                  >
+
                     <input
                       id="leave-file"
                       type="file"
                       accept=".jpg,.jpeg,.png,.webp,.pdf"
-                      onChange={handleFileChange}
+                      onChange={
+                        handleFileChange
+                      }
                     />
 
                     <div className="upload-icon">
@@ -1201,20 +1621,37 @@ export default function LeaveForm() {
                     </div>
 
                     <div className="upload-content">
-                      <strong>اسحب الملف هنا أو اضغط للاختيار</strong>
 
-                      <span>JPG, PNG, WEBP أو PDF</span>
+                      <strong>
+                        اسحب الملف هنا أو اضغط للاختيار
+                      </strong>
 
-                      <small>الحد الأقصى لحجم الملف 5 ميجابايت</small>
+                      <span>
+                        JPG, PNG, WEBP أو PDF
+                      </span>
+
+                      <small>
+                        الحد الأقصى لحجم الملف 5 ميجابايت
+                      </small>
+
                     </div>
 
-                    <div className="upload-button">اختيار ملف</div>
+                    <div className="upload-button">
+                      اختيار ملف
+                    </div>
+
                   </label>
                 ) : (
                   <div className="file-preview-card">
+
                     {preview ? (
                       <div className="file-image-preview">
-                        <img src={preview} alt="معاينة المرفق" />
+
+                        <img
+                          src={preview}
+                          alt="معاينة المرفق"
+                        />
+
                       </div>
                     ) : (
                       <div className="file-pdf-icon">
@@ -1223,27 +1660,43 @@ export default function LeaveForm() {
                     )}
 
                     <div className="file-info">
-                      <strong>{file.name}</strong>
 
-                      <span>{formatFileSize(file.size)}</span>
+                      <strong>
+                        {file.name}
+                      </strong>
+
+                      <span>
+                        {formatFileSize(
+                          file.size,
+                        )}
+                      </span>
 
                       <div className="file-success">
+
                         <FaCheckCircle />
+
                         تم إرفاق الملف بنجاح
+
                       </div>
+
                     </div>
 
                     <button
                       type="button"
                       className="remove-file-btn"
-                      onClick={removeFile}
+                      onClick={
+                        removeFile
+                      }
                       title="حذف المرفق"
                     >
                       <FaTimes />
                     </button>
+
                   </div>
                 )}
+
               </div>
+
             </section>
 
             {/* =================================================
@@ -1251,35 +1704,58 @@ export default function LeaveForm() {
             ================================================== */}
 
             <section className="leave-section">
+
               <div className="section-heading">
+
                 <div className="section-icon teal">
                   <FaStickyNote />
                 </div>
 
                 <div>
-                  <h2>الملاحظات</h2>
 
-                  <p>أضف أي معلومات أو ملاحظات إضافية</p>
+                  <h2>
+                    الملاحظات
+                  </h2>
+
+                  <p>
+                    أضف أي معلومات أو ملاحظات إضافية
+                  </p>
+
                 </div>
 
-                <span className="optional-badge">اختياري</span>
+                <span className="optional-badge">
+                  اختياري
+                </span>
+
               </div>
 
               <div className="section-content">
+
                 <div className="notes-wrapper">
+
                   <FaStickyNote className="notes-icon" />
 
                   <textarea
                     value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                    onChange={(e) =>
+                      setNotes(
+                        e.target.value,
+                      )
+                    }
                     placeholder="اكتب ملاحظاتك هنا..."
                     maxLength={1000}
                   />
 
-                  <div className="notes-counter">{notes.length} / 1000</div>
+                  <div className="notes-counter">
+                    {notes.length} / 1000
+                  </div>
+
                 </div>
+
               </div>
+
             </section>
+
           </div>
 
           {/* ===================================================
@@ -1287,87 +1763,151 @@ export default function LeaveForm() {
           ==================================================== */}
 
           <aside className="leave-sidebar">
+
             <div className="summary-card">
+
               <div className="summary-header">
+
                 <div className="summary-header-icon">
                   <FaFileAlt />
                 </div>
 
                 <div>
-                  <span>ملخص الطلب</span>
 
-                  <strong>طلب إجازة جديد</strong>
+                  <span>
+                    ملخص الطلب
+                  </span>
+
+                  <strong>
+                    طلب إجازة جديد
+                  </strong>
+
                 </div>
+
               </div>
 
               <div className="summary-divider"></div>
 
               <div className="summary-item">
-                <span>الموظف</span>
+
+                <span>
+                  الموظف
+                </span>
 
                 <strong>
                   {isAdmin
-                    ? employeeName || "لم يتم الاختيار"
-                    : me?.name || me?.full_name || "الموظف الحالي"}
+                    ? employeeName ||
+                      "لم يتم الاختيار"
+                    : me?.name ||
+                      me?.full_name ||
+                      "الموظف الحالي"}
                 </strong>
+
               </div>
 
               <div className="summary-item">
-                <span>نوع الإجازة</span>
 
-                <strong>{type}</strong>
-              </div>
-
-              <div className="summary-item">
-                <span>من</span>
+                <span>
+                  نوع الإجازة
+                </span>
 
                 <strong>
-                  {type === "سنوية" && from
-                    ? `01/01/${from.slice(0, 4)}`
-                    : from || "لم يتم التحديد"}
+                  {type}
                 </strong>
+
               </div>
 
               <div className="summary-item">
-                <span>إلى</span>
+
+                <span>
+                  من
+                </span>
 
                 <strong>
-                  {type === "سنوية" && to
-                    ? `31/12/${to.slice(0, 4)}`
-                    : to || "لم يتم التحديد"}
+                  {type === "سنوية" &&
+                  from
+                    ? `01/01/${from.slice(
+                        0,
+                        4,
+                      )}`
+                    : from ||
+                      "لم يتم التحديد"}
                 </strong>
+
+              </div>
+
+              <div className="summary-item">
+
+                <span>
+                  إلى
+                </span>
+
+                <strong>
+                  {type === "سنوية" &&
+                  to
+                    ? `31/12/${to.slice(
+                        0,
+                        4,
+                      )}`
+                    : to ||
+                      "لم يتم التحديد"}
+                </strong>
+
               </div>
 
               <div className="summary-days">
-                <div>
-                  <span>إجمالي المدة</span>
 
-                  <small>يتم الحساب تلقائيًا</small>
+                <div>
+
+                  <span>
+                    إجمالي المدة
+                  </span>
+
+                  <small>
+                    يتم الحساب تلقائيًا
+                  </small>
+
                 </div>
 
                 <strong>
+
                   {days}
 
-                  <small>{days === 1 ? "يوم" : "أيام"}</small>
+                  <small>
+                    {days === 1
+                      ? "يوم"
+                      : "أيام"}
+                  </small>
+
                 </strong>
+
               </div>
+
             </div>
 
             <div className="info-card">
+
               <div className="info-icon">
                 <FaExclamationTriangle />
               </div>
 
               <div>
-                <strong>تنبيه مهم</strong>
+
+                <strong>
+                  تنبيه مهم
+                </strong>
 
                 <p>
-                  تأكد من صحة جميع البيانات قبل إرسال الطلب، وسيتم تحويله
-                  للمراجعة حسب نظام المؤسسة.
+                  تأكد من صحة جميع البيانات قبل إرسال الطلب،
+                  وسيتم تحويله للمراجعة حسب نظام المؤسسة.
                 </p>
+
               </div>
+
             </div>
+
           </aside>
+
         </main>
 
         {/* =====================================================
@@ -1375,10 +1915,13 @@ export default function LeaveForm() {
         ====================================================== */}
 
         <div className="leave-actions">
+
           <button
             type="button"
             className="action-cancel"
-            onClick={() => nav("/leaves-list")}
+            onClick={() =>
+              nav("/leaves-list")
+            }
             disabled={saving}
           >
             <FaTimes />
@@ -1388,7 +1931,9 @@ export default function LeaveForm() {
           <button
             type="button"
             className="action-reset"
-            onClick={resetForm}
+            onClick={
+              resetForm
+            }
             disabled={saving}
           >
             إعادة تعيين
@@ -1397,9 +1942,12 @@ export default function LeaveForm() {
           <button
             type="button"
             className="action-save"
-            onClick={saveLeave}
+            onClick={() =>
+              saveLeave()
+            }
             disabled={saving}
           >
+
             {saving ? (
               <>
                 <span className="button-spinner"></span>
@@ -1411,13 +1959,19 @@ export default function LeaveForm() {
                 إرسال طلب الإجازة
               </>
             )}
+
           </button>
+
         </div>
 
         <div className="leave-footer-note">
+
           <FaCheckCircle />
+
           جميع البيانات المدخلة محفوظة بشكل آمن
+
         </div>
+
       </div>
 
       {/* =======================================================
@@ -1425,14 +1979,28 @@ export default function LeaveForm() {
       ======================================================== */}
 
       {showPastDateConfirm && (
-        <div className="past-date-overlay" onClick={cancelPastDate}>
-          <div className="past-date-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="past-date-overlay"
+          onClick={
+            cancelPastDate
+          }
+        >
+
+          <div
+            className="past-date-modal"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+
             <div className="modal-top-line"></div>
 
             <button
               type="button"
               className="modal-close"
-              onClick={cancelPastDate}
+              onClick={
+                cancelPastDate
+              }
             >
               <FaTimes />
             </button>
@@ -1441,32 +2009,51 @@ export default function LeaveForm() {
               <FaExclamationTriangle />
             </div>
 
-            <span className="modal-label">تنبيه التاريخ</span>
+            <span className="modal-label">
+              تنبيه التاريخ
+            </span>
 
-            <h3>التاريخ المختار سابق لليوم</h3>
+            <h3>
+              التاريخ المختار سابق لليوم
+            </h3>
 
             <p className="modal-description">
-              لقد اخترت تاريخ بداية يقع قبل تاريخ اليوم. هل تريد الاستمرار بهذا
-              التاريخ؟
+
+              لقد اخترت تاريخ بداية يقع قبل تاريخ اليوم.
+              هل تريد الاستمرار بهذا التاريخ؟
+
             </p>
 
             <div className="selected-past-date">
+
               <div className="selected-date-icon">
                 <FaCalendarAlt />
               </div>
 
               <div>
-                <span>التاريخ المختار</span>
 
-                <strong>{formatDate(pendingFromDate)}</strong>
+                <span>
+                  التاريخ المختار
+                </span>
+
+                <strong>
+                  {formatDate(
+                    pendingFromDate,
+                  )}
+                </strong>
+
               </div>
+
             </div>
 
             <div className="modal-actions">
+
               <button
                 type="button"
                 className="modal-cancel"
-                onClick={cancelPastDate}
+                onClick={
+                  cancelPastDate
+                }
               >
                 <FaTimes />
                 إلغاء
@@ -1475,29 +2062,53 @@ export default function LeaveForm() {
               <button
                 type="button"
                 className="modal-confirm"
-                onClick={confirmPastDate}
+                onClick={
+                  confirmPastDate
+                }
               >
                 <FaCheckCircle />
                 نعم، أريد الاستمرار
               </button>
+
             </div>
+
           </div>
+
         </div>
       )}
+
       {/* =======================================================
-    Long Leave Confirmation Modal
-======================================================== */}
+          Long Leave Confirmation Modal
+      ======================================================== */}
 
       {showLongLeaveConfirm && (
-        <div className="past-date-overlay" onClick={cancelLongLeave}>
-          <div className="past-date-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="past-date-overlay"
+          onClick={
+            pendingLongLeaveSave
+              ? undefined
+              : cancelLongLeave
+          }
+        >
+
+          <div
+            className="past-date-modal"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+
             <div className="modal-top-line"></div>
 
             <button
               type="button"
               className="modal-close"
-              onClick={cancelLongLeave}
-              disabled={pendingLongLeaveSave}
+              onClick={
+                cancelLongLeave
+              }
+              disabled={
+                pendingLongLeaveSave
+              }
             >
               <FaTimes />
             </button>
@@ -1506,37 +2117,62 @@ export default function LeaveForm() {
               <FaExclamationTriangle />
             </div>
 
-            <span className="modal-label">تنبيه مدة الإجازة</span>
+            <span className="modal-label">
+              تنبيه مدة الإجازة
+            </span>
 
-            <h3>مدة الإجازة أكثر من 30 يومًا</h3>
+            <h3>
+              مدة الإجازة أكثر من 30 يومًا
+            </h3>
 
             <p className="modal-description">
-              لقد اخترت إجازة مدتها <strong>{days} يومًا</strong>، وهي أكثر من
-              30 يومًا.
+
+              مدة الإجازة التي اخترتها هي{" "}
+              <strong>
+                {days} يومًا
+              </strong>
+              ، وهي تتجاوز 30 يومًا.
+
               <br />
-              هل تريد المتابعة وتسجيل الإجازة بهذه المدة؟
+
+              هل تريد المتابعة وإرسال طلب الإجازة بهذه المدة؟
+
             </p>
 
             <div className="selected-past-date">
+
               <div className="selected-date-icon">
                 <FaCalendarAlt />
               </div>
 
               <div>
-                <span>مدة الإجازة</span>
+
+                <span>
+                  مدة الإجازة
+                </span>
 
                 <strong>
-                  {days} {days === 1 ? "يوم" : "يومًا"}
+                  {days}{" "}
+                  {days === 1
+                    ? "يوم"
+                    : "يومًا"}
                 </strong>
+
               </div>
+
             </div>
 
             <div className="modal-actions">
+
               <button
                 type="button"
                 className="modal-cancel"
-                onClick={cancelLongLeave}
-                disabled={pendingLongLeaveSave}
+                onClick={
+                  cancelLongLeave
+                }
+                disabled={
+                  pendingLongLeaveSave
+                }
               >
                 <FaTimes />
                 إلغاء
@@ -1545,9 +2181,14 @@ export default function LeaveForm() {
               <button
                 type="button"
                 className="modal-confirm"
-                onClick={confirmLongLeave}
-                disabled={pendingLongLeaveSave}
+                onClick={
+                  confirmLongLeave
+                }
+                disabled={
+                  pendingLongLeaveSave
+                }
               >
+
                 {pendingLongLeaveSave ? (
                   <>
                     <span className="button-spinner"></span>
@@ -1556,48 +2197,85 @@ export default function LeaveForm() {
                 ) : (
                   <>
                     <FaCheckCircle />
-                    نعم، متابعة وإرسال الطلب
+                    متابعة وإرسال الطلب
                   </>
                 )}
+
               </button>
+
             </div>
+
           </div>
+
         </div>
       )}
+
       {/* =======================================================
           MESSAGE MODAL
       ======================================================== */}
 
       {messageModal && (
-        <div className="message-overlay" onClick={closeMessageModal}>
+        <div
+          className="message-overlay"
+          onClick={
+            closeMessageModal
+          }
+        >
+
           <div
             className={`message-modal ${messageModal.type}`}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) =>
+              e.stopPropagation()
+            }
           >
+
             <div className="message-icon">
-              {messageModal.type === "success" && <FaCheckCircle />}
 
-              {messageModal.type === "error" && <FaTimes />}
+              {messageModal.type ===
+                "success" && (
+                <FaCheckCircle />
+              )}
 
-              {messageModal.type === "warning" && <FaExclamationTriangle />}
+              {messageModal.type ===
+                "error" && (
+                <FaTimes />
+              )}
 
-              {messageModal.type === "info" && <FaFileAlt />}
+              {messageModal.type ===
+                "warning" && (
+                <FaExclamationTriangle />
+              )}
+
+              {messageModal.type ===
+                "info" && (
+                <FaFileAlt />
+              )}
+
             </div>
 
-            <h3>{messageModal.title}</h3>
+            <h3>
+              {messageModal.title}
+            </h3>
 
-            <p>{messageModal.message}</p>
+            <p>
+              {messageModal.message}
+            </p>
 
             <button
               type="button"
               className={`message-button ${messageModal.type}`}
-              onClick={closeMessageModal}
+              onClick={
+                closeMessageModal
+              }
             >
               حسنًا
             </button>
+
           </div>
+
         </div>
       )}
+
     </div>
   );
 }
