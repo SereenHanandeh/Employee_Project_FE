@@ -119,7 +119,7 @@ export default function CreateEmployee() {
 
       alert("تم إضافة الموظف بنجاح");
 
-      nav("/admin-dashboard");
+      nav("/employees");
     } catch (err) {
       console.error("Add Employee Error:", err);
 
