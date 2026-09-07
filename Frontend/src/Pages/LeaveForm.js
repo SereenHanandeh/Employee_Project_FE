@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 
@@ -34,8 +34,8 @@ export default function LeaveForm() {
 
   const [employees, setEmployees] = useState([]);
   const [me, setMe] = useState(null);
-  const [employeeId, setEmployeeId] = useState("");
 
+  const [employeeId, setEmployeeId] = useState("");
   const [type, setType] = useState("سنوية");
 
   const [from, setFrom] = useState("");
@@ -49,6 +49,13 @@ export default function LeaveForm() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // =========================================================
+  // REFS
+  // =========================================================
+
+  const fromDateRef = useRef(null);
+  const toDateRef = useRef(null);
 
   // =========================================================
   // MESSAGE MODAL
@@ -77,7 +84,6 @@ export default function LeaveForm() {
   // =========================================================
 
   const [showPastDateConfirm, setShowPastDateConfirm] = useState(false);
-
   const [pendingFromDate, setPendingFromDate] = useState("");
   const [previousFromDate, setPreviousFromDate] = useState("");
   const [previousToDate, setPreviousToDate] = useState("");
@@ -125,19 +131,6 @@ export default function LeaveForm() {
       icon: FaEllipsisH,
     },
   ];
-
-  // =========================================================
-  // YEARS
-  // =========================================================
-
-  const years = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-
-    return Array.from(
-      { length: 11 },
-      (_, index) => currentYear - 5 + index,
-    );
-  }, []);
 
   // =========================================================
   // FETCH EMPLOYEE DATA
@@ -217,10 +210,29 @@ export default function LeaveForm() {
     const selectedDate = new Date(`${dateValue}T00:00:00`);
 
     const today = new Date();
-
     today.setHours(0, 0, 0, 0);
 
     return selectedDate < today;
+  };
+
+  // =========================================================
+  // OPEN DATE PICKER
+  // =========================================================
+
+  const openDatePicker = (ref) => {
+    const input = ref.current;
+
+    if (!input) return;
+
+    try {
+      if (typeof input.showPicker === "function") {
+        input.showPicker();
+      } else {
+        input.focus();
+      }
+    } catch (error) {
+      input.focus();
+    }
   };
 
   // =========================================================
@@ -239,11 +251,8 @@ export default function LeaveForm() {
     if (isPastDate(value)) {
       setPreviousFromDate(from);
       setPreviousToDate(to);
-
       setPendingFromDate(value);
-
       setShowPastDateConfirm(true);
-
       return;
     }
 
@@ -252,39 +261,6 @@ export default function LeaveForm() {
     if (to && new Date(to) < new Date(value)) {
       setTo("");
     }
-  };
-
-  // =========================================================
-  // ANNUAL YEAR CHANGE
-  // =========================================================
-
-  const handleAnnualYearChange = (e) => {
-    const year = e.target.value;
-
-    if (!year) {
-      setFrom("");
-      setTo("");
-      return;
-    }
-
-    const startDate = `${year}-01-01`;
-    const endDate = `${year}-12-31`;
-
-    // إذا كانت السنة الماضية
-    if (isPastDate(startDate)) {
-      setPreviousFromDate(from);
-      setPreviousToDate(to);
-
-      setPendingFromDate(startDate);
-
-      setShowPastDateConfirm(true);
-
-      return;
-    }
-
-    // السنة الحالية أو المستقبلية
-    setFrom(startDate);
-    setTo(endDate);
   };
 
   // =========================================================
@@ -325,25 +301,16 @@ export default function LeaveForm() {
 
     setFrom(pendingFromDate);
 
-    // إذا كان نوع الإجازة سنوية
-    if (type === "سنوية") {
-      const selectedYear = pendingFromDate.slice(0, 4);
-
-      setTo(`${selectedYear}-12-31`);
-    } else {
-      // الإجازة العادية
-      if (
-        to &&
-        new Date(to) < new Date(pendingFromDate)
-      ) {
-        setTo("");
-      }
+    if (
+      to &&
+      new Date(to) < new Date(pendingFromDate)
+    ) {
+      setTo("");
     }
 
     setPendingFromDate("");
     setPreviousFromDate("");
     setPreviousToDate("");
-
     setShowPastDateConfirm(false);
   };
 
@@ -371,7 +338,6 @@ export default function LeaveForm() {
     if (!from || !to) return 0;
 
     const start = new Date(`${from}T00:00:00`);
-
     const end = new Date(`${to}T00:00:00`);
 
     const difference =
@@ -433,7 +399,6 @@ export default function LeaveForm() {
       });
 
       e.target.value = "";
-
       return;
     }
 
@@ -449,7 +414,6 @@ export default function LeaveForm() {
       });
 
       e.target.value = "";
-
       return;
     }
 
@@ -458,7 +422,6 @@ export default function LeaveForm() {
       URL.revokeObjectURL(preview);
     }
 
-    // Save file
     setFile(selectedFile);
 
     // Image preview
@@ -680,6 +643,20 @@ export default function LeaveForm() {
       !skipLongLeaveConfirmation
     ) {
       setShowLongLeaveConfirm(true);
+      return;
+    }
+
+    // =======================================================
+    // FILE REQUIRED VALIDATION
+    // =======================================================
+
+    if (!file) {
+      showMessage({
+        type: "warning",
+        title: "المرفق مطلوب",
+        message:
+          "يرجى إرفاق مستند داعم لطلب الإجازة قبل إرسال الطلب.",
+      });
 
       return;
     }
@@ -688,35 +665,33 @@ export default function LeaveForm() {
     // FILE VALIDATION
     // =======================================================
 
-    if (file) {
-      const allowedTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "application/pdf",
-      ];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+    ];
 
-      if (!allowedTypes.includes(file.type)) {
-        showMessage({
-          type: "warning",
-          title: "نوع الملف غير مدعوم",
-          message:
-            "يسمح فقط برفع JPG و PNG و WEBP و PDF.",
-        });
+    if (!allowedTypes.includes(file.type)) {
+      showMessage({
+        type: "warning",
+        title: "نوع الملف غير مدعوم",
+        message:
+          "يسمح فقط برفع JPG و PNG و WEBP و PDF.",
+      });
 
-        return;
-      }
+      return;
+    }
 
-      if (file.size > 5 * 1024 * 1024) {
-        showMessage({
-          type: "warning",
-          title: "حجم الملف كبير",
-          message:
-            "حجم الملف يجب ألا يتجاوز 5 ميجابايت.",
-        });
+    if (file.size > 5 * 1024 * 1024) {
+      showMessage({
+        type: "warning",
+        title: "حجم الملف كبير",
+        message:
+          "حجم الملف يجب ألا يتجاوز 5 ميجابايت.",
+      });
 
-        return;
-      }
+      return;
     }
 
     // =======================================================
@@ -757,13 +732,11 @@ export default function LeaveForm() {
         notes.trim(),
       );
 
-      // Attachment
-      if (file) {
-        formData.append(
-          "attachment",
-          file,
-        );
-      }
+      // Attachment - REQUIRED
+      formData.append(
+        "attachment",
+        file,
+      );
 
       const response = await API.post(
         "/leaves",
@@ -813,10 +786,8 @@ export default function LeaveForm() {
 
   const resetForm = () => {
     setType("سنوية");
-
     setFrom("");
     setTo("");
-
     setNotes("");
 
     if (preview) {
@@ -881,10 +852,7 @@ export default function LeaveForm() {
 
   return (
     <div className="leave-page">
-
-      {/* =====================================================
-          Background decorations
-      ====================================================== */}
+      {/* Background decorations */}
 
       <div className="leave-bg-shape leave-bg-shape-1"></div>
       <div className="leave-bg-shape leave-bg-shape-2"></div>
@@ -906,13 +874,9 @@ export default function LeaveForm() {
             <div>
               <div className="leave-breadcrumb">
                 لوحة التحكم
-
                 <FaChevronLeft />
-
                 طلبات الإجازات
-
                 <FaChevronLeft />
-
                 طلب جديد
               </div>
 
@@ -950,7 +914,6 @@ export default function LeaveForm() {
           <div className="progress-line"></div>
 
           <div className="progress-step active">
-
             <div className="progress-number">
               01
             </div>
@@ -964,11 +927,9 @@ export default function LeaveForm() {
                 المعلومات الأساسية
               </span>
             </div>
-
           </div>
 
           <div className="progress-step">
-
             <div className="progress-number">
               02
             </div>
@@ -982,11 +943,9 @@ export default function LeaveForm() {
                 تأكد من البيانات
               </span>
             </div>
-
           </div>
 
           <div className="progress-step">
-
             <div className="progress-number">
               03
             </div>
@@ -1000,7 +959,6 @@ export default function LeaveForm() {
                 إرسال الطلب
               </span>
             </div>
-
           </div>
 
         </div>
@@ -1063,7 +1021,6 @@ export default function LeaveForm() {
                           )
                         }
                       >
-
                         <option value="">
                           اختر الموظف
                         </option>
@@ -1090,7 +1047,6 @@ export default function LeaveForm() {
                             );
                           },
                         )}
-
                       </select>
 
                       <span className="select-arrow">
@@ -1113,7 +1069,6 @@ export default function LeaveForm() {
                           </strong>
 
                           <div>
-
                             {employeeJob && (
                               <span>
                                 {employeeJob}
@@ -1125,7 +1080,6 @@ export default function LeaveForm() {
                                 {employeeDepartment}
                               </span>
                             )}
-
                           </div>
 
                         </div>
@@ -1189,7 +1143,6 @@ export default function LeaveForm() {
                 </div>
 
                 <div>
-
                   <h2>
                     نوع الإجازة
                   </h2>
@@ -1197,7 +1150,6 @@ export default function LeaveForm() {
                   <p>
                     اختر نوع الإجازة المناسب للطلب
                   </p>
-
                 </div>
 
                 <span className="section-badge">
@@ -1216,8 +1168,7 @@ export default function LeaveForm() {
                         item.icon;
 
                       const selected =
-                        type ===
-                        item.value;
+                        type === item.value;
 
                       return (
                         <button
@@ -1240,7 +1191,6 @@ export default function LeaveForm() {
                           </div>
 
                           <div className="leave-type-text">
-
                             <strong>
                               {item.label}
                             </strong>
@@ -1248,7 +1198,6 @@ export default function LeaveForm() {
                             <span>
                               {item.description}
                             </span>
-
                           </div>
 
                           <div className="leave-type-check">
@@ -1281,17 +1230,13 @@ export default function LeaveForm() {
                 </div>
 
                 <div>
-
                   <h2>
                     مدة الإجازة
                   </h2>
 
                   <p>
-                    {type === "سنوية"
-                      ? "اختر سنة الإجازة"
-                      : "حدد تاريخ بداية ونهاية الإجازة"}
+                    حدد تاريخ بداية ونهاية الإجازة
                   </p>
-
                 </div>
 
                 <span className="section-badge">
@@ -1311,74 +1256,51 @@ export default function LeaveForm() {
                   <div className="date-field">
 
                     <label>
-                      {type === "سنوية"
-                        ? "سنة الإجازة"
-                        : "تاريخ البداية"}
-
+                      تاريخ البداية
                       <span>*</span>
                     </label>
 
-                    <div className="date-input-wrapper">
+                    <div
+                      className="date-input-wrapper"
+                      onClick={() =>
+                        openDatePicker(fromDateRef)
+                      }
+                    >
 
                       <div className="date-icon">
                         <FaCalendarAlt />
                       </div>
 
-                      {type === "سنوية" ? (
-                        <select
-                          value={
-                            from
-                              ? from.slice(
-                                  0,
-                                  4,
-                                )
-                              : ""
-                          }
-                          onChange={
-                            handleAnnualYearChange
-                          }
-                        >
+                      <input
+                        ref={fromDateRef}
+                        type="date"
+                        value={from}
+                        onChange={
+                          handleFromDateChange
+                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
 
-                          <option value="">
-                            اختر السنة
-                          </option>
-
-                          {years.map(
-                            (year) => (
-                              <option
-                                key={year}
-                                value={year}
-                              >
-                                {year}
-                              </option>
-                            ),
-                          )}
-
-                        </select>
-                      ) : (
-                        <input
-                          type="date"
-                          value={from}
-                          onChange={
-                            handleFromDateChange
+                          if (
+                            typeof e.target
+                              .showPicker ===
+                            "function"
+                          ) {
+                            try {
+                              e.target.showPicker();
+                            } catch (error) {
+                              // Browser already opened the picker.
+                            }
                           }
-                        />
-                      )}
+                        }}
+                      />
 
                     </div>
 
                     {from && (
                       <div className="date-readable">
-
                         <FaClock />
-
-                        {type === "سنوية"
-                          ? `سنة ${from.slice(
-                              0,
-                              4,
-                            )}`
-                          : formatDate(from)}
-
+                        {formatDate(from)}
                       </div>
                     )}
 
@@ -1405,111 +1327,54 @@ export default function LeaveForm() {
                   <div className="date-field">
 
                     <label>
-
-                      {type === "سنوية"
-                        ? "سنة النهاية"
-                        : "تاريخ النهاية"}
-
+                      تاريخ النهاية
                       <span>*</span>
-
                     </label>
 
-                    <div className="date-input-wrapper">
+                    <div
+                      className="date-input-wrapper"
+                      onClick={() =>
+                        openDatePicker(toDateRef)
+                      }
+                    >
 
                       <div className="date-icon">
                         <FaCalendarAlt />
                       </div>
 
-                      {type === "سنوية" ? (
-                        <select
-                          value={
-                            to
-                              ? to.slice(
-                                  0,
-                                  4,
-                                )
-                              : ""
-                          }
-                          onChange={(e) => {
-                            const year =
-                              e.target.value;
+                      <input
+                        ref={toDateRef}
+                        type="date"
+                        value={to}
+                        min={
+                          from || undefined
+                        }
+                        onChange={
+                          handleToDateChange
+                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
 
-                            if (!year) {
-                              setTo("");
-                              return;
+                          if (
+                            typeof e.target
+                              .showPicker ===
+                            "function"
+                          ) {
+                            try {
+                              e.target.showPicker();
+                            } catch (error) {
+                              // Browser already opened the picker.
                             }
-
-                            if (
-                              from &&
-                              Number(year) <
-                                Number(
-                                  from.slice(
-                                    0,
-                                    4,
-                                  ),
-                                )
-                            ) {
-                              showMessage({
-                                type: "warning",
-                                title:
-                                  "السنة غير صحيحة",
-                                message:
-                                  "سنة النهاية يجب أن تكون بعد أو مساوية لسنة البداية.",
-                              });
-
-                              return;
-                            }
-
-                            setTo(
-                              `${year}-12-31`,
-                            );
-                          }}
-                        >
-
-                          <option value="">
-                            اختر السنة
-                          </option>
-
-                          {years.map(
-                            (year) => (
-                              <option
-                                key={year}
-                                value={year}
-                              >
-                                {year}
-                              </option>
-                            ),
-                          )}
-
-                        </select>
-                      ) : (
-                        <input
-                          type="date"
-                          value={to}
-                          min={
-                            from ||
-                            undefined
                           }
-                          onChange={
-                            handleToDateChange
-                          }
-                        />
-                      )}
+                        }}
+                      />
 
                     </div>
 
                     {to && (
                       <div className="date-readable">
-
                         <FaClock />
-
-                        {type === "سنوية"
-                          ? `سنة ${to.slice(
-                              0,
-                              4,
-                            )}`
-                          : formatDate(to)}
-
+                        {formatDate(to)}
                       </div>
                     )}
 
@@ -1540,7 +1405,6 @@ export default function LeaveForm() {
                     </span>
 
                     <strong>
-
                       {days > 0
                         ? `${days} ${
                             days === 1
@@ -1548,18 +1412,13 @@ export default function LeaveForm() {
                               : "أيام"
                           }`
                         : "—"}
-
                     </strong>
 
                   </div>
 
                   {days > 0 && (
                     <div className="days-summary-message">
-
-                      {type === "سنوية"
-                        ? "تم تحديد السنة كاملة"
-                        : "تم احتساب المدة تلقائيًا"}
-
+                      تم احتساب المدة تلقائيًا
                     </div>
                   )}
 
@@ -1582,19 +1441,20 @@ export default function LeaveForm() {
                 </div>
 
                 <div>
-
                   <h2>
                     المرفق
+                    <span className="title-required">
+                      *
+                    </span>
                   </h2>
 
                   <p>
-                    يمكنك إرفاق مستند داعم لطلب الإجازة
+                    إرفاق مستند داعم لطلب الإجازة
                   </p>
-
                 </div>
 
-                <span className="optional-badge">
-                  اختياري
+                <span className="required-badge">
+                  إجباري
                 </span>
 
               </div>
@@ -1646,12 +1506,10 @@ export default function LeaveForm() {
 
                     {preview ? (
                       <div className="file-image-preview">
-
                         <img
                           src={preview}
                           alt="معاينة المرفق"
                         />
-
                       </div>
                     ) : (
                       <div className="file-pdf-icon">
@@ -1672,11 +1530,8 @@ export default function LeaveForm() {
                       </span>
 
                       <div className="file-success">
-
                         <FaCheckCircle />
-
                         تم إرفاق الملف بنجاح
-
                       </div>
 
                     </div>
@@ -1712,7 +1567,6 @@ export default function LeaveForm() {
                 </div>
 
                 <div>
-
                   <h2>
                     الملاحظات
                   </h2>
@@ -1720,7 +1574,6 @@ export default function LeaveForm() {
                   <p>
                     أضف أي معلومات أو ملاحظات إضافية
                   </p>
-
                 </div>
 
                 <span className="optional-badge">
@@ -1773,7 +1626,6 @@ export default function LeaveForm() {
                 </div>
 
                 <div>
-
                   <span>
                     ملخص الطلب
                   </span>
@@ -1781,7 +1633,6 @@ export default function LeaveForm() {
                   <strong>
                     طلب إجازة جديد
                   </strong>
-
                 </div>
 
               </div>
@@ -1789,7 +1640,6 @@ export default function LeaveForm() {
               <div className="summary-divider"></div>
 
               <div className="summary-item">
-
                 <span>
                   الموظف
                 </span>
@@ -1802,11 +1652,9 @@ export default function LeaveForm() {
                       me?.full_name ||
                       "الموظف الحالي"}
                 </strong>
-
               </div>
 
               <div className="summary-item">
-
                 <span>
                   نوع الإجازة
                 </span>
@@ -1814,51 +1662,51 @@ export default function LeaveForm() {
                 <strong>
                   {type}
                 </strong>
-
               </div>
 
               <div className="summary-item">
-
                 <span>
                   من
                 </span>
 
                 <strong>
-                  {type === "سنوية" &&
-                  from
-                    ? `01/01/${from.slice(
-                        0,
-                        4,
-                      )}`
-                    : from ||
-                      "لم يتم التحديد"}
+                  {from ||
+                    "لم يتم التحديد"}
                 </strong>
-
               </div>
 
               <div className="summary-item">
-
                 <span>
                   إلى
                 </span>
 
                 <strong>
-                  {type === "سنوية" &&
-                  to
-                    ? `31/12/${to.slice(
-                        0,
-                        4,
-                      )}`
-                    : to ||
-                      "لم يتم التحديد"}
+                  {to ||
+                    "لم يتم التحديد"}
                 </strong>
+              </div>
 
+              <div className="summary-item">
+                <span>
+                  المرفق
+                </span>
+
+                <strong
+                  className={
+                    file
+                      ? "summary-file-ok"
+                      : "summary-file-required"
+                  }
+                >
+                  {file
+                    ? "تم إرفاق الملف"
+                    : "مطلوب"}
+                </strong>
               </div>
 
               <div className="summary-days">
 
                 <div>
-
                   <span>
                     إجمالي المدة
                   </span>
@@ -1866,11 +1714,9 @@ export default function LeaveForm() {
                   <small>
                     يتم الحساب تلقائيًا
                   </small>
-
                 </div>
 
                 <strong>
-
                   {days}
 
                   <small>
@@ -1878,7 +1724,6 @@ export default function LeaveForm() {
                       ? "يوم"
                       : "أيام"}
                   </small>
-
                 </strong>
 
               </div>
@@ -1898,8 +1743,9 @@ export default function LeaveForm() {
                 </strong>
 
                 <p>
-                  تأكد من صحة جميع البيانات قبل إرسال الطلب،
-                  وسيتم تحويله للمراجعة حسب نظام المؤسسة.
+                  تأكد من صحة جميع البيانات قبل
+                  إرسال الطلب، وسيتم تحويله
+                  للمراجعة حسب نظام المؤسسة.
                 </p>
 
               </div>
@@ -1947,7 +1793,6 @@ export default function LeaveForm() {
             }
             disabled={saving}
           >
-
             {saving ? (
               <>
                 <span className="button-spinner"></span>
@@ -1959,17 +1804,13 @@ export default function LeaveForm() {
                 إرسال طلب الإجازة
               </>
             )}
-
           </button>
 
         </div>
 
         <div className="leave-footer-note">
-
           <FaCheckCircle />
-
           جميع البيانات المدخلة محفوظة بشكل آمن
-
         </div>
 
       </div>
@@ -1985,7 +1826,6 @@ export default function LeaveForm() {
             cancelPastDate
           }
         >
-
           <div
             className="past-date-modal"
             onClick={(e) =>
@@ -2018,10 +1858,8 @@ export default function LeaveForm() {
             </h3>
 
             <p className="modal-description">
-
-              لقد اخترت تاريخ بداية يقع قبل تاريخ اليوم.
-              هل تريد الاستمرار بهذا التاريخ؟
-
+              لقد اخترت تاريخ بداية يقع قبل تاريخ
+              اليوم. هل تريد الاستمرار بهذا التاريخ؟
             </p>
 
             <div className="selected-past-date">
@@ -2031,7 +1869,6 @@ export default function LeaveForm() {
               </div>
 
               <div>
-
                 <span>
                   التاريخ المختار
                 </span>
@@ -2041,7 +1878,6 @@ export default function LeaveForm() {
                     pendingFromDate,
                   )}
                 </strong>
-
               </div>
 
             </div>
@@ -2073,7 +1909,6 @@ export default function LeaveForm() {
             </div>
 
           </div>
-
         </div>
       )}
 
@@ -2090,7 +1925,6 @@ export default function LeaveForm() {
               : cancelLongLeave
           }
         >
-
           <div
             className="past-date-modal"
             onClick={(e) =>
@@ -2126,17 +1960,13 @@ export default function LeaveForm() {
             </h3>
 
             <p className="modal-description">
-
               مدة الإجازة التي اخترتها هي{" "}
               <strong>
                 {days} يومًا
               </strong>
               ، وهي تتجاوز 30 يومًا.
-
               <br />
-
               هل تريد المتابعة وإرسال طلب الإجازة بهذه المدة؟
-
             </p>
 
             <div className="selected-past-date">
@@ -2146,7 +1976,6 @@ export default function LeaveForm() {
               </div>
 
               <div>
-
                 <span>
                   مدة الإجازة
                 </span>
@@ -2157,7 +1986,6 @@ export default function LeaveForm() {
                     ? "يوم"
                     : "يومًا"}
                 </strong>
-
               </div>
 
             </div>
@@ -2188,7 +2016,6 @@ export default function LeaveForm() {
                   pendingLongLeaveSave
                 }
               >
-
                 {pendingLongLeaveSave ? (
                   <>
                     <span className="button-spinner"></span>
@@ -2200,13 +2027,11 @@ export default function LeaveForm() {
                     متابعة وإرسال الطلب
                   </>
                 )}
-
               </button>
 
             </div>
 
           </div>
-
         </div>
       )}
 
@@ -2221,7 +2046,6 @@ export default function LeaveForm() {
             closeMessageModal
           }
         >
-
           <div
             className={`message-modal ${messageModal.type}`}
             onClick={(e) =>
@@ -2272,7 +2096,6 @@ export default function LeaveForm() {
             </button>
 
           </div>
-
         </div>
       )}
 
