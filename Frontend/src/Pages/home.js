@@ -1,9 +1,10 @@
-
+```jsx
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 export default function Home() {
   const nav = useNavigate();
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -19,64 +20,46 @@ export default function Home() {
   };
 
   return (
-    <div className="home-page" style={styles.page}>
-      {/* ================= BACKGROUND ================= */}
+    <div className="hr-home">
+      {/* =====================================================
+          BACKGROUND
+      ====================================================== */}
 
-      <div
-        className="home-glow home-glow-one"
-        style={styles.backgroundGlow1}
-      />
+      <div className="ambient ambient-1" />
+      <div className="ambient ambient-2" />
+      <div className="ambient ambient-3" />
 
-      <div
-        className="home-glow home-glow-two"
-        style={styles.backgroundGlow2}
-      />
+      <div className="grid-overlay" />
 
-      {/* ================= NAVBAR ================= */}
+      {/* =====================================================
+          NAVBAR
+      ====================================================== */}
 
-      <header
-        className="home-navbar"
-        style={styles.navbar}
-      >
-        <div style={styles.logoArea}>
-          <div
-            className="home-logo"
-            style={styles.logo}
-          >
-            HR
+      <header className="hr-navbar">
+        <div className="brand">
+          <div className="brand-logo">
+            <span>HR</span>
           </div>
 
-          <div>
-            <div style={styles.logoTitle}>
-              إدارة الموظفين
-            </div>
-
-            <div style={styles.logoSubtitle}>
-              نظام الموارد البشرية
-            </div>
+          <div className="brand-text">
+            <strong>إدارة الموظفين</strong>
+            <span>نظام الموارد البشرية</span>
           </div>
         </div>
 
-        <div
-          className="home-nav-actions"
-          style={styles.navActions}
-        >
+        <div className="navbar-actions">
           {isLoggedIn ? (
             <>
               <button
-                className="nav-dashboard-btn"
-                style={styles.dashboardButton}
-                onClick={() =>
-                  nav("/admin-dashboard")
-                }
+                className="dashboard-nav-btn"
+                onClick={() => nav("/admin-dashboard")}
               >
-                <span>▦</span>
+                <span className="btn-icon">▦</span>
                 لوحة التحكم
               </button>
 
               <button
-                className="nav-logout-btn"
-                style={styles.logoutButton}
+                className="logout-nav-btn"
                 onClick={handleLogout}
               >
                 تسجيل الخروج
@@ -84,8 +67,7 @@ export default function Home() {
             </>
           ) : (
             <button
-              className="nav-login-btn"
-              style={styles.loginButton}
+              className="login-nav-btn"
               onClick={() => nav("/login")}
             >
               تسجيل الدخول
@@ -95,1340 +77,2312 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ================= MAIN ================= */}
+      {/* =====================================================
+          HERO
+      ====================================================== */}
 
-      <main
-        className="home-main"
-        style={styles.main}
-      >
-        {/* ================= HERO ================= */}
+      <main className="hero-wrapper">
+        <section className="hero-section">
 
-        <section
-          className="home-hero"
-          style={styles.hero}
-        >
-          {/* TEXT */}
+          {/* LEFT / TEXT */}
 
-          <div
-            className="home-hero-content"
-            style={styles.heroContent}
-          >
-            <div
-              className="home-badge"
-              style={styles.badge}
-            >
-              <span style={styles.badgeDot} />
+          <div className="hero-content">
 
-              نظام إدارة الموارد البشرية
+            <div className="eyebrow">
+              <span className="live-dot" />
+              <span>منصة ذكية لإدارة الموارد البشرية</span>
             </div>
 
-            <h1
-              className="home-title"
-              style={styles.heroTitle}
-            >
+            <h1>
               إدارة موظفيك
               <br />
 
-              <span style={styles.gradientText}>
+              <span className="gradient-heading">
                 بطريقة أذكى وأسهل
               </span>
             </h1>
 
-            <p
-              className="home-description"
-              style={styles.heroDescription}
-            >
-              منصة متكاملة تساعدك على إدارة الموظفين،
-              متابعة الأداء، تنظيم الإجازات والمهام،
-              وإجراء التقييمات بكل سهولة واحترافية.
+            <p className="hero-description">
+              منصة متكاملة تمنحك كل الأدوات التي تحتاجها
+              لإدارة الموظفين، الإجازات، المهام والتقييمات
+              من مكان واحد وبطريقة بسيطة واحترافية.
             </p>
 
-            {/* BUTTONS */}
+            <div className="hero-actions">
+              <button
+                className="main-cta"
+                onClick={() =>
+                  nav(
+                    isLoggedIn
+                      ? "/admin-dashboard"
+                      : "/login"
+                  )
+                }
+              >
+                <span>
+                  {isLoggedIn
+                    ? "الدخول إلى لوحة التحكم"
+                    : "ابدأ الآن"}
+                </span>
 
-            <div
-              className="home-hero-buttons"
-              style={styles.heroButtons}
-            >
-              {isLoggedIn ? (
-                <button
-                  className="hero-primary-btn"
-                  style={styles.primaryHeroButton}
-                  onClick={() =>
-                    nav("/admin-dashboard")
-                  }
-                >
-                  <span>الدخول إلى لوحة التحكم</span>
+                <span className="cta-arrow">
+                  ←
+                </span>
+              </button>
 
-                  <span style={styles.arrow}>
-                    ←
-                  </span>
-                </button>
-              ) : (
-                <button
-                  className="hero-primary-btn"
-                  style={styles.primaryHeroButton}
-                  onClick={() => nav("/login")}
-                >
-                  <span>ابدأ الآن</span>
-
-                  <span style={styles.arrow}>
-                    ←
-                  </span>
-                </button>
-              )}
+              <div className="secure-badge">
+                <span>✓</span>
+                نظام آمن وسهل الاستخدام
+              </div>
             </div>
 
             {/* FEATURES */}
 
-            <div
-              className="home-features"
-              style={styles.features}
-            >
-              <div
-                className="home-feature"
-                style={styles.feature}
-              >
-                <div style={styles.featureIcon}>
-                  👨‍💼
+            <div className="hero-features">
+
+              <div className="feature-item">
+                <div className="feature-icon purple">
+                  👥
                 </div>
 
                 <div>
-                  <strong style={styles.featureTitle}>
-                    الموظفين
-                  </strong>
-
-                  <span style={styles.featureText}>
-                    إدارة بيانات الموظفين
-                  </span>
+                  <strong>الموظفين</strong>
+                  <span>إدارة البيانات</span>
                 </div>
               </div>
 
-              <div
-                className="home-feature"
-                style={styles.feature}
-              >
-                <div style={styles.featureIcon}>
+              <div className="feature-divider" />
+
+              <div className="feature-item">
+                <div className="feature-icon blue">
                   📅
                 </div>
 
                 <div>
-                  <strong style={styles.featureTitle}>
-                    الإجازات
-                  </strong>
-
-                  <span style={styles.featureText}>
-                    متابعة طلبات الإجازات
-                  </span>
+                  <strong>الإجازات</strong>
+                  <span>طلبات ومتابعة</span>
                 </div>
               </div>
 
-              <div
-                className="home-feature"
-                style={styles.feature}
-              >
-                <div style={styles.featureIcon}>
-                  📊
+              <div className="feature-divider" />
+
+              <div className="feature-item">
+                <div className="feature-icon green">
+                  ✓
                 </div>
 
                 <div>
-                  <strong style={styles.featureTitle}>
-                    التقييم
-                  </strong>
-
-                  <span style={styles.featureText}>
-                    متابعة أداء الموظفين
-                  </span>
+                  <strong>التقييمات</strong>
+                  <span>قياس الأداء</span>
                 </div>
               </div>
+
             </div>
           </div>
 
-          {/* ================= VISUAL ================= */}
+          {/* =================================================
+              DASHBOARD VISUAL
+          ================================================== */}
 
-          <div
-            className="home-visual"
-            style={styles.heroVisual}
-          >
-            <div
-              className="home-glow-circle"
-              style={styles.glowCircle}
-            />
+          <div className="hero-visual">
 
-            {/* Dashboard */}
+            <div className="visual-orbit orbit-1" />
+            <div className="visual-orbit orbit-2" />
 
-            <div
-              className="home-dashboard"
-              style={styles.dashboardCard}
-            >
-              {/* Header */}
+            {/* MAIN DASHBOARD */}
 
-              <div style={styles.dashboardHeader}>
-                <div>
-                  <div
-                    style={styles.dashboardSmallTitle}
-                  >
-                    لوحة الإدارة
-                  </div>
+            <div className="dashboard-window">
 
-                  <div
-                    style={styles.dashboardTitle}
-                  >
-                    نظرة عامة
-                  </div>
+              {/* Window top */}
+
+              <div className="window-top">
+
+                <div className="window-dots">
+                  <span />
+                  <span />
+                  <span />
                 </div>
 
-                <div style={styles.dashboardIcon}>
+                <div className="window-title">
+                  لوحة الإدارة
+                </div>
+
+                <div className="window-logo">
                   HR
                 </div>
               </div>
 
-              {/* Statistics */}
+              {/* Greeting */}
 
-              <div style={styles.miniStats}>
-                <div style={styles.miniStat}>
-                  <div
-                    style={{
-                      ...styles.miniIconBlue,
-                      background:
-                        "linear-gradient(135deg,#eff6ff,#dbeafe)",
-                    }}
-                  >
-                    👥
+              <div className="dashboard-heading">
+
+                <div>
+                  <span>مرحباً بك 👋</span>
+
+                  <h3>
+                    نظرة عامة
+                  </h3>
+                </div>
+
+                <div className="date-box">
+                  <span>اليوم</span>
+                  <strong>2026</strong>
+                </div>
+
+              </div>
+
+              {/* Stats */}
+
+              <div className="dashboard-stats">
+
+                <div className="stat-card">
+
+                  <div className="stat-top">
+                    <div className="stat-icon purple">
+                      👥
+                    </div>
+
+                    <span className="stat-trend">
+                      +12%
+                    </span>
                   </div>
 
-                  <div>
-                    <span style={styles.miniLabel}>
-                      الموظفين
-                    </span>
+                  <span className="stat-label">
+                    إجمالي الموظفين
+                  </span>
 
-                    <strong style={styles.miniNumber}>
-                      128
-                    </strong>
+                  <strong className="stat-number">
+                    128
+                  </strong>
+
+                  <div className="mini-line">
+                    <span style={{ width: "76%" }} />
                   </div>
                 </div>
 
-                <div style={styles.miniStat}>
-                  <div
-                    style={{
-                      ...styles.miniIconGreen,
-                      background:
-                        "linear-gradient(135deg,#ecfdf5,#d1fae5)",
-                    }}
-                  >
-                    ✓
+                <div className="stat-card">
+
+                  <div className="stat-top">
+                    <div className="stat-icon green">
+                      ✓
+                    </div>
+
+                    <span className="stat-trend green-text">
+                      +18%
+                    </span>
                   </div>
 
-                  <div>
-                    <span style={styles.miniLabel}>
-                      التقييمات
-                    </span>
+                  <span className="stat-label">
+                    التقييمات
+                  </span>
 
-                    <strong style={styles.miniNumber}>
-                      96
-                    </strong>
+                  <strong className="stat-number">
+                    96
+                  </strong>
+
+                  <div className="mini-line green-line">
+                    <span style={{ width: "84%" }} />
                   </div>
                 </div>
+
               </div>
 
               {/* Chart */}
 
-              <div style={styles.chartCard}>
-                <div style={styles.chartHeader}>
-                  <span>
-                    أداء الموظفين
-                  </span>
+              <div className="chart-container">
 
-                  <span
-                    style={styles.chartPercentage}
-                  >
+                <div className="chart-top">
+
+                  <div>
+                    <span>أداء الموظفين</span>
+                    <strong>متوسط الأداء</strong>
+                  </div>
+
+                  <div className="chart-growth">
+                    <span>↗</span>
                     +18.5%
-                  </span>
+                  </div>
+
                 </div>
 
-                <div style={styles.chart}>
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "35%",
-                    }}
-                  />
+                <div className="chart-area">
 
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "55%",
-                    }}
-                  />
+                  <div className="chart-grid">
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
 
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "45%",
-                    }}
-                  />
+                  <div className="bars">
 
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "70%",
-                    }}
-                  />
+                    <div className="bar">
+                      <span style={{ height: "38%" }} />
+                    </div>
 
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "62%",
-                    }}
-                  />
+                    <div className="bar">
+                      <span style={{ height: "54%" }} />
+                    </div>
 
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "88%",
-                    }}
-                  />
+                    <div className="bar">
+                      <span style={{ height: "46%" }} />
+                    </div>
 
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "78%",
-                    }}
-                  />
+                    <div className="bar">
+                      <span style={{ height: "68%" }} />
+                    </div>
+
+                    <div className="bar">
+                      <span style={{ height: "61%" }} />
+                    </div>
+
+                    <div className="bar active">
+                      <span style={{ height: "88%" }} />
+                    </div>
+
+                    <div className="bar">
+                      <span style={{ height: "76%" }} />
+                    </div>
+
+                  </div>
+
+                  <div className="chart-labels">
+                    <span>يناير</span>
+                    <span>فبراير</span>
+                    <span>مارس</span>
+                    <span>أبريل</span>
+                    <span>مايو</span>
+                    <span>يونيو</span>
+                    <span>يوليو</span>
+                  </div>
+
                 </div>
               </div>
 
               {/* Leave */}
 
-              <div style={styles.leaveSummary}>
-                <div style={styles.leaveIcon}>
+              <div className="leave-card">
+
+                <div className="leave-icon">
                   📅
                 </div>
 
-                <div style={styles.leaveText}>
+                <div className="leave-info">
                   <strong>
                     طلبات الإجازات
                   </strong>
 
                   <span>
-                    12 طلب قيد المراجعة
+                    تحتاج إلى المراجعة
                   </span>
                 </div>
 
-                <div style={styles.leaveCount}>
+                <div className="leave-number">
                   12
                 </div>
+
+                <div className="leave-arrow">
+                  ←
+                </div>
+
               </div>
+
             </div>
 
-            {/* Floating Card */}
+            {/* FLOATING CARD */}
 
-            <div
-              className="home-floating-card"
-              style={styles.floatingCard}
-            >
-              <div style={styles.checkCircle}>
+            <div className="floating-success">
+
+              <div className="success-icon">
                 ✓
               </div>
 
               <div>
-                <strong style={styles.floatingTitle}>
+                <strong>
                   أداء ممتاز
                 </strong>
 
-                <span style={styles.floatingText}>
+                <span>
                   تم تحديث التقييم
                 </span>
               </div>
+
+              <div className="success-dot" />
+
             </div>
+
+            {/* SMALL FLOATING CARD */}
+
+            <div className="floating-users">
+
+              <div className="avatars">
+                <span>👩</span>
+                <span>👨</span>
+                <span>👩</span>
+              </div>
+
+              <div>
+                <strong>128</strong>
+                <span>موظف نشط</span>
+              </div>
+
+            </div>
+
           </div>
         </section>
 
-        {/* ================= BOTTOM ================= */}
+        {/* =================================================
+            BOTTOM FEATURES
+        ================================================== */}
 
-        <section
-          className="home-bottom"
-          style={styles.bottomSection}
-        >
-          <div
-            className="home-bottom-card"
-            style={styles.bottomCard}
-          >
-            <span style={styles.bottomIcon}>
-              👥
-            </span>
+        <section className="features-section">
 
-            <div>
-              <strong>
-                إدارة الموظفين
-              </strong>
-
-              <span>
-                بيانات منظمة وسهلة الوصول
-              </span>
-            </div>
+          <div className="section-intro">
+            <span>كل ما تحتاجه في مكان واحد</span>
           </div>
 
-          <div
-            className="home-bottom-card"
-            style={styles.bottomCard}
-          >
-            <span style={styles.bottomIcon}>
-              📅
-            </span>
+          <div className="feature-cards">
 
-            <div>
-              <strong>
-                تنظيم الإجازات
-              </strong>
+            <div className="large-feature-card">
+              <div className="large-feature-icon purple">
+                👥
+              </div>
 
-              <span>
-                قبول ورفض ومتابعة الطلبات
-              </span>
+              <div>
+                <strong>
+                  إدارة الموظفين
+                </strong>
+
+                <span>
+                  بيانات منظمة وسهلة الوصول
+                </span>
+              </div>
+
+              <div className="feature-card-arrow">
+                ←
+              </div>
             </div>
-          </div>
 
-          <div
-            className="home-bottom-card"
-            style={styles.bottomCard}
-          >
-            <span style={styles.bottomIcon}>
-              ✓
-            </span>
+            <div className="large-feature-card">
+              <div className="large-feature-icon blue">
+                📅
+              </div>
 
-            <div>
-              <strong>
-                إدارة المهام
-              </strong>
+              <div>
+                <strong>
+                  تنظيم الإجازات
+                </strong>
 
-              <span>
-                توزيع ومتابعة مهام الموظفين
-              </span>
+                <span>
+                  قبول ورفض ومتابعة الطلبات
+                </span>
+              </div>
+
+              <div className="feature-card-arrow">
+                ←
+              </div>
             </div>
-          </div>
 
-          <div
-            className="home-bottom-card"
-            style={styles.bottomCard}
-          >
-            <span style={styles.bottomIcon}>
-              📈
-            </span>
+            <div className="large-feature-card">
+              <div className="large-feature-icon orange">
+                ✓
+              </div>
 
-            <div>
-              <strong>
-                تقييم الأداء
-              </strong>
+              <div>
+                <strong>
+                  إدارة المهام
+                </strong>
 
-              <span>
-                تقارير ومتابعة الأداء
-              </span>
+                <span>
+                  توزيع ومتابعة المهام
+                </span>
+              </div>
+
+              <div className="feature-card-arrow">
+                ←
+              </div>
             </div>
+
+            <div className="large-feature-card">
+              <div className="large-feature-icon green">
+                📈
+              </div>
+
+              <div>
+                <strong>
+                  تقييم الأداء
+                </strong>
+
+                <span>
+                  تقارير ومتابعة الأداء
+                </span>
+              </div>
+
+              <div className="feature-card-arrow">
+                ←
+              </div>
+            </div>
+
           </div>
         </section>
       </main>
 
-      {/* ================= FOOTER ================= */}
+      {/* =====================================================
+          FOOTER
+      ====================================================== */}
 
-      <footer style={styles.footer}>
-        © 2026 نظام إدارة الموظفين — جميع الحقوق محفوظة
+      <footer className="hr-footer">
+        <div className="footer-line" />
+
+        <span>
+          © 2026 نظام إدارة الموظفين
+        </span>
+
+        <span className="footer-dot">•</span>
+
+        <span>
+          جميع الحقوق محفوظة
+        </span>
       </footer>
-    </div>
-  );
-}
 
-/* =========================================================
-   LIGHT THEME
-========================================================= */
+      {/* =====================================================
+          STYLES
+      ====================================================== */}
 
-const styles = {
-  page: {
-    minHeight: "100vh",
-    width: "100%",
-    background:
-      "linear-gradient(135deg,#f8fbff 0%,#f5f8ff 45%,#eef4ff 100%)",
-    color: "#172033",
-    fontFamily:
-      "Cairo, Tahoma, Arial, sans-serif",
-    direction: "rtl",
-    position: "relative",
-    overflow: "hidden",
-  },
+      <style>{`
 
-  /* ================= BACKGROUND ================= */
-
-  backgroundGlow1: {
-    position: "absolute",
-    width: "500px",
-    height: "500px",
-    borderRadius: "50%",
-    background:
-      "rgba(99,102,241,0.09)",
-    filter: "blur(100px)",
-    top: "-200px",
-    left: "-150px",
-    pointerEvents: "none",
-  },
-
-  backgroundGlow2: {
-    position: "absolute",
-    width: "450px",
-    height: "450px",
-    borderRadius: "50%",
-    background:
-      "rgba(59,130,246,0.08)",
-    filter: "blur(100px)",
-    bottom: "-200px",
-    right: "-150px",
-    pointerEvents: "none",
-  },
-
-  /* ================= NAVBAR ================= */
-
-  navbar: {
-    position: "relative",
-    zIndex: 5,
-    height: "82px",
-    padding: "0 6%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderBottom:
-      "1px solid rgba(148,163,184,0.16)",
-    background:
-      "rgba(255,255,255,0.82)",
-    backdropFilter: "blur(20px)",
-    boxSizing: "border-box",
-  },
-
-  logoArea: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-
-  logo: {
-    width: "46px",
-    height: "46px",
-    borderRadius: "14px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "14px",
-    fontWeight: "900",
-    color: "#ffffff",
-    background:
-      "linear-gradient(135deg,#4f46e5,#3b82f6)",
-    boxShadow:
-      "0 10px 25px rgba(79,70,229,0.22)",
-  },
-
-  logoTitle: {
-    fontSize: "15px",
-    fontWeight: "800",
-    color: "#172033",
-  },
-
-  logoSubtitle: {
-    fontSize: "10px",
-    color: "#7c8799",
-    marginTop: "2px",
-  },
-
-  navActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-
-  loginButton: {
-    border:
-      "1px solid #dbe3f0",
-    background: "#ffffff",
-    color: "#334155",
-    padding: "10px 17px",
-    borderRadius: "11px",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontWeight: "700",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    boxShadow:
-      "0 4px 14px rgba(15,23,42,0.05)",
-  },
-
-  dashboardButton: {
-    border: "none",
-    background:
-      "linear-gradient(135deg,#4f46e5,#3b82f6)",
-    color: "#ffffff",
-    padding: "10px 17px",
-    borderRadius: "11px",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontWeight: "700",
-    display: "flex",
-    alignItems: "center",
-    gap: "7px",
-    boxShadow:
-      "0 8px 20px rgba(59,130,246,0.20)",
-  },
-
-  logoutButton: {
-    border:
-      "1px solid #fecaca",
-    background: "#fff7f7",
-    color: "#dc2626",
-    padding: "10px 15px",
-    borderRadius: "11px",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontWeight: "600",
-  },
-
-  /* ================= MAIN ================= */
-
-  main: {
-    position: "relative",
-    zIndex: 2,
-    width: "90%",
-    maxWidth: "1250px",
-    margin: "0 auto",
-  },
-
-  /* ================= HERO ================= */
-
-  hero: {
-    minHeight: "650px",
-    display: "grid",
-    gridTemplateColumns:
-      "1fr 0.9fr",
-    alignItems: "center",
-    gap: "70px",
-    padding: "55px 0 45px",
-  },
-
-  heroContent: {
-    maxWidth: "620px",
-  },
-
-  badge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "7px 14px",
-    borderRadius: "30px",
-    background:
-      "linear-gradient(135deg,#eef2ff,#eff6ff)",
-    border:
-      "1px solid #dbe4ff",
-    color: "#4f46e5",
-    fontSize: "11px",
-    fontWeight: "800",
-    marginBottom: "22px",
-  },
-
-  badgeDot: {
-    width: "7px",
-    height: "7px",
-    borderRadius: "50%",
-    background: "#4f46e5",
-    boxShadow:
-      "0 0 0 4px rgba(79,70,229,0.10)",
-  },
-
-  heroTitle: {
-    margin: 0,
-    fontSize: "54px",
-    lineHeight: "1.25",
-    fontWeight: "900",
-    letterSpacing: "-1.5px",
-    color: "#172033",
-  },
-
-  gradientText: {
-    background:
-      "linear-gradient(90deg,#4f46e5,#2563eb,#0284c7)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-  },
-
-  heroDescription: {
-    maxWidth: "580px",
-    color: "#64748b",
-    fontSize: "15px",
-    lineHeight: "2",
-    marginTop: "22px",
-  },
-
-  heroButtons: {
-    display: "flex",
-    gap: "12px",
-    marginTop: "30px",
-    flexWrap: "wrap",
-  },
-
-  primaryHeroButton: {
-    border: "none",
-    background:
-      "linear-gradient(135deg,#4f46e5,#3b82f6)",
-    color: "#ffffff",
-    padding: "14px 23px",
-    borderRadius: "12px",
-    cursor: "pointer",
-    fontFamily: "inherit",
-    fontWeight: "800",
-    boxShadow:
-      "0 12px 28px rgba(59,130,246,0.22)",
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-
-  arrow: {
-    fontSize: "18px",
-  },
-
-  /* ================= FEATURES ================= */
-
-  features: {
-    display: "flex",
-    gap: "28px",
-    marginTop: "40px",
-    flexWrap: "wrap",
-  },
-
-  feature: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-
-  featureIcon: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "11px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#ffffff",
-    border:
-      "1px solid #e2e8f0",
-    boxShadow:
-      "0 5px 15px rgba(15,23,42,0.05)",
-  },
-
-  featureTitle: {
-    display: "block",
-    fontSize: "11px",
-    color: "#334155",
-  },
-
-  featureText: {
-    display: "block",
-    fontSize: "9px",
-    color: "#94a3b8",
-    marginTop: "2px",
-  },
-
-  /* ================= VISUAL ================= */
-
-  heroVisual: {
-    position: "relative",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "500px",
-  },
-
-  glowCircle: {
-    position: "absolute",
-    width: "370px",
-    height: "370px",
-    borderRadius: "50%",
-    background:
-      "rgba(99,102,241,0.11)",
-    filter: "blur(75px)",
-  },
-
-  dashboardCard: {
-    position: "relative",
-    zIndex: 2,
-    width: "410px",
-    padding: "23px",
-    borderRadius: "23px",
-    background:
-      "rgba(255,255,255,0.96)",
-    border:
-      "1px solid #e2e8f0",
-    boxShadow:
-      "0 30px 70px rgba(30,64,175,0.13)",
-    backdropFilter: "blur(20px)",
-    transform:
-      "perspective(1000px) rotateY(-5deg) rotateX(2deg)",
-  },
-
-  dashboardHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "22px",
-  },
-
-  dashboardSmallTitle: {
-    color: "#94a3b8",
-    fontSize: "10px",
-  },
-
-  dashboardTitle: {
-    fontSize: "20px",
-    fontWeight: "800",
-    marginTop: "4px",
-    color: "#172033",
-  },
-
-  dashboardIcon: {
-    width: "42px",
-    height: "42px",
-    borderRadius: "12px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background:
-      "linear-gradient(135deg,#4f46e5,#3b82f6)",
-    color: "#ffffff",
-    fontSize: "11px",
-    fontWeight: "900",
-    boxShadow:
-      "0 8px 20px rgba(59,130,246,0.20)",
-  },
-
-  /* ================= MINI STATS ================= */
-
-  miniStats: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "10px",
-    marginBottom: "12px",
-  },
-
-  miniStat: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    padding: "13px",
-    borderRadius: "13px",
-    background: "#f8fafc",
-    border:
-      "1px solid #edf1f7",
-  },
-
-  miniIconBlue: {
-    width: "35px",
-    height: "35px",
-    borderRadius: "9px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  miniIconGreen: {
-    width: "35px",
-    height: "35px",
-    borderRadius: "9px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#16a34a",
-  },
-
-  miniLabel: {
-    display: "block",
-    color: "#94a3b8",
-    fontSize: "9px",
-  },
-
-  miniNumber: {
-    display: "block",
-    fontSize: "17px",
-    marginTop: "2px",
-    color: "#1e293b",
-  },
-
-  /* ================= CHART ================= */
-
-  chartCard: {
-    padding: "15px",
-    borderRadius: "14px",
-    background: "#f8fafc",
-    border:
-      "1px solid #edf1f7",
-  },
-
-  chartHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    color: "#64748b",
-    fontSize: "10px",
-  },
-
-  chartPercentage: {
-    color: "#16a34a",
-    fontWeight: "800",
-  },
-
-  chart: {
-    height: "120px",
-    display: "flex",
-    alignItems: "flex-end",
-    justifyContent: "space-around",
-    gap: "8px",
-    marginTop: "15px",
-    padding:
-      "0 8px",
-  },
-
-  bar: {
-    width: "28px",
-    borderRadius: "7px 7px 3px 3px",
-    background:
-      "linear-gradient(to top,#6366f1,#60a5fa)",
-    opacity: 0.9,
-  },
-
-  /* ================= LEAVE ================= */
-
-  leaveSummary: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    marginTop: "12px",
-    padding: "12px",
-    borderRadius: "13px",
-    background: "#fffbeb",
-    border:
-      "1px solid #fef3c7",
-  },
-
-  leaveIcon: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "9px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#fef3c7",
-  },
-
-  leaveText: {
-    flex: 1,
-  },
-
-  leaveCount: {
-    fontSize: "18px",
-    fontWeight: "900",
-    color: "#d97706",
-  },
-
-  /* ================= FLOATING CARD ================= */
-
-  floatingCard: {
-    position: "absolute",
-    zIndex: 3,
-    left: "-8px",
-    bottom: "42px",
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    padding: "12px 15px",
-    borderRadius: "14px",
-    background: "#ffffff",
-    border:
-      "1px solid #e2e8f0",
-    boxShadow:
-      "0 15px 35px rgba(15,23,42,0.12)",
-  },
-
-  checkCircle: {
-    width: "32px",
-    height: "32px",
-    borderRadius: "50%",
-    background: "#dcfce7",
-    color: "#16a34a",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "900",
-  },
-
-  floatingTitle: {
-    display: "block",
-    fontSize: "11px",
-    color: "#1e293b",
-  },
-
-  floatingText: {
-    display: "block",
-    color: "#94a3b8",
-    fontSize: "8px",
-    marginTop: "2px",
-  },
-
-  /* ================= BOTTOM ================= */
-
-  bottomSection: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(4,1fr)",
-    gap: "14px",
-    paddingBottom: "40px",
-  },
-
-  bottomCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    padding: "17px",
-    borderRadius: "15px",
-    background: "#ffffff",
-    border:
-      "1px solid #e5eaf2",
-    boxShadow:
-      "0 8px 25px rgba(15,23,42,0.045)",
-    transition:
-      "all 0.25s ease",
-  },
-
-  bottomIcon: {
-    width: "41px",
-    height: "41px",
-    borderRadius: "11px",
-    background:
-      "linear-gradient(135deg,#eef2ff,#eff6ff)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  /* ================= FOOTER ================= */
-
-  footer: {
-    position: "relative",
-    zIndex: 2,
-    textAlign: "center",
-    padding: "18px",
-    color: "#94a3b8",
-    fontSize: "10px",
-    borderTop:
-      "1px solid #e5eaf2",
-    background:
-      "rgba(255,255,255,0.55)",
-  },
-};
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-if (typeof document !== "undefined") {
-  const styleId = "home-responsive-styles";
-
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
-
-    style.id = styleId;
-
-    style.innerHTML = `
-      * {
-        box-sizing: border-box;
-      }
-
-      html {
-        scroll-behavior: smooth;
-      }
-
-      body {
-        margin: 0;
-        background: #f8fbff;
-      }
-
-      button {
-        transition:
-          transform 0.2s ease,
-          box-shadow 0.2s ease,
-          background 0.2s ease,
-          border-color 0.2s ease;
-      }
-
-      button:hover {
-        transform: translateY(-2px);
-      }
-
-      .nav-login-btn:hover {
-        border-color: #bfdbfe !important;
-        box-shadow:
-          0 8px 22px rgba(59,130,246,0.10) !important;
-      }
-
-      .nav-dashboard-btn:hover,
-      .hero-primary-btn:hover {
-        box-shadow:
-          0 14px 30px rgba(59,130,246,0.28) !important;
-      }
-
-      .nav-logout-btn:hover {
-        background: #fef2f2 !important;
-        border-color: #fca5a5 !important;
-      }
-
-      .home-bottom-card:hover {
-        transform: translateY(-4px);
-        box-shadow:
-          0 15px 35px rgba(15,23,42,0.09) !important;
-        border-color: #dbe4f0 !important;
-      }
-
-      .home-feature {
-        transition: transform 0.2s ease;
-      }
-
-      .home-feature:hover {
-        transform: translateY(-2px);
-      }
-
-      .home-floating-card {
-        animation:
-          floatingCard 4s ease-in-out infinite;
-      }
-
-      .home-dashboard {
-        animation:
-          dashboardFloat 5s ease-in-out infinite;
-      }
-
-      @keyframes floatingCard {
-        0%, 100% {
-          transform: translateY(0);
+        * {
+          box-sizing: border-box;
         }
 
-        50% {
-          transform: translateY(-8px);
-        }
-      }
-
-      @keyframes dashboardFloat {
-        0%, 100% {
-          transform:
-            perspective(1000px)
-            rotateY(-5deg)
-            rotateX(2deg)
-            translateY(0);
+        html {
+          scroll-behavior: smooth;
         }
 
-        50% {
-          transform:
-            perspective(1000px)
-            rotateY(-5deg)
-            rotateX(2deg)
-            translateY(-6px);
-        }
-      }
-
-      @media (max-width: 1000px) {
-        .home-main {
-          width: 92% !important;
-        }
-
-        .home-hero {
-          gap: 35px !important;
-        }
-
-        .home-title {
-          font-size: 46px !important;
-        }
-
-        .home-dashboard {
-          width: 390px !important;
-        }
-      }
-
-      @media (max-width: 850px) {
         body {
-          overflow-x: hidden;
+          margin: 0;
+          background: #f7f9ff;
+          font-family:
+            "Cairo",
+            "Tajawal",
+            Tahoma,
+            Arial,
+            sans-serif;
         }
 
-        .home-hero {
-          grid-template-columns: 1fr !important;
-          padding-top: 45px !important;
+        button {
+          font-family: inherit;
         }
 
-        .home-hero-content {
-          max-width: 700px !important;
-          text-align: center;
-          margin: 0 auto;
+        /* ==============================================
+           PAGE
+        ============================================== */
+
+        .hr-home {
+          min-height: 100vh;
+          width: 100%;
+          direction: rtl;
+          position: relative;
+          overflow: hidden;
+
+          background:
+            radial-gradient(
+              circle at 15% 15%,
+              rgba(99,102,241,0.12),
+              transparent 30%
+            ),
+            radial-gradient(
+              circle at 85% 55%,
+              rgba(59,130,246,0.10),
+              transparent 32%
+            ),
+            linear-gradient(
+              135deg,
+              #fbfcff 0%,
+              #f5f7ff 48%,
+              #f0f5ff 100%
+            );
+
+          color: #172033;
         }
 
-        .home-badge {
-          margin-left: auto;
-          margin-right: auto;
+        /* ==============================================
+           BACKGROUND
+        ============================================== */
+
+        .ambient {
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(90px);
         }
 
-        .home-description {
-          margin-left: auto !important;
-          margin-right: auto !important;
+        .ambient-1 {
+          width: 420px;
+          height: 420px;
+          top: -180px;
+          left: -100px;
+          background: rgba(99,102,241,0.12);
         }
 
-        .home-hero-buttons {
+        .ambient-2 {
+          width: 380px;
+          height: 380px;
+          right: -130px;
+          top: 250px;
+          background: rgba(14,165,233,0.10);
+        }
+
+        .ambient-3 {
+          width: 320px;
+          height: 320px;
+          left: 35%;
+          bottom: -200px;
+          background: rgba(139,92,246,0.08);
+        }
+
+        .grid-overlay {
+          position: absolute;
+          inset: 0;
+
+          background-image:
+            linear-gradient(
+              rgba(99,102,241,0.025) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              rgba(99,102,241,0.025) 1px,
+              transparent 1px
+            );
+
+          background-size: 45px 45px;
+
+          mask-image:
+            linear-gradient(
+              to bottom,
+              black,
+              transparent 80%
+            );
+
+          pointer-events: none;
+        }
+
+        /* ==============================================
+           NAVBAR
+        ============================================== */
+
+        .hr-navbar {
+          position: relative;
+          z-index: 10;
+
+          height: 82px;
+          width: 100%;
+
+          padding:
+            0 clamp(20px, 6vw, 90px);
+
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+
+          border-bottom:
+            1px solid rgba(148,163,184,0.14);
+
+          background:
+            rgba(255,255,255,0.68);
+
+          backdrop-filter: blur(25px);
+          -webkit-backdrop-filter: blur(25px);
+        }
+
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 13px;
+        }
+
+        .brand-logo {
+          width: 47px;
+          height: 47px;
+
+          display: flex;
+          align-items: center;
           justify-content: center;
+
+          border-radius: 15px;
+
+          background:
+            linear-gradient(
+              135deg,
+              #6366f1,
+              #4f46e5 48%,
+              #2563eb
+            );
+
+          box-shadow:
+            0 12px 30px rgba(79,70,229,0.25);
+
+          position: relative;
         }
 
-        .home-features {
-          justify-content: center;
+        .brand-logo::after {
+          content: "";
+          position: absolute;
+          inset: 1px;
+
+          border-radius: 14px;
+
+          border:
+            1px solid rgba(255,255,255,0.28);
         }
 
-        .home-visual {
-          min-height: 480px !important;
+        .brand-logo span {
+          color: white;
+          font-size: 13px;
+          font-weight: 900;
+          letter-spacing: 0.5px;
+          position: relative;
+          z-index: 1;
         }
 
-        .home-bottom {
+        .brand-text strong {
+          display: block;
+          font-size: 15px;
+          font-weight: 900;
+          color: #172033;
+        }
+
+        .brand-text span {
+          display: block;
+          font-size: 9px;
+          color: #94a3b8;
+          margin-top: 2px;
+        }
+
+        .navbar-actions {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+        }
+
+        .login-nav-btn,
+        .dashboard-nav-btn,
+        .logout-nav-btn {
+          border-radius: 12px;
+          padding: 10px 16px;
+          cursor: pointer;
+          font-weight: 800;
+          font-size: 11px;
+          transition: 0.25s ease;
+        }
+
+        .login-nav-btn {
+          background: rgba(255,255,255,0.85);
+          border: 1px solid #dce4f2;
+          color: #334155;
+
+          display: flex;
+          align-items: center;
+          gap: 9px;
+        }
+
+        .login-nav-btn:hover {
+          transform: translateY(-2px);
+          border-color: #c7d2fe;
+          box-shadow:
+            0 10px 25px rgba(79,70,229,0.10);
+        }
+
+        .dashboard-nav-btn {
+          border: none;
+          color: white;
+
+          display: flex;
+          align-items: center;
+          gap: 7px;
+
+          background:
+            linear-gradient(
+              135deg,
+              #6366f1,
+              #3b82f6
+            );
+
+          box-shadow:
+            0 10px 25px rgba(59,130,246,0.20);
+        }
+
+        .dashboard-nav-btn:hover {
+          transform: translateY(-2px);
+          box-shadow:
+            0 14px 30px rgba(59,130,246,0.30);
+        }
+
+        .btn-icon {
+          font-size: 15px;
+        }
+
+        .logout-nav-btn {
+          background: rgba(255,255,255,0.8);
+          border: 1px solid #fee2e2;
+          color: #dc2626;
+        }
+
+        .logout-nav-btn:hover {
+          transform: translateY(-2px);
+          background: #fff7f7;
+        }
+
+        /* ==============================================
+           MAIN
+        ============================================== */
+
+        .hero-wrapper {
+          position: relative;
+          z-index: 2;
+
+          width: min(90%, 1280px);
+          margin: auto;
+        }
+
+        /* ==============================================
+           HERO
+        ============================================== */
+
+        .hero-section {
+          min-height: 680px;
+
+          display: grid;
           grid-template-columns:
-            repeat(2,1fr) !important;
-        }
-      }
+            minmax(0, 1fr)
+            minmax(480px, 0.95fr);
 
-      @media (max-width: 700px) {
-        .home-navbar {
-          height: 72px !important;
-          padding: 0 20px !important;
-        }
+          gap: 55px;
 
-        .home-main {
-          width: 92% !important;
+          align-items: center;
+
+          padding:
+            55px 0 35px;
         }
 
-        .logo-title {
+        .hero-content {
+          max-width: 650px;
+        }
+
+        .eyebrow {
+          width: fit-content;
+
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+
+          padding: 8px 14px;
+
+          border-radius: 30px;
+
+          background:
+            rgba(255,255,255,0.72);
+
+          border:
+            1px solid rgba(129,140,248,0.20);
+
+          color: #4f46e5;
+
+          font-size: 10px;
+          font-weight: 900;
+
+          box-shadow:
+            0 8px 25px rgba(79,70,229,0.06);
+
+          backdrop-filter: blur(10px);
+
+          animation:
+            fadeUp 0.7s ease both;
+        }
+
+        .live-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #6366f1;
+
+          box-shadow:
+            0 0 0 5px rgba(99,102,241,0.10);
+
+          animation:
+            pulseDot 2s infinite;
+        }
+
+        .hero-content h1 {
+          margin: 23px 0 0;
+
+          font-size:
+            clamp(42px, 5vw, 66px);
+
+          line-height: 1.18;
+
+          letter-spacing: -2px;
+
+          font-weight: 950;
+
+          color: #172033;
+
+          animation:
+            fadeUp 0.8s 0.08s ease both;
+        }
+
+        .gradient-heading {
+          background:
+            linear-gradient(
+              90deg,
+              #4f46e5,
+              #6366f1,
+              #2563eb,
+              #0284c7
+            );
+
+          -webkit-background-clip: text;
+          background-clip: text;
+
+          -webkit-text-fill-color: transparent;
+        }
+
+        .hero-description {
+          max-width: 570px;
+
+          margin:
+            23px 0 0;
+
+          color: #64748b;
+
+          font-size: 14px;
+          line-height: 2.05;
+
+          animation:
+            fadeUp 0.8s 0.16s ease both;
+        }
+
+        /* ==============================================
+           CTA
+        ============================================== */
+
+        .hero-actions {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+
+          margin-top: 29px;
+
+          animation:
+            fadeUp 0.8s 0.24s ease both;
+        }
+
+        .main-cta {
+          border: none;
+
+          padding: 14px 21px;
+
+          min-width: 190px;
+
+          border-radius: 13px;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+
+          cursor: pointer;
+
+          color: white;
+
+          font-size: 12px;
+          font-weight: 900;
+
+          background:
+            linear-gradient(
+              135deg,
+              #6366f1,
+              #4f46e5 45%,
+              #2563eb
+            );
+
+          box-shadow:
+            0 16px 35px rgba(79,70,229,0.24);
+
+          transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease;
+        }
+
+        .main-cta:hover {
+          transform: translateY(-3px);
+          box-shadow:
+            0 20px 42px rgba(79,70,229,0.32);
+        }
+
+        .cta-arrow {
+          font-size: 18px;
+        }
+
+        .secure-badge {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+
+          color: #64748b;
+          font-size: 9px;
+          font-weight: 700;
+        }
+
+        .secure-badge span {
+          width: 22px;
+          height: 22px;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 50%;
+
+          background: #dcfce7;
+          color: #16a34a;
+
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        /* ==============================================
+           HERO FEATURES
+        ============================================== */
+
+        .hero-features {
+          display: flex;
+          align-items: center;
+          gap: 21px;
+
+          margin-top: 42px;
+
+          animation:
+            fadeUp 0.8s 0.32s ease both;
+        }
+
+        .feature-item {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+        }
+
+        .feature-item strong {
+          display: block;
+
+          color: #334155;
+
+          font-size: 10px;
+          font-weight: 900;
+        }
+
+        .feature-item span {
+          display: block;
+
+          color: #94a3b8;
+
+          font-size: 8px;
+
+          margin-top: 2px;
+        }
+
+        .feature-icon {
+          width: 37px;
+          height: 37px;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 11px;
+
+          font-size: 16px;
+        }
+
+        .feature-icon.purple,
+        .large-feature-icon.purple,
+        .stat-icon.purple {
+          background:
+            linear-gradient(
+              135deg,
+              #eef2ff,
+              #e0e7ff
+            );
+        }
+
+        .feature-icon.blue,
+        .large-feature-icon.blue,
+        .stat-icon.blue {
+          background:
+            linear-gradient(
+              135deg,
+              #eff6ff,
+              #dbeafe
+            );
+        }
+
+        .feature-icon.green,
+        .large-feature-icon.green,
+        .stat-icon.green {
+          background:
+            linear-gradient(
+              135deg,
+              #ecfdf5,
+              #d1fae5
+            );
+        }
+
+        .large-feature-icon.orange {
+          background:
+            linear-gradient(
+              135deg,
+              #fff7ed,
+              #fed7aa
+            );
+        }
+
+        .feature-divider {
+          height: 32px;
+          width: 1px;
+          background: #e2e8f0;
+        }
+
+        /* ==============================================
+           VISUAL
+        ============================================== */
+
+        .hero-visual {
+          min-height: 570px;
+
+          position: relative;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .visual-orbit {
+          position: absolute;
+
+          border-radius: 50%;
+
+          border:
+            1px solid rgba(99,102,241,0.10);
+
+          pointer-events: none;
+        }
+
+        .orbit-1 {
+          width: 500px;
+          height: 500px;
+        }
+
+        .orbit-2 {
+          width: 600px;
+          height: 600px;
+
+          border-color:
+            rgba(59,130,246,0.055);
+        }
+
+        /* ==============================================
+           DASHBOARD
+        ============================================== */
+
+        .dashboard-window {
+          position: relative;
+          z-index: 3;
+
+          width: min(100%, 510px);
+
+          padding: 19px;
+
+          border-radius: 25px;
+
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255,255,255,0.98),
+              rgba(248,250,255,0.96)
+            );
+
+          border:
+            1px solid rgba(255,255,255,0.85);
+
+          box-shadow:
+            0 35px 90px rgba(30,64,175,0.14),
+            0 10px 30px rgba(15,23,42,0.06);
+
+          backdrop-filter: blur(25px);
+
+          transform:
+            perspective(1200px)
+            rotateY(-4deg)
+            rotateX(2deg);
+
+          animation:
+            dashboardFloat 5s ease-in-out infinite;
+        }
+
+        .dashboard-window::before {
+          content: "";
+
+          position: absolute;
+
+          inset: 0;
+
+          border-radius: 25px;
+
+          pointer-events: none;
+
+          background:
+            linear-gradient(
+              135deg,
+              rgba(255,255,255,0.55),
+              transparent 45%
+            );
+        }
+
+        .window-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+
+          padding-bottom: 15px;
+
+          border-bottom:
+            1px solid #eef2f7;
+        }
+
+        .window-dots {
+          display: flex;
+          gap: 5px;
+        }
+
+        .window-dots span {
+          width: 6px;
+          height: 6px;
+
+          border-radius: 50%;
+
+          background: #dbe3ef;
+        }
+
+        .window-title {
+          color: #94a3b8;
+          font-size: 8px;
+          font-weight: 700;
+        }
+
+        .window-logo {
+          width: 31px;
+          height: 31px;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 9px;
+
+          color: white;
+
+          font-size: 8px;
+          font-weight: 900;
+
+          background:
+            linear-gradient(
+              135deg,
+              #6366f1,
+              #2563eb
+            );
+
+          box-shadow:
+            0 7px 15px rgba(59,130,246,0.20);
+        }
+
+        /* ==============================================
+           DASHBOARD HEADING
+        ============================================== */
+
+        .dashboard-heading {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+
+          padding: 20px 3px 15px;
+        }
+
+        .dashboard-heading > div:first-child span {
+          color: #94a3b8;
+          font-size: 8px;
+        }
+
+        .dashboard-heading h3 {
+          margin: 3px 0 0;
+
+          color: #172033;
+
+          font-size: 18px;
+          font-weight: 900;
+        }
+
+        .date-box {
+          padding: 7px 10px;
+
+          border-radius: 9px;
+
+          background: #f8fafc;
+
+          border:
+            1px solid #edf1f7;
+
+          text-align: center;
+        }
+
+        .date-box span {
+          display: block;
+          color: #94a3b8;
+          font-size: 7px;
+        }
+
+        .date-box strong {
+          display: block;
+          margin-top: 2px;
+          color: #475569;
+          font-size: 8px;
+        }
+
+        /* ==============================================
+           STATS
+        ============================================== */
+
+        .dashboard-stats {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+
+        .stat-card {
+          padding: 13px;
+
+          border-radius: 14px;
+
+          background:
+            rgba(248,250,252,0.90);
+
+          border:
+            1px solid #edf1f7;
+        }
+
+        .stat-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .stat-icon {
+          width: 32px;
+          height: 32px;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 9px;
+
+          font-size: 14px;
+        }
+
+        .stat-trend {
+          color: #6366f1;
+          font-size: 7px;
+          font-weight: 900;
+        }
+
+        .green-text {
+          color: #16a34a;
+        }
+
+        .stat-label {
+          display: block;
+
+          margin-top: 11px;
+
+          color: #94a3b8;
+
+          font-size: 8px;
+        }
+
+        .stat-number {
+          display: block;
+
+          margin-top: 1px;
+
+          color: #1e293b;
+
+          font-size: 19px;
+          font-weight: 950;
+        }
+
+        .mini-line {
+          height: 4px;
+
+          margin-top: 9px;
+
+          overflow: hidden;
+
+          border-radius: 10px;
+
+          background: #e9edff;
+        }
+
+        .mini-line span {
+          display: block;
+
+          height: 100%;
+
+          border-radius: inherit;
+
+          background:
+            linear-gradient(
+              90deg,
+              #818cf8,
+              #4f46e5
+            );
+        }
+
+        .green-line {
+          background: #dcfce7;
+        }
+
+        .green-line span {
+          background:
+            linear-gradient(
+              90deg,
+              #4ade80,
+              #16a34a
+            );
+        }
+
+        /* ==============================================
+           CHART
+        ============================================== */
+
+        .chart-container {
+          margin-top: 10px;
+
+          padding: 15px;
+
+          border-radius: 15px;
+
+          background: #fff;
+
+          border:
+            1px solid #edf1f7;
+
+          box-shadow:
+            0 8px 25px rgba(15,23,42,0.025);
+        }
+
+        .chart-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .chart-top span {
+          display: block;
+
+          color: #94a3b8;
+
+          font-size: 7px;
+        }
+
+        .chart-top strong {
+          display: block;
+
+          margin-top: 3px;
+
+          color: #475569;
+
+          font-size: 9px;
+        }
+
+        .chart-growth {
+          padding: 5px 8px;
+
+          border-radius: 8px;
+
+          background: #ecfdf5;
+
+          color: #16a34a;
+
+          font-size: 7px;
+          font-weight: 900;
+        }
+
+        .chart-growth span {
+          display: inline;
+          color: #16a34a;
+          font-size: 10px;
+          margin-left: 3px;
+        }
+
+        .chart-area {
+          position: relative;
+
+          height: 145px;
+
+          margin-top: 13px;
+        }
+
+        .chart-grid {
+          position: absolute;
+          inset: 0;
+
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        .chart-grid span {
+          width: 100%;
+          height: 1px;
+          background: #f1f5f9;
+        }
+
+        .bars {
+          position: absolute;
+
+          inset:
+            5px 7px 18px;
+
+          display: flex;
+
+          align-items: flex-end;
+          justify-content: space-around;
+
+          gap: 10px;
+        }
+
+        .bar {
+          width: 24px;
+          height: 100%;
+
+          display: flex;
+          align-items: flex-end;
+
+          border-radius: 7px 7px 3px 3px;
+
+          background: #f4f6ff;
+
+          overflow: hidden;
+        }
+
+        .bar span {
+          display: block;
+
+          width: 100%;
+
+          border-radius: 7px 7px 3px 3px;
+
+          background:
+            linear-gradient(
+              to top,
+              #818cf8,
+              #60a5fa
+            );
+
+          opacity: 0.82;
+
+          animation:
+            barGrow 1.2s ease both;
+        }
+
+        .bar.active span {
+          background:
+            linear-gradient(
+              to top,
+              #4f46e5,
+              #38bdf8
+            );
+
+          box-shadow:
+            0 7px 15px rgba(79,70,229,0.20);
+
+          opacity: 1;
+        }
+
+        .chart-labels {
+          position: absolute;
+
+          bottom: 0;
+
+          left: 0;
+          right: 0;
+
+          display: flex;
+          justify-content: space-around;
+
+          color: #cbd5e1;
+
+          font-size: 6px;
+        }
+
+        /* ==============================================
+           LEAVE
+        ============================================== */
+
+        .leave-card {
+          display: flex;
+          align-items: center;
+
+          gap: 10px;
+
+          margin-top: 10px;
+
+          padding: 11px 12px;
+
+          border-radius: 13px;
+
+          background:
+            linear-gradient(
+              135deg,
+              #fffbeb,
+              #fffdf6
+            );
+
+          border:
+            1px solid #fef3c7;
+        }
+
+        .leave-icon {
+          width: 33px;
+          height: 33px;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 9px;
+
+          background: #fef3c7;
+
+          font-size: 14px;
+        }
+
+        .leave-info {
+          flex: 1;
+        }
+
+        .leave-info strong {
+          display: block;
+
+          color: #475569;
+
+          font-size: 9px;
+        }
+
+        .leave-info span {
+          display: block;
+
+          color: #a1a1aa;
+
+          font-size: 7px;
+
+          margin-top: 2px;
+        }
+
+        .leave-number {
+          color: #d97706;
+
+          font-size: 18px;
+          font-weight: 950;
+        }
+
+        .leave-arrow {
+          color: #d97706;
           font-size: 13px;
         }
 
-        .home-logo {
-          width: 42px !important;
-          height: 42px !important;
+        /* ==============================================
+           FLOATING SUCCESS
+        ============================================== */
+
+        .floating-success {
+          position: absolute;
+
+          z-index: 5;
+
+          left: -18px;
+          bottom: 78px;
+
+          display: flex;
+          align-items: center;
+          gap: 9px;
+
+          padding: 10px 13px;
+
+          border-radius: 14px;
+
+          background:
+            rgba(255,255,255,0.95);
+
+          border:
+            1px solid #e5e7eb;
+
+          box-shadow:
+            0 18px 40px rgba(15,23,42,0.12);
+
+          backdrop-filter: blur(20px);
+
+          animation:
+            floatingCard 4s ease-in-out infinite;
         }
 
-        .home-nav-actions button {
-          padding: 8px 10px !important;
-          font-size: 10px !important;
-        }
+        .success-icon {
+          width: 31px;
+          height: 31px;
 
-        .home-title {
-          font-size: 38px !important;
-          letter-spacing: -1px !important;
-        }
-
-        .home-description {
-          font-size: 13px !important;
-          line-height: 1.9 !important;
-        }
-
-        .home-hero {
-          padding-top: 35px !important;
-          gap: 15px !important;
-        }
-
-        .home-features {
-          gap: 18px !important;
-        }
-
-        .home-dashboard {
-          width: 100% !important;
-          max-width: 390px !important;
-        }
-
-        .home-floating-card {
-          left: 0 !important;
-          bottom: 30px !important;
-        }
-
-        .home-bottom {
-          grid-template-columns:
-            1fr 1fr !important;
-        }
-      }
-
-      @media (max-width: 500px) {
-        .home-navbar {
-          padding: 0 14px !important;
-        }
-
-        .logoSubtitle {
-          display: none;
-        }
-
-        .home-nav-actions {
-          gap: 6px !important;
-        }
-
-        .home-title {
-          font-size: 32px !important;
-        }
-
-        .home-description {
-          font-size: 12px !important;
-        }
-
-        .home-hero-buttons {
-          width: 100%;
-        }
-
-        .hero-primary-btn {
-          width: 100%;
+          display: flex;
+          align-items: center;
           justify-content: center;
+
+          border-radius: 50%;
+
+          background: #dcfce7;
+          color: #16a34a;
+
+          font-size: 13px;
+          font-weight: 950;
         }
 
-        .home-features {
-          display: grid !important;
-          grid-template-columns: 1fr !important;
-          justify-items: start;
-          width: fit-content;
-          margin-left: auto !important;
-          margin-right: auto !important;
+        .floating-success strong {
+          display: block;
+
+          color: #334155;
+
+          font-size: 9px;
         }
 
-        .home-visual {
-          min-height: 430px !important;
+        .floating-success span {
+          display: block;
+
+          color: #94a3b8;
+
+          font-size: 7px;
+
+          margin-top: 2px;
         }
 
-        .home-dashboard {
-          width: 100% !important;
-          padding: 17px !important;
-          border-radius: 18px !important;
-          transform: none !important;
+        .success-dot {
+          width: 6px;
+          height: 6px;
+
+          border-radius: 50%;
+
+          background: #22c55e;
         }
 
-        .home-dashboard:hover {
-          transform: none !important;
+        /* ==============================================
+           FLOATING USERS
+        ============================================== */
+
+        .floating-users {
+          position: absolute;
+
+          z-index: 5;
+
+          right: -20px;
+          top: 95px;
+
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          padding: 9px 12px;
+
+          border-radius: 13px;
+
+          background:
+            rgba(255,255,255,0.94);
+
+          border:
+            1px solid #e5e7eb;
+
+          box-shadow:
+            0 18px 40px rgba(15,23,42,0.10);
+
+          animation:
+            floatingCard 5s 0.5s ease-in-out infinite;
         }
 
-        .home-floating-card {
-          position: relative !important;
-          left: auto !important;
-          bottom: auto !important;
-          margin-top: -25px;
-          align-self: flex-start;
-          margin-left: auto;
-          margin-right: auto;
+        .avatars {
+          display: flex;
+          direction: ltr;
         }
 
-        .home-bottom {
-          grid-template-columns: 1fr !important;
+        .avatars span {
+          width: 24px;
+          height: 24px;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          margin-left: -5px;
+
+          border-radius: 50%;
+
+          background: #f1f5f9;
+
+          border: 2px solid white;
+
+          font-size: 10px;
         }
 
-        .miniStats {
-          gap: 7px;
-        }
-      }
-    `;
+        .floating-users strong {
+          display: block;
 
-    document.head.appendChild(style);
-  }
+          color: #334155;
+
+          font-size: 10px;
+        }
+
+        .floating-users span {
+          display: block;
+
+          color: #94a3b8;
+
+          font-size: 6px;
+        }
+
+        /* ==============================================
+           BOTTOM FEATURES
+        ============================================== */
+
+        .features-section {
+          padding: 25px 0 45px;
+        }
+
+        .section-intro {
+          text-align: center;
+          margin-bottom: 18px;
+        }
+
+        .section-intro span {
+          color: #94a3b8;
+          font-size: 9px;
+          font-weight: 800;
+        }
+
+        .feature-cards {
+          display: grid;
+
+          grid-template-columns:
+            repeat(4, 1fr);
+
+          gap: 12px;
+        }
+
+        .large-feature-card {
+          min-height: 85px;
+
+          display: flex;
+          align-items: center;
+
+          gap: 11px;
+
+          padding: 14px;
+
+          border-radius: 16px;
+
+          background:
+            rgba(255,255,255,0.76);
+
+          border:
+            1px solid rgba(226,232,240,0.85);
+
+          box-shadow:
+            0 10px 30px rgba(15,23,42,0.035);
+
+          backdrop-filter: blur(15px);
+
+          transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease,
+            border-color 0.25s ease;
+        }
+
+        .large-feature-card:hover {
+          transform: translateY(-5px);
+
+          border-color:
+            rgba(129,140,248,0.25);
+
+          box-shadow:
+            0 20px 40px rgba(15,23,42,0.08);
+        }
+
+        .large-feature-icon {
+          width: 39px;
+          height: 39px;
+
+          flex-shrink: 0;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 11px;
+
+          font-size: 16px;
+        }
+
+        .large-feature-card > div:nth-child(2) {
+          flex: 1;
+        }
+
+        .large-feature-card strong {
+          display: block;
+
+          color: #334155;
+
+          font-size: 9px;
+          font-weight: 900;
+        }
+
+        .large-feature-card span {
+          display: block;
+
+          margin-top: 3px;
+
+          color: #94a3b8;
+
+          font-size: 7px;
+        }
+
+        .feature-card-arrow {
+          color: #cbd5e1;
+
+          font-size: 13px;
+
+          transition:
+            transform 0.25s ease,
+            color 0.25s ease;
+        }
+
+        .large-feature-card:hover
+        .feature-card-arrow {
+          transform: translateX(-3px);
+          color: #6366f1;
+        }
+
+        /* ==============================================
+           FOOTER
+        ============================================== */
+
+        .hr-footer {
+          position: relative;
+          z-index: 2;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          gap: 8px;
+
+          padding: 17px;
+
+          color: #a1aab8;
+
+          font-size: 8px;
+
+          background:
+            rgba(255,255,255,0.45);
+
+          border-top:
+            1px solid rgba(226,232,240,0.7);
+        }
+
+        .footer-dot {
+          color: #cbd5e1;
+        }
+
+        /* ==============================================
+           ANIMATIONS
+        ============================================== */
+
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(18px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes dashboardFloat {
+          0%, 100% {
+            transform:
+              perspective(1200px)
+              rotateY(-4deg)
+              rotateX(2deg)
+              translateY(0);
+          }
+
+          50% {
+            transform:
+              perspective(1200px)
+              rotateY(-4deg)
+              rotateX(2deg)
+              translateY(-8px);
+          }
+        }
+
+        @keyframes floatingCard {
+          0%, 100% {
+            transform: translateY(0);
+          }
+
+          50% {
+            transform: translateY(-8px);
+          }
+        }
+
+        @keyframes pulseDot {
+          0%, 100% {
+            box-shadow:
+              0 0 0 5px rgba(99,102,241,0.10);
+          }
+
+          50% {
+            box-shadow:
+              0 0 0 8px rgba(99,102,241,0.04);
+          }
+        }
+
+        @keyframes barGrow {
+          from {
+            transform: scaleY(0);
+            transform-origin: bottom;
+          }
+
+          to {
+            transform: scaleY(1);
+            transform-origin: bottom;
+          }
+        }
+
+        /* ==============================================
+           1100
+        ============================================== */
+
+        @media (max-width: 1100px) {
+
+          .hero-section {
+            grid-template-columns:
+              1fr 0.9fr;
+
+            gap: 30px;
+          }
+
+          .hero-content h1 {
+            font-size: 50px;
+          }
+
+          .dashboard-window {
+            width: 470px;
+          }
+
+          .floating-users {
+            right: -5px;
+          }
+
+          .floating-success {
+            left: -5px;
+          }
+
+        }
+
+        /* ==============================================
+           900
+        ============================================== */
+
+        @media (max-width: 900px) {
+
+          .hero-section {
+            grid-template-columns: 1fr;
+
+            padding-top: 50px;
+
+            text-align: center;
+          }
+
+          .hero-content {
+            max-width: 700px;
+            margin: auto;
+          }
+
+          .eyebrow {
+            margin: auto;
+          }
+
+          .hero-description {
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          .hero-actions {
+            justify-content: center;
+          }
+
+          .hero-features {
+            justify-content: center;
+          }
+
+          .hero-visual {
+            min-height: 550px;
+          }
+
+          .feature-cards {
+            grid-template-columns:
+              repeat(2, 1fr);
+          }
+
+        }
+
+        /* ==============================================
+           650
+        ============================================== */
+
+        @media (max-width: 650px) {
+
+          .hr-navbar {
+            height: 72px;
+            padding: 0 16px;
+          }
+
+          .brand-logo {
+            width: 41px;
+            height: 41px;
+            border-radius: 12px;
+          }
+
+          .brand-text strong {
+            font-size: 12px;
+          }
+
+          .brand-text span {
+            display: none;
+          }
+
+          .navbar-actions {
+            gap: 5px;
+          }
+
+          .login-nav-btn,
+          .dashboard-nav-btn,
+          .logout-nav-btn {
+            padding: 8px 9px;
+            font-size: 9px;
+          }
+
+          .hero-wrapper {
+            width: 92%;
+          }
+
+          .hero-section {
+            padding-top: 38px;
+          }
+
+          .hero-content h1 {
+            font-size: 39px;
+            letter-spacing: -1.3px;
+          }
+
+          .hero-description {
+            font-size: 12px;
+            line-height: 1.9;
+          }
+
+          .hero-actions {
+            flex-direction: column;
+            width: 100%;
+          }
+
+          .main-cta {
+            width: 100%;
+          }
+
+          .hero-features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 32px;
+          }
+
+          .feature-divider {
+            display: none;
+          }
+
+          .hero-visual {
+            min-height: 470px;
+          }
+
+          .dashboard-window {
+            width: 100%;
+            padding: 14px;
+            border-radius: 20px;
+
+            transform: none;
+
+            animation:
+              dashboardFloatMobile 5s ease-in-out infinite;
+          }
+
+          .orbit-1 {
+            width: 370px;
+            height: 370px;
+          }
+
+          .orbit-2 {
+            width: 450px;
+            height: 450px;
+          }
+
+          .floating-success {
+            left: 0;
+            bottom: 50px;
+          }
+
+          .floating-users {
+            right: 0;
+            top: 35px;
+          }
+
+          .feature-cards {
+            grid-template-columns: 1fr;
+          }
+
+          .large-feature-card {
+            min-height: 75px;
+          }
+
+          .hr-footer {
+            font-size: 7px;
+          }
+
+        }
+
+        @keyframes dashboardFloatMobile {
+          0%, 100% {
+            transform: translateY(0);
+          }
+
+          50% {
+            transform: translateY(-6px);
+          }
+        }
+
+        /* ==============================================
+           430
+        ============================================== */
+
+        @media (max-width: 430px) {
+
+          .brand-text {
+            display: none;
+          }
+
+          .navbar-actions {
+            margin-right: auto;
+          }
+
+          .hero-content h1 {
+            font-size: 34px;
+          }
+
+          .eyebrow {
+            font-size: 8px;
+            padding: 7px 11px;
+          }
+
+          .hero-features {
+            grid-template-columns: 1fr;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: right;
+          }
+
+          .feature-item {
+            min-width: 170px;
+          }
+
+          .dashboard-heading h3 {
+            font-size: 16px;
+          }
+
+          .stat-card {
+            padding: 10px;
+          }
+
+          .chart-container {
+            padding: 11px;
+          }
+
+          .chart-area {
+            height: 125px;
+          }
+
+          .bar {
+            width: 18px;
+          }
+
+          .chart-labels {
+            font-size: 5px;
+          }
+
+          .floating-success {
+            transform: scale(0.9);
+            transform-origin: left bottom;
+          }
+
+          .floating-users {
+            transform: scale(0.88);
+            transform-origin: right top;
+          }
+
+        }
+
+        /* ==============================================
+           REDUCED MOTION
+        ============================================== */
+
+        @media (prefers-reduced-motion: reduce) {
+
+          *,
+          *::before,
+          *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+
+        }
+
+      `}</style>
+    </div>
+  );
 }
+```
