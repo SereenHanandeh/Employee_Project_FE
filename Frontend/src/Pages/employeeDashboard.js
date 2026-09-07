@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 
@@ -17,6 +17,12 @@ import {
   FaChevronLeft,
   FaExclamationTriangle,
   FaUndo,
+  FaBell,
+  FaTrash,
+  FaCheckDouble,
+  FaTimes,
+  FaCalendarCheck,
+  FaClipboardCheck,
 } from "react-icons/fa";
 
 import "./employeeDashboard.css";
@@ -32,9 +38,19 @@ export default function EmployeeDashboard() {
   const [loadingLeaves, setLoadingLeaves] = useState(true);
   const [loadingTasks, setLoadingTasks] = useState(true);
 
-  // =========================================================
+  // =====================================================
+  // NOTIFICATIONS
+  // =====================================================
+
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const notificationsRef = useRef(null);
+  const initializedNotificationsRef = useRef(false);
+
+  // =====================================================
   // TASK MODAL
-  // =========================================================
+  // =====================================================
 
   const [taskModal, setTaskModal] = useState({
     open: false,
@@ -46,9 +62,9 @@ export default function EmployeeDashboard() {
 
   const [completingTaskId, setCompletingTaskId] = useState(null);
 
-  // =========================================================
+  // =====================================================
   // SUCCESS / ERROR MODAL
-  // =========================================================
+  // =====================================================
 
   const [messageModal, setMessageModal] = useState({
     open: false,
@@ -57,9 +73,68 @@ export default function EmployeeDashboard() {
     message: "",
   });
 
-  // =========================================================
+  // =====================================================
+  // LOAD NOTIFICATIONS
+  // =====================================================
+
+  useEffect(() => {
+    try {
+      const savedNotifications = localStorage.getItem(
+        "employeeNotificationsList"
+      );
+
+      if (savedNotifications) {
+        const parsed = JSON.parse(savedNotifications);
+
+        if (Array.isArray(parsed)) {
+          setNotifications(parsed);
+        }
+      }
+    } catch (error) {
+      console.error("Load Notifications Error:", error);
+      setNotifications([]);
+    }
+  }, []);
+
+  // =====================================================
+  // SAVE NOTIFICATIONS
+  // =====================================================
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "employeeNotificationsList",
+        JSON.stringify(notifications)
+      );
+    } catch (error) {
+      console.error("Save Notifications Error:", error);
+    }
+  }, [notifications]);
+
+  // =====================================================
+  // CLOSE NOTIFICATION DROPDOWN WHEN CLICKING OUTSIDE
+  // =====================================================
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target)
+      ) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // =====================================================
   // LOAD DATA
-  // =========================================================
+  // =====================================================
 
   useEffect(() => {
     fetchEmployee();
@@ -67,9 +142,9 @@ export default function EmployeeDashboard() {
     fetchTasks();
   }, []);
 
-  // =========================================================
+  // =====================================================
   // GET EMPLOYEE
-  // =========================================================
+  // =====================================================
 
   const fetchEmployee = async () => {
     try {
@@ -83,6 +158,8 @@ export default function EmployeeDashboard() {
 
       if (err?.response?.status === 401) {
         localStorage.removeItem("token");
+        localStorage.removeItem("rememberEmail");
+
         nav("/login");
       }
     } finally {
@@ -90,9 +167,9 @@ export default function EmployeeDashboard() {
     }
   };
 
-  // =========================================================
+  // =====================================================
   // GET LEAVES
-  // =========================================================
+  // =====================================================
 
   const fetchLeaves = async () => {
     try {
@@ -100,19 +177,24 @@ export default function EmployeeDashboard() {
 
       const res = await API.get("/leaves/my-leaves");
 
-      setLeaves(Array.isArray(res.data) ? res.data : []);
+      const newLeaves = Array.isArray(res.data)
+        ? res.data
+        : [];
+
+      setLeaves(newLeaves);
+
+      checkLeaveNotifications(newLeaves);
     } catch (err) {
       console.error("Leaves Error:", err);
-
       setLeaves([]);
     } finally {
       setLoadingLeaves(false);
     }
   };
 
-  // =========================================================
+  // =====================================================
   // GET TASKS
-  // =========================================================
+  // =====================================================
 
   const fetchTasks = async () => {
     try {
@@ -120,19 +202,448 @@ export default function EmployeeDashboard() {
 
       const res = await API.get("/tasks");
 
-      setTasks(Array.isArray(res.data) ? res.data : []);
+      const newTasks = Array.isArray(res.data)
+        ? res.data
+        : [];
+
+      setTasks(newTasks);
+
+      checkTaskNotifications(newTasks);
     } catch (err) {
       console.error("Tasks Error:", err);
-
       setTasks([]);
     } finally {
       setLoadingTasks(false);
     }
   };
 
-  // =========================================================
+  // =====================================================
+  // POLLING
+  // =====================================================
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchTasks();
+      fetchLeaves();
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // =====================================================
+  // ADD NOTIFICATION
+  // =====================================================
+
+  const addNotification = ({
+    id,
+    type,
+    title,
+    message,
+    referenceId = null,
+  }) => {
+    setNotifications((prev) => {
+      const exists = prev.some(
+        (notification) => notification.id === id
+      );
+
+      if (exists) {
+        return prev;
+      }
+
+      const newNotification = {
+        id,
+        type,
+        title,
+        message,
+        referenceId,
+        read: false,
+        createdAt: new Date().toISOString(),
+      };
+
+      return [
+        newNotification,
+        ...prev,
+      ].slice(0, 50);
+    });
+  };
+
+  // =====================================================
+  // TASK NOTIFICATIONS
+  // =====================================================
+
+  const checkTaskNotifications = (newTasks) => {
+    try {
+      const storageKey = "employeeTasksNotificationState";
+
+      const savedState = localStorage.getItem(storageKey);
+
+      const previousTasks = savedState
+        ? JSON.parse(savedState)
+        : {};
+
+      const currentState = {};
+
+      newTasks.forEach((task) => {
+        const taskId = String(
+          task.employee_task_id
+        );
+
+        currentState[taskId] = {
+          taskId: task.employee_task_id,
+          taskTitle: task.title,
+          status: task.status,
+          selectedAt: task.selected_at || null,
+        };
+
+        // ---------------------------------------------
+        // أول تحميل
+        // لا نريد إزعاج الموظف بإشعارات لكل المهام القديمة
+        // ---------------------------------------------
+
+        if (!initializedNotificationsRef.current) {
+          return;
+        }
+
+        // ---------------------------------------------
+        // NEW TASK
+        // ---------------------------------------------
+
+        if (!previousTasks[taskId]) {
+          addNotification({
+            id: `task-new-${task.employee_task_id}`,
+            type: "task-new",
+            title: "مهمة جديدة",
+            message: `تم تعيين مهمة جديدة لك: ${task.title}`,
+            referenceId: task.employee_task_id,
+          });
+
+          return;
+        }
+
+        // ---------------------------------------------
+        // TASK COMPLETED
+        // ---------------------------------------------
+
+        if (
+          previousTasks[taskId].status !== "completed" &&
+          task.status === "completed"
+        ) {
+          addNotification({
+            id: `task-completed-${task.employee_task_id}-${Date.now()}`,
+            type: "task-completed",
+            title: "تم إنجاز المهمة",
+            message: `تم تسجيل المهمة "${task.title}" كمهمة منجزة.`,
+            referenceId: task.employee_task_id,
+          });
+        }
+
+        // ---------------------------------------------
+        // TASK REOPENED
+        // ---------------------------------------------
+
+        if (
+          previousTasks[taskId].status === "completed" &&
+          task.status !== "completed"
+        ) {
+          addNotification({
+            id: `task-reopened-${task.employee_task_id}-${Date.now()}`,
+            type: "task-reopened",
+            title: "تم إعادة فتح المهمة",
+            message: `تمت إعادة المهمة "${task.title}" إلى حالة قيد التنفيذ.`,
+            referenceId: task.employee_task_id,
+          });
+        }
+      });
+
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify(currentState)
+      );
+
+      initializedNotificationsRef.current = true;
+    } catch (error) {
+      console.error(
+        "Task Notification Error:",
+        error
+      );
+    }
+  };
+
+  // =====================================================
+  // LEAVE NOTIFICATIONS
+  // =====================================================
+
+  const checkLeaveNotifications = (newLeaves) => {
+    try {
+      const storageKey = "employeeLeavesNotificationState";
+
+      const savedState = localStorage.getItem(storageKey);
+
+      const previousLeaves = savedState
+        ? JSON.parse(savedState)
+        : {};
+
+      const currentState = {};
+
+      newLeaves.forEach((leave) => {
+        const leaveId = String(leave.leave_id);
+
+        currentState[leaveId] = {
+          leaveId: leave.leave_id,
+          type: leave.type,
+          status: leave.status,
+        };
+
+        // ---------------------------------------------
+        // أول تحميل
+        // ---------------------------------------------
+
+        if (!initializedNotificationsRef.current) {
+          return;
+        }
+
+        // ---------------------------------------------
+        // NEW LEAVE
+        // ---------------------------------------------
+
+        if (!previousLeaves[leaveId]) {
+          addNotification({
+            id: `leave-new-${leave.leave_id}`,
+            type: "leave-new",
+            title: "طلب إجازة جديد",
+            message: `تم تسجيل طلب إجازة من نوع "${leave.type}".`,
+            referenceId: leave.leave_id,
+          });
+
+          return;
+        }
+
+        // ---------------------------------------------
+        // APPROVED
+        // ---------------------------------------------
+
+        if (
+          previousLeaves[leaveId].status !== "approved" &&
+          leave.status === "approved"
+        ) {
+          addNotification({
+            id: `leave-approved-${leave.leave_id}-${Date.now()}`,
+            type: "leave-approved",
+            title: "تمت الموافقة على الإجازة",
+            message: `تمت الموافقة على طلب إجازتك (${leave.type}).`,
+            referenceId: leave.leave_id,
+          });
+        }
+
+        // ---------------------------------------------
+        // REJECTED
+        // ---------------------------------------------
+
+        if (
+          previousLeaves[leaveId].status !== "rejected" &&
+          leave.status === "rejected"
+        ) {
+          addNotification({
+            id: `leave-rejected-${leave.leave_id}-${Date.now()}`,
+            type: "leave-rejected",
+            title: "تم رفض الإجازة",
+            message: `تم رفض طلب إجازتك (${leave.type}).`,
+            referenceId: leave.leave_id,
+          });
+        }
+      });
+
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify(currentState)
+      );
+    } catch (error) {
+      console.error(
+        "Leave Notification Error:",
+        error
+      );
+    }
+  };
+
+  // =====================================================
+  // UNREAD COUNT
+  // =====================================================
+
+  const unreadNotifications = notifications.filter(
+    (notification) => !notification.read
+  ).length;
+
+  // =====================================================
+  // MARK ONE AS READ
+  // =====================================================
+
+  const markNotificationAsRead = (notificationId) => {
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === notificationId
+          ? {
+              ...notification,
+              read: true,
+            }
+          : notification
+      )
+    );
+  };
+
+  // =====================================================
+  // MARK ALL AS READ
+  // =====================================================
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications((prev) =>
+      prev.map((notification) => ({
+        ...notification,
+        read: true,
+      }))
+    );
+  };
+
+  // =====================================================
+  // DELETE NOTIFICATION
+  // =====================================================
+
+  const deleteNotification = (notificationId) => {
+    setNotifications((prev) =>
+      prev.filter(
+        (notification) =>
+          notification.id !== notificationId
+      )
+    );
+  };
+
+  // =====================================================
+  // CLEAR ALL NOTIFICATIONS
+  // =====================================================
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  // =====================================================
+  // NOTIFICATION TIME
+  // =====================================================
+
+  const formatNotificationTime = (date) => {
+    if (!date) return "";
+
+    const notificationDate = new Date(date);
+
+    if (Number.isNaN(notificationDate.getTime())) {
+      return "";
+    }
+
+    const diff =
+      Date.now() - notificationDate.getTime();
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (seconds < 60) {
+      return "الآن";
+    }
+
+    if (minutes < 60) {
+      return `منذ ${minutes} دقيقة`;
+    }
+
+    if (hours < 24) {
+      return `منذ ${hours} ساعة`;
+    }
+
+    if (days < 7) {
+      return `منذ ${days} يوم`;
+    }
+
+    return notificationDate.toLocaleDateString(
+      "ar-SA"
+    );
+  };
+
+  // =====================================================
+  // NOTIFICATION ICON
+  // =====================================================
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case "task-new":
+        return <FaClipboardList />;
+
+      case "task-completed":
+        return <FaCheckCircle />;
+
+      case "task-reopened":
+        return <FaUndo />;
+
+      case "leave-approved":
+        return <FaCalendarCheck />;
+
+      case "leave-rejected":
+        return <FaTimesCircle />;
+
+      case "leave-new":
+        return <FaCalendarAlt />;
+
+      default:
+        return <FaBell />;
+    }
+  };
+
+  // =====================================================
+  // NOTIFICATION CLASS
+  // =====================================================
+
+  const getNotificationClass = (type) => {
+    switch (type) {
+      case "task-completed":
+      case "leave-approved":
+        return "success";
+
+      case "task-reopened":
+        return "warning";
+
+      case "leave-rejected":
+        return "danger";
+
+      case "task-new":
+      case "leave-new":
+      default:
+        return "info";
+    }
+  };
+
+  // =====================================================
+  // OPEN NOTIFICATION
+  // =====================================================
+
+  const handleNotificationClick = (notification) => {
+    markNotificationAsRead(notification.id);
+
+    setShowNotifications(false);
+
+    if (
+      notification.type.startsWith("leave-")
+    ) {
+      nav("/leave");
+      return;
+    }
+
+    if (
+      notification.type.startsWith("task-")
+    ) {
+      nav("/employee");
+    }
+  };
+
+  // =====================================================
   // LOGOUT
-  // =========================================================
+  // =====================================================
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -141,23 +652,26 @@ export default function EmployeeDashboard() {
     nav("/login");
   };
 
-  // =========================================================
+  // =====================================================
   // DATE
-  // =========================================================
+  // =====================================================
 
   const formatDate = (date) => {
     if (!date) return "-";
 
-    return new Date(date).toLocaleDateString("ar-SA", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    return new Date(date).toLocaleDateString(
+      "ar-SA",
+      {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }
+    );
   };
 
-  // =========================================================
+  // =====================================================
   // LEAVE STATUS
-  // =========================================================
+  // =====================================================
 
   const getStatus = (status) => {
     switch (status) {
@@ -184,9 +698,9 @@ export default function EmployeeDashboard() {
     }
   };
 
-  // =========================================================
+  // =====================================================
   // TASK STATUS
-  // =========================================================
+  // =====================================================
 
   const getTaskStatus = (status) => {
     if (status === "completed") {
@@ -204,13 +718,14 @@ export default function EmployeeDashboard() {
     };
   };
 
-  // =========================================================
+  // =====================================================
   // OPEN COMPLETE MODAL
-  // =========================================================
+  // =====================================================
 
   const openCompleteTaskModal = (taskId) => {
     const selectedTask = tasks.find(
-      (task) => task.employee_task_id === taskId
+      (task) =>
+        task.employee_task_id === taskId
     );
 
     if (!selectedTask) return;
@@ -224,13 +739,14 @@ export default function EmployeeDashboard() {
     });
   };
 
-  // =========================================================
+  // =====================================================
   // OPEN REOPEN MODAL
-  // =========================================================
+  // =====================================================
 
   const openReopenTaskModal = (taskId) => {
     const selectedTask = tasks.find(
-      (task) => task.employee_task_id === taskId
+      (task) =>
+        task.employee_task_id === taskId
     );
 
     if (!selectedTask) return;
@@ -244,9 +760,9 @@ export default function EmployeeDashboard() {
     });
   };
 
-  // =========================================================
+  // =====================================================
   // CLOSE TASK MODAL
-  // =========================================================
+  // =====================================================
 
   const closeTaskModal = () => {
     if (completingTaskId) return;
@@ -260,19 +776,26 @@ export default function EmployeeDashboard() {
     });
   };
 
-  // =========================================================
+  // =====================================================
   // COMPLETE TASK
-  // =========================================================
+  // =====================================================
 
   const completeTask = async () => {
     const taskId = taskModal.taskId;
 
     if (!taskId) return;
 
+    const selectedTask = tasks.find(
+      (task) =>
+        task.employee_task_id === taskId
+    );
+
     try {
       setCompletingTaskId(taskId);
 
-      await API.put(`/tasks/${taskId}/complete`);
+      await API.put(
+        `/tasks/${taskId}/complete`
+      );
 
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
@@ -284,6 +807,34 @@ export default function EmployeeDashboard() {
             : task
         )
       );
+
+      // تحديث الحالة المخزنة حتى لا يتكرر الإشعار
+      try {
+        const storageKey =
+          "employeeTasksNotificationState";
+
+        const saved =
+          localStorage.getItem(storageKey);
+
+        const state = saved
+          ? JSON.parse(saved)
+          : {};
+
+        if (state[String(taskId)]) {
+          state[String(taskId)].status =
+            "completed";
+
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify(state)
+          );
+        }
+      } catch (storageError) {
+        console.error(
+          "Task State Storage Error:",
+          storageError
+        );
+      }
 
       setTaskModal({
         open: false,
@@ -297,10 +848,24 @@ export default function EmployeeDashboard() {
         open: true,
         type: "success",
         title: "تم إنجاز المهمة",
-        message: "تم تسجيل المهمة كمهمة منجزة بنجاح.",
+        message:
+          "تم تسجيل المهمة كمهمة منجزة بنجاح.",
       });
+
+      if (selectedTask) {
+        addNotification({
+          id: `manual-task-completed-${taskId}-${Date.now()}`,
+          type: "task-completed",
+          title: "تم إنجاز المهمة",
+          message: `تم تسجيل المهمة "${selectedTask.title}" كمهمة منجزة.`,
+          referenceId: taskId,
+        });
+      }
     } catch (err) {
-      console.error("Complete Task Error:", err);
+      console.error(
+        "Complete Task Error:",
+        err
+      );
 
       setTaskModal({
         open: false,
@@ -323,19 +888,26 @@ export default function EmployeeDashboard() {
     }
   };
 
-  // =========================================================
+  // =====================================================
   // REOPEN TASK
-  // =========================================================
+  // =====================================================
 
   const reopenTask = async () => {
     const taskId = taskModal.taskId;
 
     if (!taskId) return;
 
+    const selectedTask = tasks.find(
+      (task) =>
+        task.employee_task_id === taskId
+    );
+
     try {
       setCompletingTaskId(taskId);
 
-      await API.put(`/tasks/${taskId}/reopen`);
+      await API.put(
+        `/tasks/${taskId}/reopen`
+      );
 
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
@@ -347,6 +919,34 @@ export default function EmployeeDashboard() {
             : task
         )
       );
+
+      // تحديث الحالة المخزنة
+      try {
+        const storageKey =
+          "employeeTasksNotificationState";
+
+        const saved =
+          localStorage.getItem(storageKey);
+
+        const state = saved
+          ? JSON.parse(saved)
+          : {};
+
+        if (state[String(taskId)]) {
+          state[String(taskId)].status =
+            "pending";
+
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify(state)
+          );
+        }
+      } catch (storageError) {
+        console.error(
+          "Task State Storage Error:",
+          storageError
+        );
+      }
 
       setTaskModal({
         open: false,
@@ -360,10 +960,24 @@ export default function EmployeeDashboard() {
         open: true,
         type: "success",
         title: "تمت إعادة فتح المهمة",
-        message: "تمت إعادة المهمة إلى حالة قيد التنفيذ.",
+        message:
+          "تمت إعادة المهمة إلى حالة قيد التنفيذ.",
       });
+
+      if (selectedTask) {
+        addNotification({
+          id: `manual-task-reopened-${taskId}-${Date.now()}`,
+          type: "task-reopened",
+          title: "تم إعادة فتح المهمة",
+          message: `تمت إعادة المهمة "${selectedTask.title}" إلى حالة قيد التنفيذ.`,
+          referenceId: taskId,
+        });
+      }
     } catch (err) {
-      console.error("Reopen Task Error:", err);
+      console.error(
+        "Reopen Task Error:",
+        err
+      );
 
       setTaskModal({
         open: false,
@@ -386,9 +1000,9 @@ export default function EmployeeDashboard() {
     }
   };
 
-  // =========================================================
+  // =====================================================
   // CLOSE MESSAGE MODAL
-  // =========================================================
+  // =====================================================
 
   const closeMessageModal = () => {
     setMessageModal({
@@ -399,9 +1013,9 @@ export default function EmployeeDashboard() {
     });
   };
 
-  // =========================================================
+  // =====================================================
   // TASK COUNTS
-  // =========================================================
+  // =====================================================
 
   const completedTasks = tasks.filter(
     (task) => task.status === "completed"
@@ -411,12 +1025,15 @@ export default function EmployeeDashboard() {
     (task) => task.status !== "completed"
   ).length;
 
-  // =========================================================
+  // =====================================================
   // RENDER
-  // =========================================================
+  // =====================================================
 
   return (
-    <div className="employee-dashboard" dir="rtl">
+    <div
+      className="employee-dashboard"
+      dir="rtl"
+    >
       {/* =====================================================
           SIDEBAR
       ===================================================== */}
@@ -438,36 +1055,34 @@ export default function EmployeeDashboard() {
         {/* MENU */}
 
         <div className="sidebar-menu">
-          {/* DASHBOARD */}
-
           <button
             className="sidebar-btn active"
-            onClick={() => nav("/employee")}
+            onClick={() =>
+              nav("/employee")
+            }
           >
             <FaClipboardList />
             <span>لوحة التحكم</span>
           </button>
 
-          {/* LEAVE */}
-
           <button
             className="sidebar-btn"
-            onClick={() => nav("/leave")}
+            onClick={() =>
+              nav("/leave")
+            }
           >
             <FaCalendarAlt />
             <span>طلب إجازة</span>
           </button>
 
-          {/* SETTINGS */}
-
           <button
             className="sidebar-btn"
-            onClick={() => nav("/employee/settings")}
+            onClick={() =>
+              nav("/employee/settings")
+            }
           >
             <FaCog />
-
             <span>الإعدادات</span>
-
             <FaChevronLeft className="sidebar-arrow" />
           </button>
         </div>
@@ -489,7 +1104,8 @@ export default function EmployeeDashboard() {
             <strong>
               {loadingEmployee
                 ? "جاري التحميل..."
-                : employee?.name || "الموظف"}
+                : employee?.name ||
+                  "الموظف"}
             </strong>
           </div>
         </div>
@@ -520,7 +1136,9 @@ export default function EmployeeDashboard() {
 
             <h1>
               أهلاً بك،{" "}
-              {employee?.name || "موظفنا العزيز"} 👋
+              {employee?.name ||
+                "موظفنا العزيز"}{" "}
+              👋
             </h1>
 
             <p>
@@ -528,13 +1146,190 @@ export default function EmployeeDashboard() {
             </p>
           </div>
 
-          <button
-            className="header-leave-btn"
-            onClick={() => nav("/leave")}
-          >
-            <FaPlus />
-            طلب إجازة
-          </button>
+          {/* HEADER ACTIONS */}
+
+          <div className="header-actions">
+            {/* NOTIFICATIONS */}
+
+            <div
+              className="notification-wrapper"
+              ref={notificationsRef}
+            >
+              <button
+                type="button"
+                className={`notification-button ${
+                  unreadNotifications > 0
+                    ? "has-unread"
+                    : ""
+                }`}
+                onClick={() =>
+                  setShowNotifications(
+                    (prev) => !prev
+                  )
+                }
+                aria-label="الإشعارات"
+              >
+                <FaBell />
+
+                {unreadNotifications > 0 && (
+                  <span className="notification-badge">
+                    {unreadNotifications > 99
+                      ? "99+"
+                      : unreadNotifications}
+                  </span>
+                )}
+              </button>
+
+              {/* NOTIFICATION PANEL */}
+
+              {showNotifications && (
+                <div className="notifications-panel">
+                  <div className="notifications-header">
+                    <div>
+                      <h3>الإشعارات</h3>
+
+                      <span>
+                        {unreadNotifications > 0
+                          ? `${unreadNotifications} غير مقروءة`
+                          : "جميع الإشعارات مقروءة"}
+                      </span>
+                    </div>
+
+                    <div className="notifications-header-actions">
+                      {unreadNotifications >
+                        0 && (
+                        <button
+                          type="button"
+                          title="تحديد الكل كمقروء"
+                          onClick={
+                            markAllNotificationsAsRead
+                          }
+                        >
+                          <FaCheckDouble />
+                        </button>
+                      )}
+
+                      {notifications.length >
+                        0 && (
+                        <button
+                          type="button"
+                          title="حذف جميع الإشعارات"
+                          onClick={
+                            clearAllNotifications
+                          }
+                        >
+                          <FaTrash />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {notifications.length ===
+                  0 ? (
+                    <div className="notifications-empty">
+                      <div className="notifications-empty-icon">
+                        <FaBell />
+                      </div>
+
+                      <h4>
+                        لا توجد إشعارات
+                      </h4>
+
+                      <p>
+                        ستظهر هنا التنبيهات الجديدة
+                        الخاصة بك.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="notifications-list">
+                      {notifications.map(
+                        (notification) => (
+                          <div
+                            key={
+                              notification.id
+                            }
+                            className={`notification-item ${
+                              notification.read
+                                ? "read"
+                                : "unread"
+                            }`}
+                            onClick={() =>
+                              handleNotificationClick(
+                                notification
+                              )
+                            }
+                          >
+                            <div
+                              className={`notification-item-icon ${getNotificationClass(
+                                notification.type
+                              )}`}
+                            >
+                              {getNotificationIcon(
+                                notification.type
+                              )}
+                            </div>
+
+                            <div className="notification-content">
+                              <div className="notification-title-row">
+                                <strong>
+                                  {
+                                    notification.title
+                                  }
+                                </strong>
+
+                                {!notification.read && (
+                                  <span className="unread-dot" />
+                                )}
+                              </div>
+
+                              <p>
+                                {
+                                  notification.message
+                                }
+                              </p>
+
+                              <span className="notification-time">
+                                {formatNotificationTime(
+                                  notification.createdAt
+                                )}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="notification-delete"
+                              title="حذف الإشعار"
+                              onClick={(e) => {
+                                e.stopPropagation();
+
+                                deleteNotification(
+                                  notification.id
+                                );
+                              }}
+                            >
+                              <FaTimes />
+                            </button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* LEAVE BUTTON */}
+
+            <button
+              className="header-leave-btn"
+              onClick={() =>
+                nav("/leave")
+              }
+            >
+              <FaPlus />
+              طلب إجازة
+            </button>
+          </div>
         </header>
 
         {/* =====================================================
@@ -553,7 +1348,9 @@ export default function EmployeeDashboard() {
               <span>المهام الموكلة</span>
 
               <strong>
-                {loadingTasks ? "..." : tasks.length}
+                {loadingTasks
+                  ? "..."
+                  : tasks.length}
               </strong>
             </div>
           </div>
@@ -569,7 +1366,9 @@ export default function EmployeeDashboard() {
               <span>طلبات الإجازة</span>
 
               <strong>
-                {loadingLeaves ? "..." : leaves.length}
+                {loadingLeaves
+                  ? "..."
+                  : leaves.length}
               </strong>
             </div>
           </div>
@@ -585,7 +1384,9 @@ export default function EmployeeDashboard() {
               <span>المهام المنجزة</span>
 
               <strong>
-                {loadingTasks ? "..." : completedTasks}
+                {loadingTasks
+                  ? "..."
+                  : completedTasks}
               </strong>
             </div>
           </div>
@@ -601,7 +1402,9 @@ export default function EmployeeDashboard() {
               <span>مهام قيد التنفيذ</span>
 
               <strong>
-                {loadingTasks ? "..." : pendingTasks}
+                {loadingTasks
+                  ? "..."
+                  : pendingTasks}
               </strong>
             </div>
           </div>
@@ -651,20 +1454,25 @@ export default function EmployeeDashboard() {
             <div className="tasks-grid">
               {tasks.map((task) => {
                 const isCompleted =
-                  task.status === "completed";
+                  task.status ===
+                  "completed";
 
                 const taskStatus =
-                  getTaskStatus(task.status);
+                  getTaskStatus(
+                    task.status
+                  );
 
                 return (
                   <div
                     className={`task-card ${
-                      isCompleted ? "task-completed" : ""
+                      isCompleted
+                        ? "task-completed"
+                        : ""
                     }`}
-                    key={task.employee_task_id}
+                    key={
+                      task.employee_task_id
+                    }
                   >
-                    {/* TASK TOP */}
-
                     <div className="task-top">
                       <div className="task-icon">
                         {isCompleted ? (
@@ -682,18 +1490,14 @@ export default function EmployeeDashboard() {
                       </span>
                     </div>
 
-                    {/* TITLE */}
-
-                    <h3>{task.title}</h3>
-
-                    {/* DESCRIPTION */}
+                    <h3>
+                      {task.title}
+                    </h3>
 
                     <p>
                       {task.description ||
                         "لا يوجد وصف لهذه المهمة."}
                     </p>
-
-                    {/* DUE DATE */}
 
                     <div className="task-date">
                       <FaCalendarAlt />
@@ -703,11 +1507,11 @@ export default function EmployeeDashboard() {
                       </span>
 
                       <strong>
-                        {formatDate(task.due_date)}
+                        {formatDate(
+                          task.due_date
+                        )}
                       </strong>
                     </div>
-
-                    {/* TASK FOOTER */}
 
                     <div className="task-footer">
                       {isCompleted ? (
@@ -783,7 +1587,9 @@ export default function EmployeeDashboard() {
 
             <button
               className="small-action"
-              onClick={() => nav("/leave")}
+              onClick={() =>
+                nav("/leave")
+              }
             >
               <FaPlus />
               طلب جديد
@@ -810,7 +1616,9 @@ export default function EmployeeDashboard() {
 
               <button
                 className="empty-button"
-                onClick={() => nav("/leave")}
+                onClick={() =>
+                  nav("/leave")
+                }
               >
                 <FaPlus />
                 تقديم طلب إجازة
@@ -818,58 +1626,68 @@ export default function EmployeeDashboard() {
             </div>
           ) : (
             <div className="leaves-list">
-              {leaves.map((leave, index) => {
-                const status =
-                  getStatus(leave.status);
+              {leaves.map(
+                (leave, index) => {
+                  const status =
+                    getStatus(
+                      leave.status
+                    );
 
-                return (
-                  <div
-                    className="leave-card"
-                    key={leave.id || index}
-                  >
-                    <div className="leave-icon">
-                      <FaCalendarAlt />
-                    </div>
-
-                    <div className="leave-info">
-                      <h3>
-                        {leave.type || "إجازة"}
-                      </h3>
-
-                      <div className="leave-date">
-                        <span>
-                          {formatDate(
-                            leave.from_date
-                          )}
-                        </span>
-
-                        <span className="arrow">
-                          →
-                        </span>
-
-                        <span>
-                          {formatDate(
-                            leave.to_date
-                          )}
-                        </span>
-                      </div>
-
-                      <div className="leave-days">
-                        <FaClock />
-
-                        {leave.days || 0} أيام
-                      </div>
-                    </div>
-
+                  return (
                     <div
-                      className={`leave-status ${status.className}`}
+                      className="leave-card"
+                      key={
+                        leave.leave_id ||
+                        index
+                      }
                     >
-                      {status.icon}
-                      {status.text}
+                      <div className="leave-icon">
+                        <FaCalendarAlt />
+                      </div>
+
+                      <div className="leave-info">
+                        <h3>
+                          {leave.type ||
+                            "إجازة"}
+                        </h3>
+
+                        <div className="leave-date">
+                          <span>
+                            {formatDate(
+                              leave.from_date
+                            )}
+                          </span>
+
+                          <span className="arrow">
+                            →
+                          </span>
+
+                          <span>
+                            {formatDate(
+                              leave.to_date
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="leave-days">
+                          <FaClock />
+
+                          {leave.days ||
+                            0}{" "}
+                          أيام
+                        </div>
+                      </div>
+
+                      <div
+                        className={`leave-status ${status.className}`}
+                      >
+                        {status.icon}
+                        {status.text}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                }
+              )}
             </div>
           )}
         </section>
@@ -886,32 +1704,42 @@ export default function EmployeeDashboard() {
         >
           <div
             className="task-confirm-modal"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) =>
+              e.stopPropagation()
+            }
           >
             <div
               className={`task-confirm-icon ${
-                taskModal.type === "complete"
+                taskModal.type ===
+                "complete"
                   ? "success"
                   : "warning"
               }`}
             >
-              {taskModal.type === "complete" ? (
+              {taskModal.type ===
+              "complete" ? (
                 <FaCheckCircle />
               ) : (
                 <FaUndo />
               )}
             </div>
 
-            <h3>{taskModal.title}</h3>
+            <h3>
+              {taskModal.title}
+            </h3>
 
-            <p>{taskModal.message}</p>
+            <p>
+              {taskModal.message}
+            </p>
 
             <div className="task-confirm-actions">
               <button
                 type="button"
                 className="task-modal-cancel"
                 onClick={closeTaskModal}
-                disabled={!!completingTaskId}
+                disabled={
+                  !!completingTaskId
+                }
               >
                 إلغاء
               </button>
@@ -919,20 +1747,25 @@ export default function EmployeeDashboard() {
               <button
                 type="button"
                 className={`task-modal-confirm ${
-                  taskModal.type === "complete"
+                  taskModal.type ===
+                  "complete"
                     ? "complete"
                     : "reopen"
                 }`}
                 onClick={
-                  taskModal.type === "complete"
+                  taskModal.type ===
+                  "complete"
                     ? completeTask
                     : reopenTask
                 }
-                disabled={!!completingTaskId}
+                disabled={
+                  !!completingTaskId
+                }
               >
                 {completingTaskId ? (
                   "جاري الحفظ..."
-                ) : taskModal.type === "complete" ? (
+                ) : taskModal.type ===
+                  "complete" ? (
                   <>
                     <FaCheckCircle />
                     نعم، تم إنجازها
@@ -956,32 +1789,41 @@ export default function EmployeeDashboard() {
       {messageModal.open && (
         <div
           className="task-message-modal-overlay"
-          onClick={closeMessageModal}
+          onClick={
+            closeMessageModal
+          }
         >
           <div
             className="task-message-modal"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) =>
+              e.stopPropagation()
+            }
           >
             <div
-              className={`task-message-icon ${
-                messageModal.type
-              }`}
+              className={`task-message-icon ${messageModal.type}`}
             >
-              {messageModal.type === "success" ? (
+              {messageModal.type ===
+              "success" ? (
                 <FaCheckCircle />
               ) : (
                 <FaExclamationTriangle />
               )}
             </div>
 
-            <h3>{messageModal.title}</h3>
+            <h3>
+              {messageModal.title}
+            </h3>
 
-            <p>{messageModal.message}</p>
+            <p>
+              {messageModal.message}
+            </p>
 
             <button
               type="button"
               className="task-message-button"
-              onClick={closeMessageModal}
+              onClick={
+                closeMessageModal
+              }
             >
               حسناً
             </button>
