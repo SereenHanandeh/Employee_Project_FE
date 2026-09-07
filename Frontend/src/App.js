@@ -40,6 +40,7 @@ import EmployeeSettings from "./Pages/EmployeeSettings";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import Departments from "./Pages/Departments";
+import AddDepartment from "./Pages/AddDepartment";
 
 function App() {
   return (
@@ -134,6 +135,10 @@ function App() {
             <Route path="/add-task" element={<AddTask />} />
 
             <Route path="/departments" element={<Departments />} />
+
+            {/* ================= ADD Department ================= */}
+
+            <Route path="/add-department" element={<AddDepartment />} />
           </Route>
         </Route>
 

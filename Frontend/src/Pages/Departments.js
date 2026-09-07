@@ -503,7 +503,7 @@ export default function Departments() {
 
           <button
             className="departments-btn departments-btn-primary"
-            onClick={openCreate}
+             onClick={() => nav("/add-department")}
           >
             <FaPlus />
             <span>إضافة قسم</span>
