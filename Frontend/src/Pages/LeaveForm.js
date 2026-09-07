@@ -74,6 +74,8 @@ export default function LeaveForm() {
 
   const [showPastDateConfirm, setShowPastDateConfirm] = useState(false);
 
+  const [showLongLeaveConfirm, setShowLongLeaveConfirm] = useState(false);
+  const [pendingLongLeaveSave, setPendingLongLeaveSave] = useState(false);
   const [pendingFromDate, setPendingFromDate] = useState("");
   const [previousFromDate, setPreviousFromDate] = useState("");
   const [previousToDate, setPreviousToDate] = useState("");
@@ -498,175 +500,174 @@ export default function LeaveForm() {
   const employeeDepartment =
     selectedEmployee?.department_name || selectedEmployee?.department || "";
 
-
   // =========================================================
-// SAVE LEAVE
-// =========================================================
-const saveLeave = async () => {
-  // Employee
-  if (!employeeId) {
-    showMessage({
-      type: "warning",
-      title: "الموظف مطلوب",
-      message: "يرجى اختيار الموظف.",
-    });
-    return;
-  }
-
-  // Type
-  if (!type) {
-    showMessage({
-      type: "warning",
-      title: "نوع الإجازة مطلوب",
-      message: "يرجى اختيار نوع الإجازة.",
-    });
-    return;
-  }
-
-  // From
-  if (!from) {
-    showMessage({
-      type: "warning",
-      title: "تاريخ البداية مطلوب",
-      message: "يرجى اختيار تاريخ بداية الإجازة.",
-    });
-    return;
-  }
-
-  // To
-  if (!to) {
-    showMessage({
-      type: "warning",
-      title: "تاريخ النهاية مطلوب",
-      message: "يرجى اختيار تاريخ نهاية الإجازة.",
-    });
-    return;
-  }
-
-  // Date validation
-  if (new Date(to) < new Date(from)) {
-    showMessage({
-      type: "warning",
-      title: "التاريخ غير صحيح",
-      message:
-        "تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية.",
-    });
-    return;
-  }
-
-  // Days validation
-  if (days <= 0) {
-    showMessage({
-      type: "warning",
-      title: "مدة الإجازة غير صحيحة",
-      message: "عدد أيام الإجازة غير صحيح.",
-    });
-    return;
-  }
-
+  // LONG LEAVE CONFIRM
   // =========================================================
-  // LEAVE BALANCE VALIDATION
+
+  const confirmLongLeave = async () => {
+    setShowLongLeaveConfirm(false);
+    setPendingLongLeaveSave(true);
+
+    try {
+      await saveLeave(true);
+    } finally {
+      setPendingLongLeaveSave(false);
+    }
+  };
+
+  const cancelLongLeave = () => {
+    setShowLongLeaveConfirm(false);
+    setPendingLongLeaveSave(false);
+  };
   // =========================================================
-  if (days > 30) {
-    showMessage({
-      type: "warning",
-      title: "رصيد الإجازة غير كافٍ",
-      message:
-        "رصيد الإجازة المتاح لك هو 30 يومًا فقط، ولا يمكن تسجيل إجازة تتجاوز هذا الرصيد.",
-    });
-    return;
-  }
-
-  // File validation
-  if (file) {
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "application/pdf",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
+  // SAVE LEAVE
+  // =========================================================
+  const saveLeave = async (skipLongLeaveConfirmation = false) => {
+    // Employee
+    if (!employeeId) {
       showMessage({
         type: "warning",
-        title: "نوع الملف غير مدعوم",
-        message:
-          "يسمح فقط برفع JPG و PNG و WEBP و PDF.",
+        title: "الموظف مطلوب",
+        message: "يرجى اختيار الموظف.",
       });
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    // Type
+    if (!type) {
       showMessage({
         type: "warning",
-        title: "حجم الملف كبير",
-        message:
-          "حجم الملف يجب ألا يتجاوز 5 ميجابايت.",
+        title: "نوع الإجازة مطلوب",
+        message: "يرجى اختيار نوع الإجازة.",
       });
       return;
     }
-  }
 
-  try {
-    setSaving(true);
-
-    const formData = new FormData();
-
-    // Admin sends employee_id
-    if (isAdmin) {
-      formData.append(
-        "employee_id",
-        String(employeeId)
-      );
+    // From
+    if (!from) {
+      showMessage({
+        type: "warning",
+        title: "تاريخ البداية مطلوب",
+        message: "يرجى اختيار تاريخ بداية الإجازة.",
+      });
+      return;
     }
 
-    // Leave data
-    formData.append("type", type.trim());
-    formData.append("from_date", from);
-    formData.append("to_date", to);
-    formData.append("notes", notes.trim());
+    // To
+    if (!to) {
+      showMessage({
+        type: "warning",
+        title: "تاريخ النهاية مطلوب",
+        message: "يرجى اختيار تاريخ نهاية الإجازة.",
+      });
+      return;
+    }
 
-    // Attachment
+    // Date validation
+    if (new Date(to) < new Date(from)) {
+      showMessage({
+        type: "warning",
+        title: "التاريخ غير صحيح",
+        message: "تاريخ النهاية يجب أن يكون بعد أو مساويًا لتاريخ البداية.",
+      });
+      return;
+    }
+
+    // Days validation
+    if (days <= 0) {
+      showMessage({
+        type: "warning",
+        title: "مدة الإجازة غير صحيحة",
+        message: "عدد أيام الإجازة غير صحيح.",
+      });
+      return;
+    }
+
+    // =========================================================
+    // LEAVE BALANCE VALIDATION
+    // =========================================================
+    if (days > 30 && !skipLongLeaveConfirmation) {
+      setShowLongLeaveConfirm(true);
+      return;
+    }
+
+    // File validation
     if (file) {
-      formData.append("attachment", file);
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "application/pdf",
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        showMessage({
+          type: "warning",
+          title: "نوع الملف غير مدعوم",
+          message: "يسمح فقط برفع JPG و PNG و WEBP و PDF.",
+        });
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        showMessage({
+          type: "warning",
+          title: "حجم الملف كبير",
+          message: "حجم الملف يجب ألا يتجاوز 5 ميجابايت.",
+        });
+        return;
+      }
     }
 
-    const response = await API.post(
-      "/leaves",
-      formData
-    );
+    try {
+      setSaving(true);
 
-    console.log(
-      "Leave created successfully:",
-      response.data
-    );
+      const formData = new FormData();
 
-    showMessage({
-      type: "success",
-      title: "تم إرسال الطلب",
-      message:
-        "تم إرسال طلب الإجازة بنجاح وسيتم تحويله للمراجعة.",
-    });
+      // Admin sends employee_id
+      if (isAdmin) {
+        formData.append("employee_id", String(employeeId));
+      }
 
-    setTimeout(() => {
-      nav("/leaves-list");
-    }, 1500);
-  } catch (error) {
-    console.error("Save leave error:", error);
+      // Leave data
+      formData.append("type", type.trim());
+      formData.append("from_date", from);
+      formData.append("to_date", to);
+      formData.append("notes", notes.trim());
 
-    const message =
-      error?.response?.data?.message ||
-      "حدث خطأ أثناء حفظ طلب الإجازة";
+      // Attachment
+      if (file) {
+        formData.append("attachment", file);
+      }
 
-    showMessage({
-      type: "error",
-      title: "فشل إرسال الطلب",
-      message,
-    });
-  } finally {
-    setSaving(false);
-  }
-};
+      const response = await API.post("/leaves", formData);
+
+      console.log("Leave created successfully:", response.data);
+
+      showMessage({
+        type: "success",
+        title: "تم إرسال الطلب",
+        message: "تم إرسال طلب الإجازة بنجاح وسيتم تحويله للمراجعة.",
+      });
+
+      setTimeout(() => {
+        nav("/leaves-list");
+      }, 1500);
+    } catch (error) {
+      console.error("Save leave error:", error);
+
+      const message =
+        error?.response?.data?.message || "حدث خطأ أثناء حفظ طلب الإجازة";
+
+      showMessage({
+        type: "error",
+        title: "فشل إرسال الطلب",
+        message,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // =========================================================
   // RESET
@@ -1483,7 +1484,86 @@ const saveLeave = async () => {
           </div>
         </div>
       )}
+      {/* =======================================================
+    Long Leave Confirmation Modal
+======================================================== */}
 
+      {showLongLeaveConfirm && (
+        <div className="past-date-overlay" onClick={cancelLongLeave}>
+          <div className="past-date-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-top-line"></div>
+
+            <button
+              type="button"
+              className="modal-close"
+              onClick={cancelLongLeave}
+              disabled={pendingLongLeaveSave}
+            >
+              <FaTimes />
+            </button>
+
+            <div className="modal-warning-icon">
+              <FaExclamationTriangle />
+            </div>
+
+            <span className="modal-label">تنبيه مدة الإجازة</span>
+
+            <h3>مدة الإجازة أكثر من 30 يومًا</h3>
+
+            <p className="modal-description">
+              لقد اخترت إجازة مدتها <strong>{days} يومًا</strong>، وهي أكثر من
+              30 يومًا.
+              <br />
+              هل تريد المتابعة وتسجيل الإجازة بهذه المدة؟
+            </p>
+
+            <div className="selected-past-date">
+              <div className="selected-date-icon">
+                <FaCalendarAlt />
+              </div>
+
+              <div>
+                <span>مدة الإجازة</span>
+
+                <strong>
+                  {days} {days === 1 ? "يوم" : "يومًا"}
+                </strong>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="modal-cancel"
+                onClick={cancelLongLeave}
+                disabled={pendingLongLeaveSave}
+              >
+                <FaTimes />
+                إلغاء
+              </button>
+
+              <button
+                type="button"
+                className="modal-confirm"
+                onClick={confirmLongLeave}
+                disabled={pendingLongLeaveSave}
+              >
+                {pendingLongLeaveSave ? (
+                  <>
+                    <span className="button-spinner"></span>
+                    جاري الإرسال...
+                  </>
+                ) : (
+                  <>
+                    <FaCheckCircle />
+                    نعم، متابعة وإرسال الطلب
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* =======================================================
           MESSAGE MODAL
       ======================================================== */}
