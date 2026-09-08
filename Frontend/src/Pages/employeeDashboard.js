@@ -23,6 +23,12 @@ import {
   FaTimes,
   FaCalendarCheck,
   FaClipboardCheck,
+  FaChevronDown,
+  FaChevronUp,
+  FaListUl,
+  FaCheck,
+  FaCircle,
+  FaPercentage,
 } from "react-icons/fa";
 
 import "./employeeDashboard.css";
@@ -49,18 +55,13 @@ export default function EmployeeDashboard() {
   const initializedNotificationsRef = useRef(false);
 
   // =====================================================
-  // TASK MODAL
+  // STAGES MODAL
   // =====================================================
 
-  const [taskModal, setTaskModal] = useState({
-    open: false,
-    type: "confirm",
-    taskId: null,
-    title: "",
-    message: "",
-  });
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showStagesModal, setShowStagesModal] = useState(false);
 
-  const [completingTaskId, setCompletingTaskId] = useState(null);
+  const [updatingStageId, setUpdatingStageId] = useState(null);
 
   // =====================================================
   // SUCCESS / ERROR MODAL
@@ -112,7 +113,7 @@ export default function EmployeeDashboard() {
   }, [notifications]);
 
   // =====================================================
-  // CLOSE NOTIFICATION DROPDOWN WHEN CLICKING OUTSIDE
+  // CLOSE NOTIFICATION DROPDOWN
   // =====================================================
 
   useEffect(() => {
@@ -177,15 +178,14 @@ export default function EmployeeDashboard() {
 
       const res = await API.get("/leaves/my-leaves");
 
-      const newLeaves = Array.isArray(res.data)
-        ? res.data
-        : [];
+      const newLeaves = Array.isArray(res.data) ? res.data : [];
 
       setLeaves(newLeaves);
 
       checkLeaveNotifications(newLeaves);
     } catch (err) {
       console.error("Leaves Error:", err);
+
       setLeaves([]);
     } finally {
       setLoadingLeaves(false);
@@ -202,15 +202,32 @@ export default function EmployeeDashboard() {
 
       const res = await API.get("/tasks");
 
-      const newTasks = Array.isArray(res.data)
-        ? res.data
-        : [];
+      const newTasks = Array.isArray(res.data) ? res.data : [];
 
       setTasks(newTasks);
+
+      /*
+       * إذا كانت المهمة المفتوحة حاليًا موجودة في البيانات الجديدة
+       * نحدّثها أيضًا حتى يظهر تقدم المراحل مباشرة داخل الـPopup.
+       */
+      setSelectedTask((currentSelectedTask) => {
+        if (!currentSelectedTask) {
+          return null;
+        }
+
+        const updatedTask = newTasks.find(
+          (task) =>
+            task.employee_task_id ===
+            currentSelectedTask.employee_task_id
+        );
+
+        return updatedTask || currentSelectedTask;
+      });
 
       checkTaskNotifications(newTasks);
     } catch (err) {
       console.error("Tasks Error:", err);
+
       setTasks([]);
     } finally {
       setLoadingTasks(false);
@@ -260,10 +277,7 @@ export default function EmployeeDashboard() {
         createdAt: new Date().toISOString(),
       };
 
-      return [
-        newNotification,
-        ...prev,
-      ].slice(0, 50);
+      return [newNotification, ...prev].slice(0, 50);
     });
   };
 
@@ -284,9 +298,7 @@ export default function EmployeeDashboard() {
       const currentState = {};
 
       newTasks.forEach((task) => {
-        const taskId = String(
-          task.employee_task_id
-        );
+        const taskId = String(task.employee_task_id);
 
         currentState[taskId] = {
           taskId: task.employee_task_id,
@@ -295,19 +307,11 @@ export default function EmployeeDashboard() {
           selectedAt: task.selected_at || null,
         };
 
-        // ---------------------------------------------
-        // أول تحميل
-        // لا نريد إزعاج الموظف بإشعارات لكل المهام القديمة
-        // ---------------------------------------------
-
         if (!initializedNotificationsRef.current) {
           return;
         }
 
-        // ---------------------------------------------
         // NEW TASK
-        // ---------------------------------------------
-
         if (!previousTasks[taskId]) {
           addNotification({
             id: `task-new-${task.employee_task_id}`,
@@ -320,10 +324,7 @@ export default function EmployeeDashboard() {
           return;
         }
 
-        // ---------------------------------------------
         // TASK COMPLETED
-        // ---------------------------------------------
-
         if (
           previousTasks[taskId].status !== "completed" &&
           task.status === "completed"
@@ -332,15 +333,12 @@ export default function EmployeeDashboard() {
             id: `task-completed-${task.employee_task_id}-${Date.now()}`,
             type: "task-completed",
             title: "تم إنجاز المهمة",
-            message: `تم تسجيل المهمة "${task.title}" كمهمة منجزة.`,
+            message: `تم إكمال جميع مراحل المهمة "${task.title}".`,
             referenceId: task.employee_task_id,
           });
         }
 
-        // ---------------------------------------------
         // TASK REOPENED
-        // ---------------------------------------------
-
         if (
           previousTasks[taskId].status === "completed" &&
           task.status !== "completed"
@@ -362,10 +360,7 @@ export default function EmployeeDashboard() {
 
       initializedNotificationsRef.current = true;
     } catch (error) {
-      console.error(
-        "Task Notification Error:",
-        error
-      );
+      console.error("Task Notification Error:", error);
     }
   };
 
@@ -394,18 +389,11 @@ export default function EmployeeDashboard() {
           status: leave.status,
         };
 
-        // ---------------------------------------------
-        // أول تحميل
-        // ---------------------------------------------
-
         if (!initializedNotificationsRef.current) {
           return;
         }
 
-        // ---------------------------------------------
         // NEW LEAVE
-        // ---------------------------------------------
-
         if (!previousLeaves[leaveId]) {
           addNotification({
             id: `leave-new-${leave.leave_id}`,
@@ -418,10 +406,7 @@ export default function EmployeeDashboard() {
           return;
         }
 
-        // ---------------------------------------------
         // APPROVED
-        // ---------------------------------------------
-
         if (
           previousLeaves[leaveId].status !== "approved" &&
           leave.status === "approved"
@@ -435,10 +420,7 @@ export default function EmployeeDashboard() {
           });
         }
 
-        // ---------------------------------------------
         // REJECTED
-        // ---------------------------------------------
-
         if (
           previousLeaves[leaveId].status !== "rejected" &&
           leave.status === "rejected"
@@ -458,10 +440,7 @@ export default function EmployeeDashboard() {
         JSON.stringify(currentState)
       );
     } catch (error) {
-      console.error(
-        "Leave Notification Error:",
-        error
-      );
+      console.error("Leave Notification Error:", error);
     }
   };
 
@@ -510,8 +489,7 @@ export default function EmployeeDashboard() {
   const deleteNotification = (notificationId) => {
     setNotifications((prev) =>
       prev.filter(
-        (notification) =>
-          notification.id !== notificationId
+        (notification) => notification.id !== notificationId
       )
     );
   };
@@ -561,9 +539,7 @@ export default function EmployeeDashboard() {
       return `منذ ${days} يوم`;
     }
 
-    return notificationDate.toLocaleDateString(
-      "ar-SA"
-    );
+    return notificationDate.toLocaleDateString("ar-SA");
   };
 
   // =====================================================
@@ -627,16 +603,12 @@ export default function EmployeeDashboard() {
 
     setShowNotifications(false);
 
-    if (
-      notification.type.startsWith("leave-")
-    ) {
+    if (notification.type.startsWith("leave-")) {
       nav("/leave");
       return;
     }
 
-    if (
-      notification.type.startsWith("task-")
-    ) {
+    if (notification.type.startsWith("task-")) {
       nav("/employee");
     }
   };
@@ -659,14 +631,17 @@ export default function EmployeeDashboard() {
   const formatDate = (date) => {
     if (!date) return "-";
 
-    return new Date(date).toLocaleDateString(
-      "ar-SA",
-      {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }
-    );
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "-";
+    }
+
+    return parsedDate.toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
   // =====================================================
@@ -719,284 +694,307 @@ export default function EmployeeDashboard() {
   };
 
   // =====================================================
-  // OPEN COMPLETE MODAL
+  // GET TASK STAGES
   // =====================================================
 
-  const openCompleteTaskModal = (taskId) => {
-    const selectedTask = tasks.find(
-      (task) =>
-        task.employee_task_id === taskId
+  const getTaskStages = (task) => {
+    if (!Array.isArray(task?.stages)) {
+      return [];
+    }
+
+    return [...task.stages].sort(
+      (a, b) =>
+        Number(a.stage_order || 0) -
+        Number(b.stage_order || 0)
     );
-
-    if (!selectedTask) return;
-
-    setTaskModal({
-      open: true,
-      type: "complete",
-      taskId,
-      title: "إنهاء المهمة",
-      message: `هل أنت متأكد من أنك أنجزت المهمة "${selectedTask.title}"؟`,
-    });
   };
 
   // =====================================================
-  // OPEN REOPEN MODAL
+  // GET COMPLETED STAGES
   // =====================================================
 
-  const openReopenTaskModal = (taskId) => {
-    const selectedTask = tasks.find(
-      (task) =>
-        task.employee_task_id === taskId
-    );
+  const getCompletedStages = (task) => {
+    const stages = getTaskStages(task);
 
-    if (!selectedTask) return;
-
-    setTaskModal({
-      open: true,
-      type: "reopen",
-      taskId,
-      title: "إعادة فتح المهمة",
-      message: `هل تريد إعادة المهمة "${selectedTask.title}" إلى حالة قيد التنفيذ؟`,
-    });
+    return stages.filter(
+      (stage) =>
+        stage.completed === true ||
+        stage.completed === 1 ||
+        stage.completed === "1"
+    ).length;
   };
 
   // =====================================================
-  // CLOSE TASK MODAL
+  // GET TOTAL STAGES
   // =====================================================
 
-  const closeTaskModal = () => {
-    if (completingTaskId) return;
-
-    setTaskModal({
-      open: false,
-      type: "confirm",
-      taskId: null,
-      title: "",
-      message: "",
-    });
+  const getTotalStages = (task) => {
+    return getTaskStages(task).length;
   };
 
   // =====================================================
-  // COMPLETE TASK
+  // GET PROGRESS
   // =====================================================
 
-  const completeTask = async () => {
-    const taskId = taskModal.taskId;
+  const getTaskProgress = (task) => {
+    const total = getTotalStages(task);
 
-    if (!taskId) return;
+    if (total === 0) {
+      return 0;
+    }
 
-    const selectedTask = tasks.find(
-      (task) =>
-        task.employee_task_id === taskId
+    const completed = getCompletedStages(task);
+
+    return Math.round((completed / total) * 100);
+  };
+
+  // =====================================================
+  // OPEN TASK STAGES
+  // =====================================================
+
+  const openTaskStages = (task) => {
+    setSelectedTask(task);
+    setShowStagesModal(true);
+  };
+
+  // =====================================================
+  // CLOSE TASK STAGES
+  // =====================================================
+
+  const closeTaskStages = () => {
+    if (updatingStageId) {
+      return;
+    }
+
+    setShowStagesModal(false);
+    setSelectedTask(null);
+  };
+
+  // =====================================================
+  // CHECK STAGE COMPLETED
+  // =====================================================
+
+  const isStageCompleted = (stage) => {
+    return (
+      stage.completed === true ||
+      stage.completed === 1 ||
+      stage.completed === "1"
     );
+  };
+
+  // =====================================================
+  // COMPLETE / REOPEN STAGE
+  // =====================================================
+
+  const toggleStage = async (stage) => {
+    if (!selectedTask || !stage?.stage_id) {
+      return;
+    }
+
+    const stageId = stage.stage_id;
 
     try {
-      setCompletingTaskId(taskId);
+      setUpdatingStageId(stageId);
 
-      await API.put(
-        `/tasks/${taskId}/complete`
-      );
+      const wasCompleted = isStageCompleted(stage);
+
+      const endpoint = wasCompleted
+        ? `/tasks/stage/${stageId}/reopen`
+        : `/tasks/stage/${stageId}/complete`;
+
+      const response = await API.put(endpoint);
+
+      /*
+       * نحاول استخدام البيانات التي أعادها الـBackend.
+       * وإذا لم يرجع stages كاملة، نقوم بتحديث المرحلة محليًا.
+       */
+
+      const updatedStagesFromResponse =
+        response?.data?.stages;
 
       setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.employee_task_id === taskId
-            ? {
-                ...task,
-                status: "completed",
-              }
-            : task
-        )
+        prevTasks.map((task) => {
+          if (
+            task.employee_task_id !==
+            selectedTask.employee_task_id
+          ) {
+            return task;
+          }
+
+          let updatedStages;
+
+          if (Array.isArray(updatedStagesFromResponse)) {
+            updatedStages = updatedStagesFromResponse;
+          } else {
+            updatedStages = getTaskStages(task).map(
+              (currentStage) =>
+                currentStage.stage_id === stageId
+                  ? {
+                      ...currentStage,
+                      completed: !wasCompleted,
+                      completed_at: wasCompleted
+                        ? null
+                        : new Date().toISOString(),
+                    }
+                  : currentStage
+            );
+          }
+
+          const completedCount =
+            updatedStages.filter((item) =>
+              isStageCompleted(item)
+            ).length;
+
+          const totalCount = updatedStages.length;
+
+          const allCompleted =
+            totalCount > 0 &&
+            completedCount === totalCount;
+
+          return {
+            ...task,
+            stages: updatedStages,
+            completed_stages: completedCount,
+            total_stages: totalCount,
+            progress_percentage:
+              totalCount > 0
+                ? Math.round(
+                    (completedCount / totalCount) * 100
+                  )
+                : 0,
+            status: allCompleted
+              ? "completed"
+              : "pending",
+          };
+        })
       );
 
-      // تحديث الحالة المخزنة حتى لا يتكرر الإشعار
-      try {
-        const storageKey =
-          "employeeTasksNotificationState";
+      /*
+       * تحديث المهمة المفتوحة داخل الـPopup
+       */
 
-        const saved =
-          localStorage.getItem(storageKey);
+      setSelectedTask((currentTask) => {
+        if (!currentTask) {
+          return null;
+        }
 
-        const state = saved
-          ? JSON.parse(saved)
-          : {};
+        let updatedStages;
 
-        if (state[String(taskId)]) {
-          state[String(taskId)].status =
-            "completed";
-
-          localStorage.setItem(
-            storageKey,
-            JSON.stringify(state)
+        if (Array.isArray(updatedStagesFromResponse)) {
+          updatedStages = updatedStagesFromResponse;
+        } else {
+          updatedStages = getTaskStages(currentTask).map(
+            (currentStage) =>
+              currentStage.stage_id === stageId
+                ? {
+                    ...currentStage,
+                    completed: !wasCompleted,
+                    completed_at: wasCompleted
+                      ? null
+                      : new Date().toISOString(),
+                  }
+                : currentStage
           );
         }
-      } catch (storageError) {
-        console.error(
-          "Task State Storage Error:",
-          storageError
-        );
-      }
 
-      setTaskModal({
-        open: false,
-        type: "confirm",
-        taskId: null,
-        title: "",
-        message: "",
+        const completedCount =
+          updatedStages.filter((item) =>
+            isStageCompleted(item)
+          ).length;
+
+        const totalCount = updatedStages.length;
+
+        const allCompleted =
+          totalCount > 0 &&
+          completedCount === totalCount;
+
+        return {
+          ...currentTask,
+          stages: updatedStages,
+          completed_stages: completedCount,
+          total_stages: totalCount,
+          progress_percentage:
+            totalCount > 0
+              ? Math.round(
+                  (completedCount / totalCount) * 100
+                )
+              : 0,
+          status: allCompleted
+            ? "completed"
+            : "pending",
+        };
       });
 
-      setMessageModal({
-        open: true,
-        type: "success",
-        title: "تم إنجاز المهمة",
-        message:
-          "تم تسجيل المهمة كمهمة منجزة بنجاح.",
-      });
+      /*
+       * إعادة جلب المهام من السيرفر للتأكد من أن الحالة
+       * النهائية متطابقة مع قاعدة البيانات.
+       */
 
-      if (selectedTask) {
+      await fetchTasks();
+
+      const updatedTask =
+        tasks.find(
+          (task) =>
+            task.employee_task_id ===
+            selectedTask.employee_task_id
+        ) || selectedTask;
+
+      const totalStages =
+        getTotalStages(updatedTask);
+
+      const completedStages =
+        getCompletedStages(updatedTask);
+
+      const allCompleted =
+        totalStages > 0 &&
+        completedStages === totalStages;
+
+      if (!wasCompleted && allCompleted) {
+        setMessageModal({
+          open: true,
+          type: "success",
+          title: "تم إنجاز المهمة 🎉",
+          message:
+            "ممتاز! تم إكمال جميع مراحل المهمة بنجاح، وأصبحت المهمة مكتملة.",
+        });
+
         addNotification({
-          id: `manual-task-completed-${taskId}-${Date.now()}`,
+          id: `manual-task-completed-${selectedTask.employee_task_id}-${Date.now()}`,
           type: "task-completed",
           title: "تم إنجاز المهمة",
-          message: `تم تسجيل المهمة "${selectedTask.title}" كمهمة منجزة.`,
-          referenceId: taskId,
+          message: `تم إكمال جميع مراحل المهمة "${selectedTask.title}".`,
+          referenceId: selectedTask.employee_task_id,
+        });
+      } else if (wasCompleted) {
+        setMessageModal({
+          open: true,
+          type: "success",
+          title: "تمت إعادة فتح المرحلة",
+          message:
+            "تمت إعادة المرحلة إلى حالة قيد التنفيذ، ولذلك أصبحت المهمة قيد التنفيذ.",
+        });
+      } else {
+        setMessageModal({
+          open: true,
+          type: "success",
+          title: "تم إكمال المرحلة",
+          message:
+            "تم تسجيل المرحلة كمكتملة بنجاح.",
         });
       }
     } catch (err) {
-      console.error(
-        "Complete Task Error:",
-        err
-      );
-
-      setTaskModal({
-        open: false,
-        type: "confirm",
-        taskId: null,
-        title: "",
-        message: "",
-      });
+      console.error("Toggle Stage Error:", err);
 
       setMessageModal({
         open: true,
         type: "error",
-        title: "تعذر إنهاء المهمة",
+        title: "تعذر تحديث المرحلة",
         message:
           err?.response?.data?.message ||
-          "حدث خطأ أثناء تسجيل المهمة كمكتملة. حاول مرة أخرى.",
+          "حدث خطأ أثناء تحديث حالة المرحلة. حاول مرة أخرى.",
       });
     } finally {
-      setCompletingTaskId(null);
-    }
-  };
-
-  // =====================================================
-  // REOPEN TASK
-  // =====================================================
-
-  const reopenTask = async () => {
-    const taskId = taskModal.taskId;
-
-    if (!taskId) return;
-
-    const selectedTask = tasks.find(
-      (task) =>
-        task.employee_task_id === taskId
-    );
-
-    try {
-      setCompletingTaskId(taskId);
-
-      await API.put(
-        `/tasks/${taskId}/reopen`
-      );
-
-      setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.employee_task_id === taskId
-            ? {
-                ...task,
-                status: "pending",
-              }
-            : task
-        )
-      );
-
-      // تحديث الحالة المخزنة
-      try {
-        const storageKey =
-          "employeeTasksNotificationState";
-
-        const saved =
-          localStorage.getItem(storageKey);
-
-        const state = saved
-          ? JSON.parse(saved)
-          : {};
-
-        if (state[String(taskId)]) {
-          state[String(taskId)].status =
-            "pending";
-
-          localStorage.setItem(
-            storageKey,
-            JSON.stringify(state)
-          );
-        }
-      } catch (storageError) {
-        console.error(
-          "Task State Storage Error:",
-          storageError
-        );
-      }
-
-      setTaskModal({
-        open: false,
-        type: "confirm",
-        taskId: null,
-        title: "",
-        message: "",
-      });
-
-      setMessageModal({
-        open: true,
-        type: "success",
-        title: "تمت إعادة فتح المهمة",
-        message:
-          "تمت إعادة المهمة إلى حالة قيد التنفيذ.",
-      });
-
-      if (selectedTask) {
-        addNotification({
-          id: `manual-task-reopened-${taskId}-${Date.now()}`,
-          type: "task-reopened",
-          title: "تم إعادة فتح المهمة",
-          message: `تمت إعادة المهمة "${selectedTask.title}" إلى حالة قيد التنفيذ.`,
-          referenceId: taskId,
-        });
-      }
-    } catch (err) {
-      console.error(
-        "Reopen Task Error:",
-        err
-      );
-
-      setTaskModal({
-        open: false,
-        type: "confirm",
-        taskId: null,
-        title: "",
-        message: "",
-      });
-
-      setMessageModal({
-        open: true,
-        type: "error",
-        title: "تعذر إعادة فتح المهمة",
-        message:
-          err?.response?.data?.message ||
-          "حدث خطأ أثناء إعادة فتح المهمة. حاول مرة أخرى.",
-      });
-    } finally {
-      setCompletingTaskId(null);
+      setUpdatingStageId(null);
     }
   };
 
@@ -1057,9 +1055,7 @@ export default function EmployeeDashboard() {
         <div className="sidebar-menu">
           <button
             className="sidebar-btn active"
-            onClick={() =>
-              nav("/employee")
-            }
+            onClick={() => nav("/employee")}
           >
             <FaClipboardList />
             <span>لوحة التحكم</span>
@@ -1067,9 +1063,7 @@ export default function EmployeeDashboard() {
 
           <button
             className="sidebar-btn"
-            onClick={() =>
-              nav("/leave")
-            }
+            onClick={() => nav("/leave")}
           >
             <FaCalendarAlt />
             <span>طلب إجازة</span>
@@ -1083,6 +1077,7 @@ export default function EmployeeDashboard() {
           >
             <FaCog />
             <span>الإعدادات</span>
+
             <FaChevronLeft className="sidebar-arrow" />
           </button>
         </div>
@@ -1104,8 +1099,7 @@ export default function EmployeeDashboard() {
             <strong>
               {loadingEmployee
                 ? "جاري التحميل..."
-                : employee?.name ||
-                  "الموظف"}
+                : employee?.name || "الموظف"}
             </strong>
           </div>
         </div>
@@ -1196,8 +1190,7 @@ export default function EmployeeDashboard() {
                     </div>
 
                     <div className="notifications-header-actions">
-                      {unreadNotifications >
-                        0 && (
+                      {unreadNotifications > 0 && (
                         <button
                           type="button"
                           title="تحديد الكل كمقروء"
@@ -1209,8 +1202,7 @@ export default function EmployeeDashboard() {
                         </button>
                       )}
 
-                      {notifications.length >
-                        0 && (
+                      {notifications.length > 0 && (
                         <button
                           type="button"
                           title="حذف جميع الإشعارات"
@@ -1224,8 +1216,7 @@ export default function EmployeeDashboard() {
                     </div>
                   </div>
 
-                  {notifications.length ===
-                  0 ? (
+                  {notifications.length === 0 ? (
                     <div className="notifications-empty">
                       <div className="notifications-empty-icon">
                         <FaBell />
@@ -1245,9 +1236,7 @@ export default function EmployeeDashboard() {
                       {notifications.map(
                         (notification) => (
                           <div
-                            key={
-                              notification.id
-                            }
+                            key={notification.id}
                             className={`notification-item ${
                               notification.read
                                 ? "read"
@@ -1322,9 +1311,7 @@ export default function EmployeeDashboard() {
 
             <button
               className="header-leave-btn"
-              onClick={() =>
-                nav("/leave")
-              }
+              onClick={() => nav("/leave")}
             >
               <FaPlus />
               طلب إجازة
@@ -1423,7 +1410,7 @@ export default function EmployeeDashboard() {
               </h2>
 
               <p>
-                المهام التي قام المسؤول بتعيينها لك
+                اضغط على المهمة لعرض مراحلها وإنجازها
               </p>
             </div>
 
@@ -1454,13 +1441,19 @@ export default function EmployeeDashboard() {
             <div className="tasks-grid">
               {tasks.map((task) => {
                 const isCompleted =
-                  task.status ===
-                  "completed";
+                  task.status === "completed";
 
                 const taskStatus =
-                  getTaskStatus(
-                    task.status
-                  );
+                  getTaskStatus(task.status);
+
+                const totalStages =
+                  getTotalStages(task);
+
+                const completedStages =
+                  getCompletedStages(task);
+
+                const progress =
+                  getTaskProgress(task);
 
                 return (
                   <div
@@ -1469,10 +1462,25 @@ export default function EmployeeDashboard() {
                         ? "task-completed"
                         : ""
                     }`}
-                    key={
-                      task.employee_task_id
+                    key={task.employee_task_id}
+                    onClick={() =>
+                      openTaskStages(task)
                     }
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter" ||
+                        e.key === " "
+                      ) {
+                        e.preventDefault();
+
+                        openTaskStages(task);
+                      }
+                    }}
                   >
+                    {/* TASK TOP */}
+
                     <div className="task-top">
                       <div className="task-icon">
                         {isCompleted ? (
@@ -1490,14 +1498,18 @@ export default function EmployeeDashboard() {
                       </span>
                     </div>
 
-                    <h3>
-                      {task.title}
-                    </h3>
+                    {/* TITLE */}
+
+                    <h3>{task.title}</h3>
+
+                    {/* DESCRIPTION */}
 
                     <p>
                       {task.description ||
                         "لا يوجد وصف لهذه المهمة."}
                     </p>
+
+                    {/* DUE DATE */}
 
                     <div className="task-date">
                       <FaCalendarAlt />
@@ -1513,53 +1525,62 @@ export default function EmployeeDashboard() {
                       </strong>
                     </div>
 
-                    <div className="task-footer">
-                      {isCompleted ? (
-                        <div className="task-completed-actions">
-                          <span className="completed-text">
-                            <FaCheckCircle />
-                            تم إنهاء المهمة
+                    {/* =================================================
+                        STAGES SUMMARY
+                    ================================================= */}
+
+                    <div className="task-stages-summary">
+                      <div className="task-stages-summary-top">
+                        <div>
+                          <FaListUl />
+
+                          <span>
+                            مراحل المهمة
                           </span>
-
-                          <button
-                            type="button"
-                            className="reopen-task-btn"
-                            onClick={() =>
-                              openReopenTaskModal(
-                                task.employee_task_id
-                              )
-                            }
-                            disabled={
-                              completingTaskId ===
-                              task.employee_task_id
-                            }
-                          >
-                            <FaUndo />
-                            إعادة فتح
-                          </button>
                         </div>
-                      ) : (
-                        <button
-                          type="button"
-                          className="complete-task-btn"
-                          onClick={() =>
-                            openCompleteTaskModal(
-                              task.employee_task_id
-                            )
-                          }
-                          disabled={
-                            completingTaskId ===
-                            task.employee_task_id
-                          }
-                        >
-                          <FaCheckCircle />
 
-                          {completingTaskId ===
-                          task.employee_task_id
-                            ? "جاري الحفظ..."
-                            : "إنهاء المهمة"}
-                        </button>
-                      )}
+                        <strong>
+                          {completedStages} /{" "}
+                          {totalStages}
+                        </strong>
+                      </div>
+
+                      <div className="task-progress">
+                        <div
+                          className="task-progress-fill"
+                          style={{
+                            width: `${progress}%`,
+                          }}
+                        />
+                      </div>
+
+                      <div className="task-progress-info">
+                        <span>
+                          {totalStages === 0
+                            ? "لا توجد مراحل"
+                            : progress === 100
+                            ? "اكتملت جميع المراحل"
+                            : `${progress}% مكتمل`}
+                        </span>
+
+                        <FaChevronLeft />
+                      </div>
+                    </div>
+
+                    {/* FOOTER */}
+
+                    <div className="task-footer">
+                      <div className="task-open-stages">
+                        <FaClipboardCheck />
+
+                        <span>
+                          {isCompleted
+                            ? "عرض المراحل المكتملة"
+                            : "اضغط لعرض المراحل"}
+                        </span>
+
+                        <FaChevronLeft />
+                      </div>
                     </div>
                   </div>
                 );
@@ -1587,9 +1608,7 @@ export default function EmployeeDashboard() {
 
             <button
               className="small-action"
-              onClick={() =>
-                nav("/leave")
-              }
+              onClick={() => nav("/leave")}
             >
               <FaPlus />
               طلب جديد
@@ -1616,9 +1635,7 @@ export default function EmployeeDashboard() {
 
               <button
                 className="empty-button"
-                onClick={() =>
-                  nav("/leave")
-                }
+                onClick={() => nav("/leave")}
               >
                 <FaPlus />
                 تقديم طلب إجازة
@@ -1626,156 +1643,397 @@ export default function EmployeeDashboard() {
             </div>
           ) : (
             <div className="leaves-list">
-              {leaves.map(
-                (leave, index) => {
-                  const status =
-                    getStatus(
-                      leave.status
-                    );
+              {leaves.map((leave, index) => {
+                const status =
+                  getStatus(leave.status);
 
-                  return (
-                    <div
-                      className="leave-card"
-                      key={
-                        leave.leave_id ||
-                        index
-                      }
-                    >
-                      <div className="leave-icon">
-                        <FaCalendarAlt />
+                return (
+                  <div
+                    className="leave-card"
+                    key={
+                      leave.leave_id || index
+                    }
+                  >
+                    <div className="leave-icon">
+                      <FaCalendarAlt />
+                    </div>
+
+                    <div className="leave-info">
+                      <h3>
+                        {leave.type || "إجازة"}
+                      </h3>
+
+                      <div className="leave-date">
+                        <span>
+                          {formatDate(
+                            leave.from_date
+                          )}
+                        </span>
+
+                        <span className="arrow">
+                          →
+                        </span>
+
+                        <span>
+                          {formatDate(
+                            leave.to_date
+                          )}
+                        </span>
                       </div>
 
-                      <div className="leave-info">
-                        <h3>
-                          {leave.type ||
-                            "إجازة"}
-                        </h3>
+                      <div className="leave-days">
+                        <FaClock />
 
-                        <div className="leave-date">
-                          <span>
-                            {formatDate(
-                              leave.from_date
-                            )}
-                          </span>
-
-                          <span className="arrow">
-                            →
-                          </span>
-
-                          <span>
-                            {formatDate(
-                              leave.to_date
-                            )}
-                          </span>
-                        </div>
-
-                        <div className="leave-days">
-                          <FaClock />
-
-                          {leave.days ||
-                            0}{" "}
-                          أيام
-                        </div>
-                      </div>
-
-                      <div
-                        className={`leave-status ${status.className}`}
-                      >
-                        {status.icon}
-                        {status.text}
+                        {leave.days || 0} أيام
                       </div>
                     </div>
-                  );
-                }
-              )}
+
+                    <div
+                      className={`leave-status ${status.className}`}
+                    >
+                      {status.icon}
+
+                      {status.text}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
       </main>
 
       {/* =====================================================
-          TASK CONFIRMATION MODAL
+          TASK STAGES MODAL
       ===================================================== */}
 
-      {taskModal.open && (
+      {showStagesModal && selectedTask && (
         <div
-          className="task-confirm-modal-overlay"
-          onClick={closeTaskModal}
+          className="task-stages-modal-overlay"
+          onClick={closeTaskStages}
         >
           <div
-            className="task-confirm-modal"
+            className="task-stages-modal"
             onClick={(e) =>
               e.stopPropagation()
             }
           >
-            <div
-              className={`task-confirm-icon ${
-                taskModal.type ===
-                "complete"
-                  ? "success"
-                  : "warning"
-              }`}
-            >
-              {taskModal.type ===
-              "complete" ? (
-                <FaCheckCircle />
+            {/* MODAL HEADER */}
+
+            <div className="task-stages-modal-header">
+              <div className="task-stages-modal-title">
+                <div className="task-stages-modal-icon">
+                  {selectedTask.status ===
+                  "completed" ? (
+                    <FaCheckCircle />
+                  ) : (
+                    <FaTasks />
+                  )}
+                </div>
+
+                <div>
+                  <span>
+                    تفاصيل المهمة
+                  </span>
+
+                  <h2>
+                    {selectedTask.title}
+                  </h2>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="task-stages-close"
+                onClick={closeTaskStages}
+                disabled={!!updatingStageId}
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* TASK DESCRIPTION */}
+
+            {selectedTask.description && (
+              <div className="task-stages-description">
+                <span>وصف المهمة</span>
+
+                <p>
+                  {selectedTask.description}
+                </p>
+              </div>
+            )}
+
+            {/* PROGRESS */}
+
+            <div className="task-stages-progress-box">
+              <div className="task-stages-progress-header">
+                <div>
+                  <FaPercentage />
+
+                  <span>
+                    نسبة إنجاز المهمة
+                  </span>
+                </div>
+
+                <strong>
+                  {getTaskProgress(
+                    selectedTask
+                  )}
+                  %
+                </strong>
+              </div>
+
+              <div className="task-stages-progress-bar">
+                <div
+                  className="task-stages-progress-fill"
+                  style={{
+                    width: `${getTaskProgress(
+                      selectedTask
+                    )}%`,
+                  }}
+                />
+              </div>
+
+              <div className="task-stages-progress-footer">
+                <span>
+                  <FaCheckCircle />
+
+                  {getCompletedStages(
+                    selectedTask
+                  )}{" "}
+                  من{" "}
+                  {getTotalStages(
+                    selectedTask
+                  )} مراحل مكتملة
+                </span>
+
+                {selectedTask.due_date && (
+                  <span>
+                    <FaCalendarAlt />
+
+                    الاستحقاق:{" "}
+                    {formatDate(
+                      selectedTask.due_date
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* STAGES */}
+
+            <div className="task-stages-list">
+              <div className="task-stages-list-header">
+                <div>
+                  <FaListUl />
+
+                  <h3>
+                    مراحل المهمة
+                  </h3>
+                </div>
+
+                <span>
+                  {getTotalStages(
+                    selectedTask
+                  )}{" "}
+                  مراحل
+                </span>
+              </div>
+
+              {getTotalStages(selectedTask) ===
+              0 ? (
+                <div className="no-stages">
+                  <FaExclamationTriangle />
+
+                  <h4>
+                    لا توجد مراحل لهذه المهمة
+                  </h4>
+
+                  <p>
+                    لم يتم إضافة مراحل لهذه المهمة
+                    من المسؤول.
+                  </p>
+                </div>
               ) : (
-                <FaUndo />
+                getTaskStages(selectedTask).map(
+                  (stage, index) => {
+                    const completed =
+                      isStageCompleted(stage);
+
+                    const isUpdating =
+                      updatingStageId ===
+                      stage.stage_id;
+
+                    return (
+                      <div
+                        key={stage.stage_id}
+                        className={`task-stage-item ${
+                          completed
+                            ? "stage-completed"
+                            : ""
+                        }`}
+                      >
+                        {/* STAGE NUMBER / CHECK */}
+
+                        <button
+                          type="button"
+                          className={`stage-checkbox ${
+                            completed
+                              ? "checked"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            toggleStage(stage)
+                          }
+                          disabled={
+                            !!updatingStageId
+                          }
+                          aria-label={
+                            completed
+                              ? "إعادة فتح المرحلة"
+                              : "إكمال المرحلة"
+                          }
+                        >
+                          {isUpdating ? (
+                            <span className="stage-loading">
+                              ...
+                            </span>
+                          ) : completed ? (
+                            <FaCheck />
+                          ) : (
+                            <span>
+                              {index + 1}
+                            </span>
+                          )}
+                        </button>
+
+                        {/* STAGE CONTENT */}
+
+                        <div className="stage-content">
+                          <div className="stage-title-row">
+                            <h4>
+                              {stage.title}
+                            </h4>
+
+                            {completed ? (
+                              <span className="stage-status completed">
+                                <FaCheckCircle />
+                                مكتملة
+                              </span>
+                            ) : (
+                              <span className="stage-status pending">
+                                <FaCircle />
+                                قيد التنفيذ
+                              </span>
+                            )}
+                          </div>
+
+                          {stage.description && (
+                            <p>
+                              {
+                                stage.description
+                              }
+                            </p>
+                          )}
+
+                          <div className="stage-meta">
+                            {stage.due_date && (
+                              <span>
+                                <FaCalendarAlt />
+
+                                استحقاق المرحلة:{" "}
+                                {formatDate(
+                                  stage.due_date
+                                )}
+                              </span>
+                            )}
+
+                            {stage.completed_at && (
+                              <span>
+                                <FaCheckCircle />
+
+                                تم الإكمال:{" "}
+                                {formatDate(
+                                  stage.completed_at
+                                )}
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            className={`stage-action ${
+                              completed
+                                ? "reopen"
+                                : "complete"
+                            }`}
+                            onClick={() =>
+                              toggleStage(stage)
+                            }
+                            disabled={
+                              !!updatingStageId
+                            }
+                          >
+                            {isUpdating ? (
+                              "جاري الحفظ..."
+                            ) : completed ? (
+                              <>
+                                <FaUndo />
+                                إعادة فتح المرحلة
+                              </>
+                            ) : (
+                              <>
+                                <FaCheckCircle />
+                                تم إنجاز هذه المرحلة
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+                )
               )}
             </div>
 
-            <h3>
-              {taskModal.title}
-            </h3>
+            {/* MODAL FOOTER */}
 
-            <p>
-              {taskModal.message}
-            </p>
+            <div className="task-stages-modal-footer">
+              {getTaskProgress(
+                selectedTask
+              ) === 100 ? (
+                <div className="all-stages-completed">
+                  <FaCheckCircle />
 
-            <div className="task-confirm-actions">
+                  <div>
+                    <strong>
+                      تم إكمال جميع المراحل 🎉
+                    </strong>
+
+                    <span>
+                      المهمة مكتملة بالكامل.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="stages-required-message">
+                  <FaExclamationTriangle />
+
+                  <span>
+                    يجب إكمال جميع المراحل حتى تصبح
+                    المهمة مكتملة.
+                  </span>
+                </div>
+              )}
+
               <button
                 type="button"
-                className="task-modal-cancel"
-                onClick={closeTaskModal}
-                disabled={
-                  !!completingTaskId
-                }
+                className="task-stages-done-btn"
+                onClick={closeTaskStages}
+                disabled={!!updatingStageId}
               >
-                إلغاء
-              </button>
-
-              <button
-                type="button"
-                className={`task-modal-confirm ${
-                  taskModal.type ===
-                  "complete"
-                    ? "complete"
-                    : "reopen"
-                }`}
-                onClick={
-                  taskModal.type ===
-                  "complete"
-                    ? completeTask
-                    : reopenTask
-                }
-                disabled={
-                  !!completingTaskId
-                }
-              >
-                {completingTaskId ? (
-                  "جاري الحفظ..."
-                ) : taskModal.type ===
-                  "complete" ? (
-                  <>
-                    <FaCheckCircle />
-                    نعم، تم إنجازها
-                  </>
-                ) : (
-                  <>
-                    <FaUndo />
-                    نعم، إعادة فتح
-                  </>
-                )}
+                إغلاق
               </button>
             </div>
           </div>
@@ -1789,9 +2047,7 @@ export default function EmployeeDashboard() {
       {messageModal.open && (
         <div
           className="task-message-modal-overlay"
-          onClick={
-            closeMessageModal
-          }
+          onClick={closeMessageModal}
         >
           <div
             className="task-message-modal"
@@ -1821,9 +2077,7 @@ export default function EmployeeDashboard() {
             <button
               type="button"
               className="task-message-button"
-              onClick={
-                closeMessageModal
-              }
+              onClick={closeMessageModal}
             >
               حسناً
             </button>
