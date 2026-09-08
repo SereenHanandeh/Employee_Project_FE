@@ -2103,6 +2103,872 @@
 }
 
 /* =========================================================
+   STAGES MODAL - MODERN DESIGN
+========================================================= */
+
+.stage-modal-overlay {
+  padding: 24px;
+  backdrop-filter: blur(7px);
+}
+
+/* =========================================================
+   MAIN MODAL
+========================================================= */
+
+.stage-modal {
+  width: min(920px, 96vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow:
+    0 25px 70px rgba(15, 23, 42, 0.22),
+    0 8px 25px rgba(15, 23, 42, 0.08);
+  direction: rtl;
+  animation: stageModalIn 0.25s ease;
+}
+
+@keyframes stageModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.stage-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 26px 28px;
+  background:
+    linear-gradient(
+      135deg,
+      #f8fbff 0%,
+      #ffffff 55%,
+      #f7f9ff 100%
+    );
+  border-bottom: 1px solid #edf0f5;
+}
+
+.stage-modal-title-area {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.stage-modal-main-icon {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #ffffff;
+  background: linear-gradient(
+    135deg,
+    #4f46e5,
+    #6366f1
+  );
+  box-shadow:
+    0 8px 20px rgba(79, 70, 229, 0.22);
+}
+
+.stage-modal-title-content {
+  min-width: 0;
+}
+
+.stage-modal-number {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stage-modal-title-content h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.stage-modal-title-content p {
+  margin: 7px 0 0;
+  color: #718096;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.stage-modal-close {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border: 0;
+  border-radius: 11px;
+  background: #f1f3f7;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: 0.2s ease;
+}
+
+.stage-modal-close:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  transform: rotate(4deg);
+}
+
+/* =========================================================
+   SUMMARY
+========================================================= */
+
+.stage-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 20px 28px 0;
+}
+
+.stage-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid #edf0f5;
+  border-radius: 15px;
+  background: #ffffff;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.035);
+}
+
+.stage-summary-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.stage-summary-icon.blue {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.stage-summary-icon.green {
+  background: #ecfdf3;
+  color: #16a34a;
+}
+
+.stage-summary-icon.orange {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.stage-summary-icon.purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.stage-summary-card span {
+  display: block;
+  color: #7b8798;
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+
+.stage-summary-card strong {
+  display: block;
+  color: #172033;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+/* =========================================================
+   TASK INFORMATION
+========================================================= */
+
+.stage-task-info {
+  display: flex;
+  align-items: center;
+  margin: 18px 28px 0;
+  padding: 15px 18px;
+  border-radius: 15px;
+  background: #f8fafc;
+  border: 1px solid #edf1f5;
+}
+
+.stage-task-info-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1;
+}
+
+.stage-task-info-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #4f46e5;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.stage-task-info-item span {
+  display: block;
+  color: #7b8798;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.stage-task-info-item strong {
+  color: #273449;
+  font-size: 13px;
+}
+
+.stage-task-info-divider {
+  width: 1px;
+  height: 35px;
+  background: #e2e8f0;
+  margin: 0 20px;
+}
+
+/* =========================================================
+   PROGRESS
+========================================================= */
+
+.stage-progress-box {
+  margin: 18px 28px 24px;
+  padding: 19px;
+  border-radius: 17px;
+  background: linear-gradient(
+    135deg,
+    #f7f8ff,
+    #fbfcff
+  );
+  border: 1px solid #e7e9fb;
+}
+
+.stage-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.stage-progress-top h3 {
+  margin: 0 0 3px;
+  color: #202b3c;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.stage-progress-top p {
+  margin: 0;
+  color: #7b8798;
+  font-size: 12px;
+}
+
+.stage-progress-percent {
+  font-size: 24px;
+  font-weight: 900;
+  color: #4f46e5;
+}
+
+.stage-progress-track-large {
+  height: 10px;
+  margin-top: 14px;
+  border-radius: 99px;
+  background: #e8eaf4;
+  overflow: hidden;
+}
+
+.stage-progress-fill-large {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    #4f46e5,
+    #7c83ff
+  );
+  transition: width 0.4s ease;
+}
+
+.stage-progress-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+  color: #7b8798;
+  font-size: 11px;
+}
+
+.progress-complete,
+.progress-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progress-complete {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.progress-pending {
+  color: #d97706;
+  font-weight: 700;
+}
+
+/* =========================================================
+   STAGES SECTION HEADER
+========================================================= */
+
+.stages-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin: 0 28px 15px;
+}
+
+.stages-section-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.stages-section-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: #eef2ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stages-section-title h3 {
+  margin: 0;
+  color: #202b3c;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.stages-section-title p {
+  margin: 3px 0 0;
+  color: #8993a4;
+  font-size: 11px;
+}
+
+.stages-count-badge {
+  padding: 7px 12px;
+  border-radius: 9px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   STAGES LIST
+========================================================= */
+
+.modern-stages-list {
+  padding: 0 28px 8px;
+}
+
+.modern-stage-card {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding: 0 0 18px;
+}
+
+.stage-timeline {
+  width: 38px;
+  flex: 0 0 38px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stage-timeline-dot {
+  position: relative;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 2px 7px rgba(15, 23, 42, 0.07);
+}
+
+.stage-timeline-dot.completed {
+  border-color: #22c55e;
+  background: #ecfdf3;
+  color: #16a34a;
+  font-size: 15px;
+}
+
+.stage-timeline-line {
+  flex: 1;
+  width: 2px;
+  min-height: 25px;
+  margin-top: 4px;
+  background: #e2e8f0;
+}
+
+.stage-timeline-line.completed {
+  background: #86efac;
+}
+
+.modern-stage-content {
+  flex: 1;
+  min-width: 0;
+  padding: 15px 17px;
+  border: 1px solid #e8ecf2;
+  border-radius: 16px;
+  background: #ffffff;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.modern-stage-content:hover {
+  transform: translateY(-2px);
+  border-color: #d9def0;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+}
+
+.stage-completed .modern-stage-content {
+  background: linear-gradient(
+    135deg,
+    #fbfffc,
+    #ffffff
+  );
+  border-color: #d9f5df;
+}
+
+.modern-stage-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.modern-stage-number {
+  display: block;
+  margin-bottom: 3px;
+  color: #8b95a7;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.modern-stage-top h4 {
+  margin: 0;
+  color: #202b3c;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.modern-stage-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.modern-stage-status.completed {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.modern-stage-status.pending {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.modern-stage-description {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.modern-stage-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid #eef1f5;
+}
+
+.modern-stage-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #7b8798;
+  font-size: 11px;
+}
+
+.modern-stage-date svg {
+  color: #6366f1;
+}
+
+.modern-stage-date strong {
+  color: #374151;
+  font-size: 11px;
+}
+
+.modern-stage-order {
+  color: #a0a8b7;
+  font-size: 10px;
+}
+
+/* =========================================================
+   NO STAGES
+========================================================= */
+
+.no-stages-modern {
+  margin: 0 28px 20px;
+  padding: 40px 20px;
+  text-align: center;
+  border: 1px dashed #d9dee8;
+  border-radius: 16px;
+  background: #fafbfc;
+}
+
+.no-stages-modern-icon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 21px;
+}
+
+.no-stages-modern h4 {
+  margin: 0 0 5px;
+  color: #374151;
+  font-size: 15px;
+}
+
+.no-stages-modern p {
+  margin: 0;
+  color: #9aa3b2;
+  font-size: 12px;
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.stage-modal-footer-modern {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 5px;
+  padding: 17px 28px;
+  border-top: 1px solid #edf0f5;
+  background: #fafbfc;
+}
+
+.stage-footer-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-status-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer-status-icon.completed {
+  color: #16a34a;
+  background: #dcfce7;
+}
+
+.footer-status-icon.pending {
+  color: #d97706;
+  background: #fef3c7;
+}
+
+.stage-footer-status strong {
+  display: block;
+  color: #273449;
+  font-size: 12px;
+}
+
+.stage-footer-status span {
+  display: block;
+  margin-top: 2px;
+  color: #8a94a5;
+  font-size: 10px;
+}
+
+.stage-modal-close-modern {
+  min-width: 90px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #eef2f7;
+  color: #475569;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.stage-modal-close-modern:hover {
+  background: #e2e8f0;
+}
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+.stage-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.stage-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stage-modal::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+
+.stage-modal::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 800px) {
+
+  .stage-modal-overlay {
+    padding: 12px;
+  }
+
+  .stage-modal {
+    width: 100%;
+    max-height: 94vh;
+    border-radius: 20px;
+  }
+
+  .stage-modal-header {
+    padding: 20px;
+  }
+
+  .stage-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 16px 20px 0;
+  }
+
+  .stage-task-info {
+    margin-right: 20px;
+    margin-left: 20px;
+  }
+
+  .stage-progress-box {
+    margin-right: 20px;
+    margin-left: 20px;
+  }
+
+  .stages-section-header {
+    margin-right: 20px;
+    margin-left: 20px;
+  }
+
+  .modern-stages-list {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .stage-modal-footer-modern {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+}
+
+@media (max-width: 560px) {
+
+  .stage-modal-header {
+    padding: 17px;
+  }
+
+  .stage-modal-main-icon {
+    width: 46px;
+    height: 46px;
+    flex-basis: 46px;
+    border-radius: 13px;
+  }
+
+  .stage-modal-title-content h2 {
+    font-size: 18px;
+  }
+
+  .stage-modal-title-content p {
+    font-size: 12px;
+  }
+
+  .stage-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 12px 15px 0;
+  }
+
+  .stage-summary-card {
+    min-height: 70px;
+    padding: 10px;
+  }
+
+  .stage-summary-icon {
+    width: 35px;
+    height: 35px;
+    flex-basis: 35px;
+  }
+
+  .stage-summary-card strong {
+    font-size: 17px;
+  }
+
+  .stage-task-info {
+    margin: 12px 15px 0;
+    padding: 12px;
+    display: block;
+  }
+
+  .stage-task-info-divider {
+    width: 100%;
+    height: 1px;
+    margin: 12px 0;
+  }
+
+  .stage-progress-box {
+    margin: 12px 15px 18px;
+    padding: 14px;
+  }
+
+  .stages-section-header {
+    margin: 0 15px 12px;
+  }
+
+  .stages-section-title p {
+    display: none;
+  }
+
+  .modern-stages-list {
+    padding: 0 15px 5px;
+  }
+
+  .modern-stage-card {
+    gap: 9px;
+  }
+
+  .stage-timeline {
+    width: 30px;
+    flex-basis: 30px;
+  }
+
+  .stage-timeline-dot {
+    width: 30px;
+    height: 30px;
+    font-size: 10px;
+  }
+
+  .modern-stage-content {
+    padding: 12px;
+  }
+
+  .modern-stage-top {
+    display: block;
+  }
+
+  .modern-stage-status {
+    margin-top: 8px;
+  }
+
+  .modern-stage-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .stage-modal-footer-modern {
+    padding: 14px 15px;
+  }
+
+  .stage-footer-status {
+    min-width: 0;
+  }
+
+  .stage-footer-status span {
+    max-width: 210px;
+  }
+}
+/* =========================================================
    MOBILE
 ========================================================= */
 
