@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-
 import API from "../api/api";
 
 import {
@@ -12,6 +11,8 @@ import {
   FaTasks,
   FaTimes,
   FaUserFriends,
+  FaPlus,
+  FaTrash,
 } from "react-icons/fa";
 
 import "./SelectTask.css";
@@ -38,36 +39,64 @@ export default function SelectTask() {
   // الموظفون المختارون للمهمة
   const [selectedEmployees, setSelectedEmployees] = useState([]);
 
-  // البحث داخل قائمة الموظفين
+  // البحث داخل الموظفين
   const [employeeSearch, setEmployeeSearch] = useState("");
 
-  // =========================================================
-  // STAGES POPUP
-  // =========================================================
-
+  // Popup المراحل
   const [stageModal, setStageModal] = useState({
     open: false,
     task: null,
+  });
+
+  // رسالة الخطأ/النجاح
+  const [messageModal, setMessageModal] = useState({
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
   });
 
   // =========================================================
   // FORM
   // =========================================================
 
+  const emptyStage = () => ({
+    title: "",
+    description: "",
+    due_date: "",
+  });
+
   const [form, setForm] = useState({
     title: "",
     description: "",
     due_date: "",
-    employee_id: "",
+    stages: [emptyStage()],
   });
 
   // =========================================================
-  // HELPERS
+  // MESSAGE MODAL
   // =========================================================
 
-  /**
-   * الحصول على ID الموظف مهما كان اسم الحقل القادم من الـ API
-   */
+  const showMessage = (type, title, message) => {
+    setMessageModal({
+      open: true,
+      type,
+      title,
+      message,
+    });
+  };
+
+  const closeMessage = () => {
+    setMessageModal((prev) => ({
+      ...prev,
+      open: false,
+    }));
+  };
+
+  // =========================================================
+  // EMPLOYEE HELPERS
+  // =========================================================
+
   const getEmployeeId = useCallback((employee) => {
     if (!employee) return null;
 
@@ -79,9 +108,6 @@ export default function SelectTask() {
     );
   }, []);
 
-  /**
-   * اسم الموظف حسب ID
-   */
   const getEmployeeName = useCallback(
     (employeeId) => {
       if (
@@ -111,14 +137,15 @@ export default function SelectTask() {
     [employees, getEmployeeId]
   );
 
-  /**
-   * استخراج IDs الموظفين المرتبطين بالمهمة
-   */
+  // =========================================================
+  // GET TASK EMPLOYEE IDS
+  // =========================================================
+
   const getTaskEmployeeIds = useCallback(
     (task) => {
       if (!task) return [];
 
-      // الحالة الجديدة
+      // الشكل الجديد
       if (Array.isArray(task.employee_ids)) {
         return [
           ...new Set(
@@ -132,7 +159,7 @@ export default function SelectTask() {
         ];
       }
 
-      // إذا كان الـ Backend يرجع employees
+      // employees array
       if (Array.isArray(task.employees)) {
         return [
           ...new Set(
@@ -148,7 +175,7 @@ export default function SelectTask() {
         ];
       }
 
-      // دعم النظام القديم
+      // النظام القديم
       if (
         task.employee_id !== null &&
         task.employee_id !== undefined &&
@@ -169,9 +196,10 @@ export default function SelectTask() {
     [getEmployeeId]
   );
 
-  /**
-   * الحصول على الموظفين المرتبطين بالمهمة
-   */
+  // =========================================================
+  // GET TASK EMPLOYEES
+  // =========================================================
+
   const getTaskEmployees = useCallback(
     (task) => {
       const ids = getTaskEmployeeIds(task);
@@ -182,7 +210,6 @@ export default function SelectTask() {
             Number(getEmployeeId(item)) === Number(id)
         );
 
-        // إذا كان الـ Backend يرجع الموظف داخل المهمة
         const taskEmployee = Array.isArray(
           task?.employees
         )
@@ -209,9 +236,10 @@ export default function SelectTask() {
     ]
   );
 
-  /**
-   * الحصول على مراحل المهمة
-   */
+  // =========================================================
+  // GET TASK STAGES
+  // =========================================================
+
   const getTaskStages = useCallback((task) => {
     if (!task || !Array.isArray(task.stages)) {
       return [];
@@ -224,9 +252,10 @@ export default function SelectTask() {
     );
   }, []);
 
-  /**
-   * هل المرحلة مكتملة؟
-   */
+  // =========================================================
+  // STAGE COMPLETED
+  // =========================================================
+
   const isStageCompleted = useCallback((stage) => {
     return (
       Number(stage?.completed) === 1 ||
@@ -235,9 +264,10 @@ export default function SelectTask() {
     );
   }, []);
 
-  /**
-   * إحصائيات مراحل المهمة
-   */
+  // =========================================================
+  // STAGE PROGRESS
+  // =========================================================
+
   const getStageProgress = useCallback(
     (task) => {
       const stages = getTaskStages(task);
@@ -250,9 +280,7 @@ export default function SelectTask() {
 
       const percentage =
         total > 0
-          ? Math.round(
-              (completed / total) * 100
-            )
+          ? Math.round((completed / total) * 100)
           : 0;
 
       return {
@@ -282,7 +310,7 @@ export default function SelectTask() {
   };
 
   // =========================================================
-  // FORMAT DATE FOR INPUT
+  // FORMAT DATE INPUT
   // =========================================================
 
   const formatDateForInput = (date) => {
@@ -308,7 +336,7 @@ export default function SelectTask() {
   };
 
   // =========================================================
-  // GET EMPLOYEE TASK STATUS
+  // EMPLOYEE TASK STATUS
   // =========================================================
 
   const getEmployeeTaskStatus = (employee) => {
@@ -331,18 +359,17 @@ export default function SelectTask() {
   };
 
   // =========================================================
-  // GET TASK OVERALL STATUS
+  // TASK OVERALL STATUS
   // =========================================================
 
   const getTaskOverallStatus = (task) => {
     const employeeIds = getTaskEmployeeIds(task);
 
-    // لا يوجد موظفون
     if (employeeIds.length === 0) {
       return {
-        text: "غير معينة",
+        text: "متاحة للجميع",
         className: "unassigned",
-        icon: <FaTimesCircle />,
+        icon: <FaUserFriends />,
       };
     }
 
@@ -354,7 +381,6 @@ export default function SelectTask() {
         employee?.task_status === "completed"
     ).length;
 
-    // جميع الموظفين أنجزوا المهمة
     if (
       completedCount === taskEmployees.length &&
       taskEmployees.length > 0
@@ -374,7 +400,7 @@ export default function SelectTask() {
   };
 
   // =========================================================
-  // OPEN STAGES POPUP
+  // STAGE MODAL
   // =========================================================
 
   const openStageModal = (task) => {
@@ -385,10 +411,6 @@ export default function SelectTask() {
       task,
     });
   };
-
-  // =========================================================
-  // CLOSE STAGES POPUP
-  // =========================================================
 
   const closeStageModal = () => {
     setStageModal({
@@ -413,19 +435,14 @@ export default function SelectTask() {
         ? res.data.tasks
         : [];
 
-      /**
-       * توحيد شكل بيانات الموظفين داخل المهمة
-       */
       const normalizedTasks = data.map((task) => {
         let employeeIds = [];
 
-        // الحالة الجديدة
         if (Array.isArray(task.employee_ids)) {
           employeeIds = task.employee_ids;
-        }
-
-        // employees array
-        else if (Array.isArray(task.employees)) {
+        } else if (
+          Array.isArray(task.employees)
+        ) {
           employeeIds = task.employees
             .map((employee) =>
               Number(getEmployeeId(employee))
@@ -434,10 +451,7 @@ export default function SelectTask() {
               (id) =>
                 Number.isInteger(id) && id > 0
             );
-        }
-
-        // النظام القديم
-        else if (
+        } else if (
           task.employee_id !== null &&
           task.employee_id !== undefined &&
           task.employee_id !== ""
@@ -478,7 +492,6 @@ export default function SelectTask() {
             task.deadline ||
             null,
 
-          // الحفاظ على المراحل
           stages: Array.isArray(task.stages)
             ? task.stages
             : [],
@@ -490,6 +503,13 @@ export default function SelectTask() {
       console.error(
         "FETCH TASKS ERROR:",
         error
+      );
+
+      showMessage(
+        "error",
+        "خطأ",
+        error?.response?.data?.message ||
+          "تعذر تحميل المهام."
       );
     } finally {
       setLoading(false);
@@ -602,11 +622,8 @@ export default function SelectTask() {
   const totalTasks = tasks.length;
 
   const assignedTasks = tasks.filter(
-    (task) => {
-      return (
-        getTaskEmployeeIds(task).length > 0
-      );
-    }
+    (task) =>
+      getTaskEmployeeIds(task).length > 0
   ).length;
 
   const unassignedTasks =
@@ -614,18 +631,18 @@ export default function SelectTask() {
 
   const completedTasks = tasks.filter(
     (task) =>
-      getTaskOverallStatus(task).className ===
-      "completed"
+      getTaskOverallStatus(task)
+        .className === "completed"
   ).length;
 
   const pendingTasks = tasks.filter(
     (task) =>
-      getTaskOverallStatus(task).className ===
-      "pending"
+      getTaskOverallStatus(task)
+        .className === "pending"
   ).length;
 
   // =========================================================
-  // FORM
+  // FORM CHANGE
   // =========================================================
 
   const handleFormChange = (e) => {
@@ -634,6 +651,70 @@ export default function SelectTask() {
     setForm((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  // =========================================================
+  // STAGE CHANGE
+  // =========================================================
+
+  const handleStageChange = (
+    index,
+    field,
+    value
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+
+      stages: prev.stages.map(
+        (stage, stageIndex) =>
+          stageIndex === index
+            ? {
+                ...stage,
+                [field]: value,
+              }
+            : stage
+      ),
+    }));
+  };
+
+  // =========================================================
+  // ADD STAGE
+  // =========================================================
+
+  const addStage = () => {
+    setForm((prev) => ({
+      ...prev,
+
+      stages: [
+        ...prev.stages,
+        emptyStage(),
+      ],
+    }));
+  };
+
+  // =========================================================
+  // REMOVE STAGE
+  // =========================================================
+
+  const removeStage = (index) => {
+    if (form.stages.length === 1) {
+      showMessage(
+        "warning",
+        "لا يمكن حذف المرحلة",
+        "يجب أن تحتوي المهمة على مرحلة واحدة على الأقل."
+      );
+
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+
+      stages: prev.stages.filter(
+        (_, stageIndex) =>
+          stageIndex !== index
+      ),
     }));
   };
 
@@ -648,7 +729,7 @@ export default function SelectTask() {
       title: "",
       description: "",
       due_date: "",
-      employee_id: "",
+      stages: [emptyStage()],
     });
 
     setShowModal(true);
@@ -661,19 +742,30 @@ export default function SelectTask() {
   const openEditModal = (task) => {
     setEditingTask(task);
 
-    const employeeIds =
-      getTaskEmployeeIds(task);
+    const taskStages =
+      getTaskStages(task);
 
     setForm({
       title: task.title || "",
       description: task.description || "",
-      due_date: formatDateForInput(
-        task.due_date
-      ),
-      employee_id:
-        employeeIds.length > 0
-          ? String(employeeIds[0])
-          : "",
+
+      due_date:
+        formatDateForInput(
+          task.due_date
+        ),
+
+      stages:
+        taskStages.length > 0
+          ? taskStages.map((stage) => ({
+              title: stage.title || "",
+              description:
+                stage.description || "",
+              due_date:
+                formatDateForInput(
+                  stage.due_date
+                ),
+            }))
+          : [emptyStage()],
     });
 
     setShowModal(true);
@@ -687,15 +779,104 @@ export default function SelectTask() {
     if (saving) return;
 
     setShowModal(false);
-
     setEditingTask(null);
 
     setForm({
       title: "",
       description: "",
       due_date: "",
-      employee_id: "",
+      stages: [emptyStage()],
     });
+  };
+
+  // =========================================================
+  // VALIDATE FORM
+  // =========================================================
+
+  const validateTaskForm = () => {
+    const title = form.title.trim();
+
+    if (!title) {
+      showMessage(
+        "warning",
+        "عنوان المهمة مطلوب",
+        "يرجى إدخال عنوان المهمة."
+      );
+
+      return false;
+    }
+
+    if (!form.due_date) {
+      showMessage(
+        "warning",
+        "تاريخ المهمة مطلوب",
+        "يرجى تحديد تاريخ استحقاق المهمة."
+      );
+
+      return false;
+    }
+
+    if (
+      !Array.isArray(form.stages) ||
+      form.stages.length === 0
+    ) {
+      showMessage(
+        "warning",
+        "المراحل مطلوبة",
+        "يجب إضافة مرحلة واحدة على الأقل."
+      );
+
+      return false;
+    }
+
+    for (
+      let i = 0;
+      i < form.stages.length;
+      i++
+    ) {
+      const stage = form.stages[i];
+
+      if (!stage.title.trim()) {
+        showMessage(
+          "warning",
+          `اسم المرحلة ${i + 1} مطلوب`,
+          `يرجى إدخال اسم المرحلة رقم ${
+            i + 1
+          }.`
+        );
+
+        return false;
+      }
+
+      if (!stage.due_date) {
+        showMessage(
+          "warning",
+          `تاريخ المرحلة ${i + 1} مطلوب`,
+          `يرجى تحديد تاريخ استحقاق المرحلة رقم ${
+            i + 1
+          }.`
+        );
+
+        return false;
+      }
+
+      if (
+        stage.due_date >
+        form.due_date
+      ) {
+        showMessage(
+          "warning",
+          "تاريخ المرحلة غير صحيح",
+          `تاريخ المرحلة ${
+            i + 1
+          } لا يمكن أن يكون بعد تاريخ استحقاق المهمة.`
+        );
+
+        return false;
+      }
+    }
+
+    return true;
   };
 
   // =========================================================
@@ -707,28 +888,57 @@ export default function SelectTask() {
 
     if (saving) return;
 
-    const title = form.title.trim();
-
-    const description =
-      form.description.trim();
-
-    if (!title) {
+    if (!validateTaskForm()) {
       return;
     }
 
     const taskData = {
-      title,
-      description,
-      due_date: form.due_date || null,
-      employee_id: form.employee_id
-        ? Number(form.employee_id)
-        : null,
+      title: form.title.trim(),
+
+      description:
+        form.description.trim(),
+
+      due_date: form.due_date,
+
+      stages: form.stages.map(
+        (stage, index) => ({
+          title: stage.title.trim(),
+
+          description:
+            stage.description?.trim() || "",
+
+          due_date: stage.due_date,
+
+          stage_order: index + 1,
+        })
+      ),
     };
+
+    console.log(
+      "================================="
+    );
+
+    console.log(
+      "SAVE TASK PAYLOAD:",
+      JSON.stringify(
+        taskData,
+        null,
+        2
+      )
+    );
+
+    console.log(
+      "================================="
+    );
 
     try {
       setSaving(true);
 
       if (editingTask) {
+        // ===================================================
+        // UPDATE
+        // ===================================================
+
         const res = await API.put(
           `/tasks/${editingTask.task_id}`,
           taskData
@@ -738,30 +948,49 @@ export default function SelectTask() {
           res.data?.task || res.data;
 
         setTasks((prev) =>
-          prev.map((task) =>
-            Number(task.task_id) ===
-            Number(editingTask.task_id)
-              ? {
-                  ...task,
-                  ...updatedTask,
+          prev.map((task) => {
+            if (
+              Number(task.task_id) !==
+              Number(
+                editingTask.task_id
+              )
+            ) {
+              return task;
+            }
 
-                  task_id:
-                    updatedTask?.task_id ??
-                    task.task_id,
+            return {
+              ...task,
 
-                  due_date:
-                    updatedTask?.due_date ??
-                    taskData.due_date,
+              ...updatedTask,
 
-                  stages:
-                    updatedTask?.stages ??
-                    task.stages ??
-                    [],
-                }
-              : task
-          )
+              task_id:
+                updatedTask?.task_id ??
+                task.task_id,
+
+              due_date:
+                updatedTask?.due_date ??
+                taskData.due_date,
+
+              stages:
+                updatedTask?.stages ??
+                taskData.stages ??
+                [],
+            };
+          })
+        );
+
+        closeModal();
+
+        showMessage(
+          "success",
+          "تم تعديل المهمة",
+          "تم حفظ تعديلات المهمة والمراحل بنجاح."
         );
       } else {
+        // ===================================================
+        // CREATE
+        // ===================================================
+
         const res = await API.post(
           "/tasks",
           taskData
@@ -777,25 +1006,57 @@ export default function SelectTask() {
 
               employee_ids: [],
 
+              employee_id: null,
+
               due_date:
                 newTask.due_date ??
                 taskData.due_date,
 
               stages:
-                Array.isArray(newTask.stages)
+                Array.isArray(
+                  res.data?.stages
+                )
+                  ? res.data.stages
+                  : Array.isArray(
+                      newTask.stages
+                    )
                   ? newTask.stages
-                  : [],
+                  : taskData.stages,
             },
+
             ...prev,
           ]);
         }
-      }
 
-      closeModal();
+        closeModal();
+
+        showMessage(
+          "success",
+          "تمت إضافة المهمة",
+          `تمت إضافة المهمة بنجاح مع ${taskData.stages.length} مرحلة.`
+        );
+      }
     } catch (error) {
       console.error(
         "SAVE TASK ERROR:",
         error
+      );
+
+      console.error(
+        "STATUS:",
+        error?.response?.status
+      );
+
+      console.error(
+        "SERVER DATA:",
+        error?.response?.data
+      );
+
+      showMessage(
+        "error",
+        "تعذر حفظ المهمة",
+        error?.response?.data?.message ||
+          "حدث خطأ أثناء حفظ المهمة."
       );
     } finally {
       setSaving(false);
@@ -809,9 +1070,10 @@ export default function SelectTask() {
   const deleteTask = async (task) => {
     if (!task?.task_id) return;
 
-    const confirmed = window.confirm(
-      `هل أنت متأكد من حذف المهمة "${task.title}"؟`
-    );
+    const confirmed =
+      window.confirm(
+        `هل أنت متأكد من حذف المهمة "${task.title}"؟`
+      );
 
     if (!confirmed) return;
 
@@ -832,15 +1094,29 @@ export default function SelectTask() {
 
       if (
         stageModal.task &&
-        Number(stageModal.task.task_id) ===
-          Number(task.task_id)
+        Number(
+          stageModal.task.task_id
+        ) === Number(task.task_id)
       ) {
         closeStageModal();
       }
+
+      showMessage(
+        "success",
+        "تم حذف المهمة",
+        "تم حذف المهمة بنجاح."
+      );
     } catch (error) {
       console.error(
         "DELETE TASK ERROR:",
         error
+      );
+
+      showMessage(
+        "error",
+        "تعذر حذف المهمة",
+        error?.response?.data?.message ||
+          "حدث خطأ أثناء حذف المهمة."
       );
     } finally {
       setSaving(false);
@@ -874,14 +1150,12 @@ export default function SelectTask() {
     if (saving) return;
 
     setAssigningTask(null);
-
     setSelectedEmployees([]);
-
     setEmployeeSearch("");
   };
 
   // =========================================================
-  // SELECT / UNSELECT EMPLOYEE
+  // TOGGLE EMPLOYEE
   // =========================================================
 
   const toggleEmployee = (employeeId) => {
@@ -918,7 +1192,7 @@ export default function SelectTask() {
   };
 
   // =========================================================
-  // UNSELECT ALL
+  // CLEAR EMPLOYEES
   // =========================================================
 
   const clearSelectedEmployees = () => {
@@ -930,35 +1204,38 @@ export default function SelectTask() {
   // =========================================================
 
   const filteredEmployees = useMemo(() => {
-    const value =
-      employeeSearch.trim().toLowerCase();
+    const value = employeeSearch
+      .trim()
+      .toLowerCase();
 
     if (!value) {
       return employees;
     }
 
-    return employees.filter((employee) => {
-      const id = String(
-        getEmployeeId(employee) || ""
-      ).toLowerCase();
+    return employees.filter(
+      (employee) => {
+        const id = String(
+          getEmployeeId(employee) || ""
+        ).toLowerCase();
 
-      const name = String(
-        employee.name ||
-          employee.full_name ||
-          employee.username ||
-          ""
-      ).toLowerCase();
+        const name = String(
+          employee.name ||
+            employee.full_name ||
+            employee.username ||
+            ""
+        ).toLowerCase();
 
-      const email = String(
-        employee.email || ""
-      ).toLowerCase();
+        const email = String(
+          employee.email || ""
+        ).toLowerCase();
 
-      return (
-        name.includes(value) ||
-        email.includes(value) ||
-        id.includes(value)
-      );
-    });
+        return (
+          name.includes(value) ||
+          email.includes(value) ||
+          id.includes(value)
+        );
+      }
+    );
   }, [
     employees,
     employeeSearch,
@@ -972,9 +1249,7 @@ export default function SelectTask() {
   const assignTask = async () => {
     if (saving) return;
 
-    if (!assigningTask) {
-      return;
-    }
+    if (!assigningTask) return;
 
     const taskId = Number(
       assigningTask.task_id
@@ -1000,6 +1275,12 @@ export default function SelectTask() {
     }
 
     if (employeeIds.length === 0) {
+      showMessage(
+        "warning",
+        "لم يتم اختيار موظفين",
+        "يرجى اختيار موظف واحد على الأقل."
+      );
+
       return;
     }
 
@@ -1041,6 +1322,7 @@ export default function SelectTask() {
         returnedEmployees.map(
           (employee) => ({
             ...employee,
+
             status:
               employee.status ||
               "pending",
@@ -1059,7 +1341,8 @@ export default function SelectTask() {
           return {
             ...task,
 
-            employee_ids: employeeIds,
+            employee_ids:
+              employeeIds,
 
             employee_id:
               employeeIds.length > 0
@@ -1072,26 +1355,31 @@ export default function SelectTask() {
         })
       );
 
-      // تحديث المهمة داخل popup إذا كانت مفتوحة
       setStageModal((prev) => {
         if (
           !prev.open ||
           !prev.task ||
-          Number(prev.task.task_id) !==
-            taskId
+          Number(
+            prev.task.task_id
+          ) !== taskId
         ) {
           return prev;
         }
 
         return {
           ...prev,
+
           task: {
             ...prev.task,
-            employee_ids: employeeIds,
+
+            employee_ids:
+              employeeIds,
+
             employee_id:
               employeeIds.length > 0
                 ? employeeIds[0]
                 : null,
+
             employees:
               normalizedEmployees,
           },
@@ -1099,6 +1387,12 @@ export default function SelectTask() {
       });
 
       closeAssignModal();
+
+      showMessage(
+        "success",
+        "تم تعيين الموظفين",
+        `تم تعيين المهمة لـ ${employeeIds.length} موظف بنجاح.`
+      );
     } catch (error) {
       console.error(
         "ASSIGN TASK ERROR:",
@@ -1108,6 +1402,13 @@ export default function SelectTask() {
       console.error(
         "SERVER DATA:",
         error?.response?.data
+      );
+
+      showMessage(
+        "error",
+        "تعذر تعيين الموظفين",
+        error?.response?.data?.message ||
+          "حدث خطأ أثناء تعيين الموظفين."
       );
     } finally {
       setSaving(false);
@@ -1132,7 +1433,8 @@ export default function SelectTask() {
           <h1>إدارة المهام</h1>
 
           <p>
-            إنشاء المهام وتعيينها لأكثر من موظف
+            إنشاء المهام وإضافة مراحلها
+            وتعيينها للموظفين
           </p>
         </div>
 
@@ -1158,7 +1460,6 @@ export default function SelectTask() {
 
           <div>
             <span>إجمالي المهام</span>
-
             <strong>{totalTasks}</strong>
           </div>
         </div>
@@ -1170,7 +1471,6 @@ export default function SelectTask() {
 
           <div>
             <span>المهام المعينة</span>
-
             <strong>{assignedTasks}</strong>
           </div>
         </div>
@@ -1182,7 +1482,6 @@ export default function SelectTask() {
 
           <div>
             <span>قيد التنفيذ</span>
-
             <strong>{pendingTasks}</strong>
           </div>
         </div>
@@ -1194,19 +1493,17 @@ export default function SelectTask() {
 
           <div>
             <span>المهام المكتملة</span>
-
             <strong>{completedTasks}</strong>
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-icon">
-            📭
+            🌐
           </div>
 
           <div>
-            <span>غير المعينة</span>
-
+            <span>متاحة للجميع</span>
             <strong>{unassignedTasks}</strong>
           </div>
         </div>
@@ -1232,7 +1529,9 @@ export default function SelectTask() {
           {search && (
             <button
               type="button"
-              onClick={() => setSearch("")}
+              onClick={() =>
+                setSearch("")
+              }
               className="clear-search"
             >
               ×
@@ -1250,7 +1549,7 @@ export default function SelectTask() {
       </div>
 
       {/* =====================================================
-          LOADING
+          LOADING / EMPTY
       ====================================================== */}
 
       {loading ? (
@@ -1289,17 +1588,14 @@ export default function SelectTask() {
           )}
         </div>
       ) : (
-        /* ===================================================
-           TASK CARDS
-        ==================================================== */
-
         <div className="tasks-grid">
           {filteredTasks.map((task) => {
             const taskEmployees =
               getTaskEmployees(task);
 
             const employeeCount =
-              getTaskEmployeeIds(task).length;
+              getTaskEmployeeIds(task)
+                .length;
 
             const isAssigned =
               employeeCount > 0;
@@ -1341,6 +1637,7 @@ export default function SelectTask() {
                       e.key === " ")
                   ) {
                     e.preventDefault();
+
                     openStageModal(task);
                   }
                 }}
@@ -1350,6 +1647,7 @@ export default function SelectTask() {
                 {hasStages && (
                   <div className="task-card-click-hint">
                     <FaListOl />
+
                     <span>
                       اضغط لعرض المراحل
                     </span>
@@ -1369,6 +1667,7 @@ export default function SelectTask() {
                       title="تعديل"
                       onClick={(e) => {
                         e.stopPropagation();
+
                         openEditModal(task);
                       }}
                     >
@@ -1380,6 +1679,7 @@ export default function SelectTask() {
                       title="حذف"
                       onClick={(e) => {
                         e.stopPropagation();
+
                         deleteTask(task);
                       }}
                     >
@@ -1388,7 +1688,7 @@ export default function SelectTask() {
                   </div>
                 </div>
 
-                {/* TITLE */}
+                {/* BODY */}
 
                 <div className="task-card-body">
                   <h3>{task.title}</h3>
@@ -1403,9 +1703,7 @@ export default function SelectTask() {
                     </p>
                   )}
 
-                  {/* =================================================
-                      STAGES SUMMARY
-                  ================================================= */}
+                  {/* STAGES SUMMARY */}
 
                   {hasStages && (
                     <div className="task-stages-summary">
@@ -1419,9 +1717,13 @@ export default function SelectTask() {
                         </div>
 
                         <strong>
-                          {stageProgress.completed}
+                          {
+                            stageProgress.completed
+                          }
                           {" / "}
-                          {stageProgress.total}
+                          {
+                            stageProgress.total
+                          }
                         </strong>
                       </div>
 
@@ -1436,8 +1738,10 @@ export default function SelectTask() {
 
                       <div className="stage-progress-footer">
                         <span>
-                          {stageProgress.percentage}%
-                          مكتمل
+                          {
+                            stageProgress.percentage
+                          }
+                          % مكتمل
                         </span>
 
                         {stageProgress.completed ===
@@ -1450,13 +1754,9 @@ export default function SelectTask() {
                     </div>
                   )}
 
-                  {/* =================================================
-                      DATE + STATUS
-                  ================================================= */}
+                  {/* DATE + STATUS */}
 
                   <div className="task-meta">
-                    {/* DUE DATE */}
-
                     <div className="task-due-date">
                       <FaCalendarAlt />
 
@@ -1473,15 +1773,17 @@ export default function SelectTask() {
                       </div>
                     </div>
 
-                    {/* OVERALL STATUS */}
-
                     <div
                       className={`task-overall-status ${overallStatus.className}`}
                     >
-                      {overallStatus.icon}
+                      {
+                        overallStatus.icon
+                      }
 
                       <span>
-                        {overallStatus.text}
+                        {
+                          overallStatus.text
+                        }
                       </span>
                     </div>
                   </div>
@@ -1509,10 +1811,10 @@ export default function SelectTask() {
 
                     {!isAssigned ? (
                       <div className="no-employees">
-                        <span>👤</span>
+                        <span>🌐</span>
 
                         <span>
-                          لم يتم تعيين موظفين
+                          المهمة متاحة لجميع الموظفين
                         </span>
                       </div>
                     ) : (
@@ -1591,12 +1893,12 @@ export default function SelectTask() {
                     <span>
                       {isAssigned
                         ? "✓"
-                        : "○"}
+                        : "🌐"}
                     </span>
 
                     {isAssigned
                       ? `${employeeCount} موظف معين`
-                      : "غير معينة"}
+                      : "متاحة لجميع الموظفين"}
                   </div>
 
                   <button
@@ -1604,6 +1906,7 @@ export default function SelectTask() {
                     className="assign-btn"
                     onClick={(e) => {
                       e.stopPropagation();
+
                       openAssignModal(task);
                     }}
                   >
@@ -1667,7 +1970,8 @@ export default function SelectTask() {
 
                         <div>
                           <span className="stage-modal-task-number">
-                            المهمة #{task.task_id}
+                            المهمة #
+                            {task.task_id}
                           </span>
 
                           <h2>
@@ -1676,7 +1980,9 @@ export default function SelectTask() {
 
                           {task.description && (
                             <p>
-                              {task.description}
+                              {
+                                task.description
+                              }
                             </p>
                           )}
                         </div>
@@ -1694,7 +2000,7 @@ export default function SelectTask() {
                       </button>
                     </div>
 
-                    {/* TASK INFORMATION */}
+                    {/* INFORMATION */}
 
                     <div className="stage-modal-info">
                       <div className="stage-info-item">
@@ -1738,9 +2044,13 @@ export default function SelectTask() {
                           </span>
 
                           <strong>
-                            {progress.completed}
+                            {
+                              progress.completed
+                            }
                             {" / "}
-                            {progress.total}
+                            {
+                              progress.total
+                            }
                           </strong>
                         </div>
                       </div>
@@ -1756,14 +2066,22 @@ export default function SelectTask() {
                           </strong>
 
                           <span>
-                            {progress.completed} من{" "}
-                            {progress.total} مراحل
-                            مكتملة
+                            {
+                              progress.completed
+                            }{" "}
+                            من{" "}
+                            {
+                              progress.total
+                            }{" "}
+                            مراحل مكتملة
                           </span>
                         </div>
 
                         <strong className="stage-modal-percentage">
-                          {progress.percentage}%
+                          {
+                            progress.percentage
+                          }
+                          %
                         </strong>
                       </div>
 
@@ -1789,13 +2107,15 @@ export default function SelectTask() {
                           </h3>
 
                           <span>
-                            يجب إنجاز جميع المراحل
-                            لإكمال المهمة
+                            يجب إنجاز جميع
+                            المراحل لإكمال
+                            المهمة
                           </span>
                         </div>
                       </div>
 
-                      {stages.length === 0 ? (
+                      {stages.length ===
+                      0 ? (
                         <div className="no-stages">
                           <div className="no-stages-icon">
                             <FaListOl />
@@ -1806,8 +2126,9 @@ export default function SelectTask() {
                           </h4>
 
                           <p>
-                            هذه المهمة لا تحتوي
-                            على مراحل حتى الآن.
+                            هذه المهمة لا
+                            تحتوي على مراحل
+                            حتى الآن.
                           </p>
                         </div>
                       ) : (
@@ -1835,8 +2156,6 @@ export default function SelectTask() {
                                       : ""
                                   }`}
                                 >
-                                  {/* CHECKBOX */}
-
                                   <div
                                     className={`stage-checkbox ${
                                       completed
@@ -1848,13 +2167,10 @@ export default function SelectTask() {
                                       "✓"}
                                   </div>
 
-                                  {/* STAGE NUMBER */}
-
                                   <div className="stage-number">
-                                    {index + 1}
+                                    {index +
+                                      1}
                                   </div>
-
-                                  {/* STAGE CONTENT */}
 
                                   <div className="stage-content">
                                     <div className="stage-content-top">
@@ -1915,15 +2231,16 @@ export default function SelectTask() {
                     {/* FOOTER */}
 
                     <div className="stage-modal-footer">
-                      {progress.total > 0 &&
+                      {progress.total >
+                        0 &&
                       progress.completed ===
                         progress.total ? (
                         <div className="stage-complete-message">
                           <FaCheckCircle />
 
                           <span>
-                            تم إنجاز جميع مراحل
-                            المهمة
+                            تم إنجاز جميع
+                            مراحل المهمة
                           </span>
                         </div>
                       ) : (
@@ -1934,7 +2251,8 @@ export default function SelectTask() {
                             تبقى{" "}
                             {progress.total -
                               progress.completed}{" "}
-                            مرحلة لإكمال المهمة
+                            مرحلة لإكمال
+                            المهمة
                           </span>
                         </div>
                       )}
@@ -1973,11 +2291,13 @@ export default function SelectTask() {
           }}
         >
           <div
-            className="task-modal"
+            className="task-modal task-modal-large"
             onMouseDown={(e) =>
               e.stopPropagation()
             }
           >
+            {/* HEADER */}
+
             <div className="modal-header">
               <div>
                 <h2>
@@ -1988,6 +2308,7 @@ export default function SelectTask() {
 
                 <p>
                   أدخل بيانات المهمة
+                  وأضف مراحلها
                 </p>
               </div>
 
@@ -2001,7 +2322,9 @@ export default function SelectTask() {
               </button>
             </div>
 
-            <form onSubmit={saveTask}>
+            <form
+              onSubmit={saveTask}
+            >
               {/* TITLE */}
 
               <div className="form-group">
@@ -2038,12 +2361,12 @@ export default function SelectTask() {
                     handleFormChange
                   }
                   placeholder="اكتب وصف المهمة هنا..."
-                  rows={5}
+                  rows={4}
                   disabled={saving}
                 />
               </div>
 
-              {/* DUE DATE */}
+              {/* TASK DUE DATE */}
 
               <div className="form-group">
                 <label>
@@ -2067,20 +2390,191 @@ export default function SelectTask() {
                 </div>
 
                 <small className="form-help-text">
-                  التاريخ الذي يجب إنجاز المهمة
-                  قبله.
+                  التاريخ النهائي الذي يجب
+                  إنجاز المهمة قبله.
                 </small>
               </div>
 
+              {/* STAGES */}
+
+              <div className="stages-form-section">
+                <div className="stages-form-header">
+                  <div>
+                    <h3>
+                      <FaListOl />
+                      مراحل المهمة
+                    </h3>
+
+                    <p>
+                      أضف المراحل التي يجب
+                      إنجازها لإكمال المهمة.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="add-stage-btn"
+                    onClick={addStage}
+                    disabled={saving}
+                  >
+                    <FaPlus />
+                    إضافة مرحلة
+                  </button>
+                </div>
+
+                <div className="stages-form-list">
+                  {form.stages.map(
+                    (
+                      stage,
+                      index
+                    ) => (
+                      <div
+                        className="stage-form-card"
+                        key={index}
+                      >
+                        <div className="stage-form-card-header">
+                          <div className="stage-form-number">
+                            {index + 1}
+                          </div>
+
+                          <div>
+                            <strong>
+                              المرحلة{" "}
+                              {index + 1}
+                            </strong>
+
+                            <span>
+                              بيانات المرحلة
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="remove-stage-btn"
+                            onClick={() =>
+                              removeStage(
+                                index
+                              )
+                            }
+                            disabled={
+                              saving ||
+                              form.stages
+                                .length ===
+                                1
+                            }
+                            title="حذف المرحلة"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+
+                        <div className="stage-form-grid">
+                          <div className="form-group">
+                            <label>
+                              اسم المرحلة
+                            </label>
+
+                            <input
+                              type="text"
+                              value={
+                                stage.title
+                              }
+                              onChange={(e) =>
+                                handleStageChange(
+                                  index,
+                                  "title",
+                                  e.target
+                                    .value
+                                )
+                              }
+                              placeholder="مثال: جمع البيانات"
+                              disabled={
+                                saving
+                              }
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label>
+                              تاريخ استحقاق
+                              المرحلة
+                            </label>
+
+                            <div className="date-input-wrapper">
+                              <FaCalendarAlt />
+
+                              <input
+                                type="date"
+                                value={
+                                  stage.due_date
+                                }
+                                max={
+                                  form.due_date ||
+                                  undefined
+                                }
+                                onChange={(e) =>
+                                  handleStageChange(
+                                    index,
+                                    "due_date",
+                                    e.target
+                                      .value
+                                  )
+                                }
+                                disabled={
+                                  saving
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="form-group stage-description-group">
+                          <label>
+                            وصف المرحلة
+                          </label>
+
+                          <textarea
+                            value={
+                              stage.description
+                            }
+                            onChange={(e) =>
+                              handleStageChange(
+                                index,
+                                "description",
+                                e.target
+                                  .value
+                              )
+                            }
+                            placeholder="اكتب وصف المرحلة هنا..."
+                            rows={3}
+                            disabled={
+                              saving
+                            }
+                          />
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* INFO */}
+
               <div className="form-note">
                 💡 بعد إنشاء المهمة يمكنك
-                الضغط على{" "}
+                استخدام زر{" "}
                 <strong>
                   "تعيين موظفين"
                 </strong>{" "}
                 لاختيار موظف واحد أو عدة
                 موظفين.
+                <br />
+                🌐 إذا لم يتم تعيين موظفين،
+                تبقى المهمة متاحة لجميع
+                الموظفين.
               </div>
+
+              {/* ACTIONS */}
 
               <div className="modal-actions">
                 <button
@@ -2097,7 +2591,8 @@ export default function SelectTask() {
                   className="save-btn"
                   disabled={
                     saving ||
-                    !form.title.trim()
+                    !form.title.trim() ||
+                    !form.due_date
                   }
                 >
                   {saving
@@ -2190,12 +2685,14 @@ export default function SelectTask() {
                 </span>
 
                 <strong>
-                  {selectedEmployees.length}
+                  {
+                    selectedEmployees.length
+                  }
                 </strong>
               </div>
             </div>
 
-            {/* SEARCH EMPLOYEES */}
+            {/* SEARCH */}
 
             <div className="employee-search-box">
               <span>🔎</span>
@@ -2218,9 +2715,7 @@ export default function SelectTask() {
                 <button
                   type="button"
                   onClick={() =>
-                    setEmployeeSearch(
-                      ""
-                    )
+                    setEmployeeSearch("")
                   }
                 >
                   ×
@@ -2311,9 +2806,7 @@ export default function SelectTask() {
 
                     return (
                       <label
-                        key={
-                          employeeId
-                        }
+                        key={employeeId}
                         className={
                           checked
                             ? "employee-check-item selected"
@@ -2328,7 +2821,9 @@ export default function SelectTask() {
                               employeeId
                             )
                           }
-                          disabled={saving}
+                          disabled={
+                            saving
+                          }
                         />
 
                         <span className="custom-checkbox">
@@ -2338,9 +2833,7 @@ export default function SelectTask() {
 
                         <span className="employee-check-avatar">
                           {name
-                            .charAt(
-                              0
-                            )
+                            .charAt(0)
                             .toUpperCase()}
                         </span>
 
@@ -2403,7 +2896,9 @@ export default function SelectTask() {
                 <button
                   type="button"
                   className="save-btn assign-save-btn"
-                  onClick={assignTask}
+                  onClick={
+                    assignTask
+                  }
                   disabled={
                     saving ||
                     selectedEmployees.length ===
@@ -2416,6 +2911,61 @@ export default function SelectTask() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          MESSAGE MODAL
+      ====================================================== */}
+
+      {messageModal.open && (
+        <div
+          className="modal-overlay"
+          onMouseDown={(e) => {
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
+              closeMessage();
+            }
+          }}
+        >
+          <div
+            className="message-modal"
+            onMouseDown={(e) =>
+              e.stopPropagation()
+            }
+          >
+            <div
+              className={`message-modal-icon ${messageModal.type}`}
+            >
+              {messageModal.type ===
+              "success"
+                ? "✓"
+                : messageModal.type ===
+                  "error"
+                ? "!"
+                : "⚠"}
+            </div>
+
+            <h3>
+              {messageModal.title}
+            </h3>
+
+            <p>
+              {messageModal.message}
+            </p>
+
+            <button
+              type="button"
+              className="save-btn"
+              onClick={
+                closeMessage
+              }
+            >
+              حسناً
+            </button>
           </div>
         </div>
       )}
