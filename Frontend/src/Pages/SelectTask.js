@@ -2639,635 +2639,554 @@ export default function SelectTask() {
           ASSIGN EMPLOYEES MODAL
       ====================================================== */}
 
-      {/* =====================================================
-    ASSIGN EMPLOYEES MODAL
-====================================================== */}
-
-{assigningTask && (
-  <div
-    className="modal-overlay assign-overlay"
-    onMouseDown={(e) => {
-      if (e.target === e.currentTarget) {
-        closeAssignModal();
-      }
-    }}
-  >
-    <div
-      className="assign-modal assign-modal-large"
-      onMouseDown={(e) => e.stopPropagation()}
-    >
-      {/* =================================================
+      {assigningTask && (
+        <div
+          className="modal-overlay assign-overlay"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              closeAssignModal();
+            }
+          }}
+        >
+          <div
+            className="assign-modal assign-modal-large"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* =================================================
           HEADER
       ================================================= */}
 
-      <div className="assign-modal-header">
-        <div className="assign-modal-header-main">
-          <div className="assign-modal-header-icon">
-            <FaUserFriends />
-          </div>
+            <div className="assign-modal-header">
+              <div className="assign-modal-header-main">
+                <div className="assign-modal-header-icon">
+                  <FaUserFriends />
+                </div>
 
-          <div>
-            <span className="assign-modal-label">
-              تعيين الموظفين
-            </span>
+                <div>
+                  <span className="assign-modal-label">تعيين الموظفين</span>
 
-            <h2>{assigningTask.title}</h2>
+                  <h2>{assigningTask.title}</h2>
 
-            <p>
-              حدد الموظفين ونطاق مسؤولية كل موظف
-            </p>
-          </div>
-        </div>
+                  <p>حدد الموظفين ونطاق مسؤولية كل موظف</p>
+                </div>
+              </div>
 
-        <button
-          type="button"
-          className="assign-modal-close"
-          onClick={closeAssignModal}
-          disabled={saving}
-        >
-          <FaTimes />
-        </button>
-      </div>
-
-      {/* =================================================
-          SCROLLABLE BODY
-      ================================================= */}
-
-      <div className="assign-modal-body">
-
-        {/* TASK INFORMATION */}
-
-        <div className="assign-task-info">
-          <div className="assign-info-item">
-            <div className="assign-info-icon calendar">
-              <FaCalendarAlt />
-            </div>
-
-            <div>
-              <span>تاريخ الاستحقاق</span>
-              <strong>
-                {formatDate(assigningTask.due_date)}
-              </strong>
-            </div>
-          </div>
-
-          <div className="assign-info-divider" />
-
-          <div className="assign-info-item">
-            <div className="assign-info-icon stages">
-              <FaLayerGroup />
-            </div>
-
-            <div>
-              <span>مراحل المهمة</span>
-              <strong>
-                {getTaskStages(assigningTask).length} مراحل
-              </strong>
-            </div>
-          </div>
-
-          <div className="assign-info-divider" />
-
-          <div className="assign-info-item">
-            <div className="assign-info-icon users">
-              <FaUserFriends />
-            </div>
-
-            <div>
-              <span>المختارون</span>
-              <strong>
-                {employeeAssignments.length} موظف
-              </strong>
-            </div>
-          </div>
-        </div>
-
-        {/* HELP */}
-
-        <div className="assignment-help-box">
-          <div className="assignment-help-icon">
-            <FaUserCheck />
-          </div>
-
-          <div className="assignment-help-content">
-            <strong>حدد مسؤولية كل موظف</strong>
-
-            <p>
-              يمكنك تعيين الموظف على المهمة كاملة، أو تحديد
-              مراحل معينة فقط ليكون مسؤولًا عنها.
-            </p>
-          </div>
-        </div>
-
-        {/* SEARCH + SELECT */}
-
-        <div className="assign-controls">
-
-          <div className="employee-search-box">
-            <span className="search-icon">⌕</span>
-
-            <input
-              type="text"
-              value={employeeSearch}
-              onChange={(e) => setEmployeeSearch(e.target.value)}
-              placeholder="ابحث عن اسم الموظف أو البريد الإلكتروني..."
-              disabled={saving}
-            />
-
-            {employeeSearch && (
               <button
                 type="button"
-                onClick={() => setEmployeeSearch("")}
+                className="assign-modal-close"
+                onClick={closeAssignModal}
                 disabled={saving}
               >
                 <FaTimes />
               </button>
-            )}
-          </div>
-
-          <div className="employees-actions">
-            <button
-              type="button"
-              className="select-all-btn"
-              onClick={selectAllEmployees}
-              disabled={saving || employees.length === 0}
-            >
-              <FaCheckCircle />
-              تحديد الكل
-            </button>
-
-            <button
-              type="button"
-              className="clear-all-btn"
-              onClick={clearSelectedEmployees}
-              disabled={
-                saving || employeeAssignments.length === 0
-              }
-            >
-              <FaTimes />
-              إلغاء الكل
-            </button>
-          </div>
-        </div>
-
-        {/* LIST HEADER */}
-
-        <div className="assignment-list-header">
-          <div>
-            <h3>قائمة الموظفين</h3>
-            <span>
-              {filteredEmployees.length} موظف
-            </span>
-          </div>
-
-          <div className="assignment-selected-badge">
-            <FaUserCheck />
-            {employeeAssignments.length} مختار
-          </div>
-        </div>
-
-        {/* EMPLOYEES LIST */}
-
-        <div className="employees-check-list assignment-employees-list">
-          {filteredEmployees.length === 0 ? (
-            <div className="no-employees-found">
-              <div className="no-employees-icon">
-                🔍
-              </div>
-
-              <strong>لا يوجد موظفون</strong>
-
-              <p>
-                لا توجد نتائج مطابقة لبحثك
-              </p>
             </div>
-          ) : (
-            filteredEmployees.map((employee) => {
-              const employeeId = getEmployeeId(employee);
 
-              if (
-                employeeId === null ||
-                employeeId === undefined
-              ) {
-                return null;
-              }
+            {/* =================================================
+          SCROLLABLE BODY
+      ================================================= */}
 
-              const selected =
-                isEmployeeSelected(employeeId);
+            <div className="assign-modal-body">
+              {/* TASK INFORMATION */}
 
-              const assignment =
-                employeeAssignments.find(
-                  (item) =>
-                    Number(item.employee_id) ===
-                    Number(employeeId),
-                );
-
-              const expanded =
-                Number(expandedEmployee) ===
-                Number(employeeId);
-
-              const name =
-                employee.name ||
-                employee.full_name ||
-                employee.username ||
-                `موظف #${employeeId}`;
-
-              const email = employee.email || "";
-
-              const stages =
-                getTaskStages(assigningTask);
-
-              const selectedStageIds =
-                Array.isArray(assignment?.stage_ids)
-                  ? assignment.stage_ids.map(Number)
-                  : [];
-
-              return (
-                <div
-                  key={employeeId}
-                  className={`assignment-employee-card ${
-                    selected ? "selected" : ""
-                  } ${expanded ? "expanded" : ""}`}
-                >
-                  {/* EMPLOYEE HEADER */}
-
-                  <div
-                    className="assignment-employee-header"
-                    onClick={() => {
-                      if (selected) {
-                        setExpandedEmployee((prev) =>
-                          Number(prev) === Number(employeeId)
-                            ? null
-                            : Number(employeeId),
-                        );
-                      } else {
-                        addEmployeeAssignment(employeeId);
-                      }
-                    }}
-                  >
-                    <div className="assignment-employee-main">
-
-                      <button
-                        type="button"
-                        className={`employee-select-checkbox ${
-                          selected ? "checked" : ""
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleEmployee(employeeId);
-                        }}
-                        disabled={saving}
-                      >
-                        {selected && "✓"}
-                      </button>
-
-                      <div className="employee-check-avatar">
-                        {name.charAt(0).toUpperCase()}
-                      </div>
-
-                      <div className="employee-check-info">
-                        <span className="employee-check-name">
-                          {name}
-                        </span>
-
-                        {email && (
-                          <span className="employee-check-email">
-                            {email}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {selected && (
-                      <div className="assignment-employee-right">
-
-                        <span
-                          className={`assignment-type-summary ${
-                            assignment?.assignment_type === "stage"
-                              ? "stage-type"
-                              : "task-type"
-                          }`}
-                        >
-                          {assignment?.assignment_type === "stage"
-                            ? getAssignmentText(assignment)
-                            : "المهمة كاملة"}
-                        </span>
-
-                        <button
-                          type="button"
-                          className="expand-assignment-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-
-                            setExpandedEmployee((prev) =>
-                              Number(prev) === Number(employeeId)
-                                ? null
-                                : Number(employeeId),
-                            );
-                          }}
-                        >
-                          {expanded ? (
-                            <FaChevronUp />
-                          ) : (
-                            <FaChevronDown />
-                          )}
-                        </button>
-                      </div>
-                    )}
+              <div className="assign-task-info">
+                <div className="assign-info-item">
+                  <div className="assign-info-icon calendar">
+                    <FaCalendarAlt />
                   </div>
 
-                  {/* ASSIGNMENT OPTIONS */}
+                  <div>
+                    <span>تاريخ الاستحقاق</span>
+                    <strong>{formatDate(assigningTask.due_date)}</strong>
+                  </div>
+                </div>
 
-                  {selected && expanded && (
-                    <div className="employee-assignment-options">
+                <div className="assign-info-divider" />
 
-                      {/* TYPE HEADER */}
+                <div className="assign-info-item">
+                  <div className="assign-info-icon stages">
+                    <FaLayerGroup />
+                  </div>
 
-                      <div className="assignment-type-title">
-                        <div className="assignment-type-title-icon">
-                          <FaUserCheck />
-                        </div>
+                  <div>
+                    <span>مراحل المهمة</span>
+                    <strong>{getTaskStages(assigningTask).length} مراحل</strong>
+                  </div>
+                </div>
 
-                        <div>
-                          <strong>نوع التعيين</strong>
-                          <span>
-                            حدد نطاق مسؤولية الموظف
-                          </span>
-                        </div>
-                      </div>
+                <div className="assign-info-divider" />
 
-                      {/* FULL TASK */}
+                <div className="assign-info-item">
+                  <div className="assign-info-icon users">
+                    <FaUserFriends />
+                  </div>
 
-                      <button
-                        type="button"
-                        className={`assignment-type-option ${
-                          assignment?.assignment_type === "task"
-                            ? "active"
-                            : ""
-                        }`}
-                        onClick={() =>
-                          changeAssignmentType(
-                            employeeId,
-                            "task",
-                          )
-                        }
-                        disabled={saving}
-                      >
-                        <div className="assignment-option-radio">
-                          {assignment?.assignment_type ===
-                            "task" && "✓"}
-                        </div>
+                  <div>
+                    <span>المختارون</span>
+                    <strong>{employeeAssignments.length} موظف</strong>
+                  </div>
+                </div>
+              </div>
 
-                        <div className="assignment-option-icon full">
-                          <FaTasks />
-                        </div>
+              {/* HELP */}
 
-                        <div className="assignment-option-content">
-                          <strong>المهمة كاملة</strong>
+              <div className="assignment-help-box">
+                <div className="assignment-help-icon">
+                  <FaUserCheck />
+                </div>
 
-                          <span>
-                            الموظف مسؤول عن جميع مراحل المهمة
-                          </span>
-                        </div>
-                      </button>
+                <div className="assignment-help-content">
+                  <strong>حدد مسؤولية كل موظف</strong>
 
-                      {/* SELECTED STAGES */}
+                  <p>
+                    يمكنك تعيين الموظف على المهمة كاملة، أو تحديد مراحل معينة
+                    فقط ليكون مسؤولًا عنها.
+                  </p>
+                </div>
+              </div>
 
-                      <button
-                        type="button"
-                        className={`assignment-type-option ${
-                          assignment?.assignment_type === "stage"
-                            ? "active"
-                            : ""
-                        }`}
-                        onClick={() =>
-                          changeAssignmentType(
-                            employeeId,
-                            "stage",
-                          )
-                        }
-                        disabled={saving}
-                      >
-                        <div className="assignment-option-radio">
-                          {assignment?.assignment_type ===
-                            "stage" && "✓"}
-                        </div>
+              {/* SEARCH + SELECT */}
 
-                        <div className="assignment-option-icon stages">
-                          <FaListOl />
-                        </div>
+              <div className="assign-controls">
+                <div className="employee-search-box">
+                  <span className="search-icon">⌕</span>
 
-                        <div className="assignment-option-content">
-                          <strong>مراحل محددة</strong>
+                  <input
+                    type="text"
+                    value={employeeSearch}
+                    onChange={(e) => setEmployeeSearch(e.target.value)}
+                    placeholder="ابحث عن اسم الموظف أو البريد الإلكتروني..."
+                    disabled={saving}
+                  />
 
-                          <span>
-                            اختر فقط المراحل التي سيعمل عليها
-                            الموظف
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* STAGE SELECTOR */}
-
-                      {assignment?.assignment_type ===
-                        "stage" && (
-                        <div className="stage-selection-box">
-
-                          <div className="stage-selection-header">
-                            <div>
-                              <strong>
-                                اختر المراحل
-                              </strong>
-
-                              <span>
-                                تم اختيار{" "}
-                                <b>
-                                  {selectedStageIds.length}
-                                </b>{" "}
-                                من {stages.length}
-                              </span>
-                            </div>
-
-                            <div className="stage-selection-actions">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  selectAllStagesForEmployee(
-                                    employeeId,
-                                  )
-                                }
-                                disabled={saving}
-                              >
-                                تحديد الكل
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  clearStagesForEmployee(
-                                    employeeId,
-                                  )
-                                }
-                                disabled={saving}
-                              >
-                                إلغاء الكل
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="stage-selection-list">
-                            {stages.map(
-                              (stage, index) => {
-                                const stageId =
-                                  getStageId(stage);
-
-                                if (
-                                  stageId === null ||
-                                  stageId === undefined
-                                ) {
-                                  return null;
-                                }
-
-                                const checked =
-                                  selectedStageIds.includes(
-                                    Number(stageId),
-                                  );
-
-                                return (
-                                  <label
-                                    key={stageId}
-                                    className={`stage-selection-item ${
-                                      checked
-                                        ? "selected"
-                                        : ""
-                                    }`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={() =>
-                                        toggleEmployeeStage(
-                                          employeeId,
-                                          stageId,
-                                        )
-                                      }
-                                      disabled={saving}
-                                    />
-
-                                    <span className="stage-selection-checkbox">
-                                      {checked && "✓"}
-                                    </span>
-
-                                    <span className="stage-selection-number">
-                                      {index + 1}
-                                    </span>
-
-                                    <span className="stage-selection-content">
-                                      <strong>
-                                        {stage.title ||
-                                          stage.name ||
-                                          `المرحلة ${
-                                            index + 1
-                                          }`}
-                                      </strong>
-
-                                      {stage.due_date && (
-                                        <small>
-                                          <FaCalendarAlt />
-                                          {formatDate(
-                                            stage.due_date,
-                                          )}
-                                        </small>
-                                      )}
-                                    </span>
-                                  </label>
-                                );
-                              },
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* REMOVE */}
-
-                      <button
-                        type="button"
-                        className="remove-assignment-btn"
-                        onClick={() =>
-                          removeEmployeeAssignment(
-                            employeeId,
-                          )
-                        }
-                        disabled={saving}
-                      >
-                        <FaTimes />
-                        إزالة الموظف من التعيين
-                      </button>
-                    </div>
+                  {employeeSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setEmployeeSearch("")}
+                      disabled={saving}
+                    >
+                      <FaTimes />
+                    </button>
                   )}
                 </div>
-              );
-            })
-          )}
-        </div>
-      </div>
 
-      {/* =================================================
+                <div className="employees-actions">
+                  <button
+                    type="button"
+                    className="select-all-btn"
+                    onClick={selectAllEmployees}
+                    disabled={saving || employees.length === 0}
+                  >
+                    <FaCheckCircle />
+                    تحديد الكل
+                  </button>
+
+                  <button
+                    type="button"
+                    className="clear-all-btn"
+                    onClick={clearSelectedEmployees}
+                    disabled={saving || employeeAssignments.length === 0}
+                  >
+                    <FaTimes />
+                    إلغاء الكل
+                  </button>
+                </div>
+              </div>
+
+              {/* LIST HEADER */}
+
+              <div className="assignment-list-header">
+                <div>
+                  <h3>قائمة الموظفين</h3>
+                  <span>{filteredEmployees.length} موظف</span>
+                </div>
+
+                <div className="assignment-selected-badge">
+                  <FaUserCheck />
+                  {employeeAssignments.length} مختار
+                </div>
+              </div>
+
+              {/* EMPLOYEES LIST */}
+
+              <div className="employees-check-list assignment-employees-list">
+                {filteredEmployees.length === 0 ? (
+                  <div className="no-employees-found">
+                    <div className="no-employees-icon">🔍</div>
+
+                    <strong>لا يوجد موظفون</strong>
+
+                    <p>لا توجد نتائج مطابقة لبحثك</p>
+                  </div>
+                ) : (
+                  filteredEmployees.map((employee) => {
+                    const employeeId = getEmployeeId(employee);
+
+                    if (employeeId === null || employeeId === undefined) {
+                      return null;
+                    }
+
+                    const selected = isEmployeeSelected(employeeId);
+
+                    const assignment = employeeAssignments.find(
+                      (item) => Number(item.employee_id) === Number(employeeId),
+                    );
+
+                    const expanded =
+                      Number(expandedEmployee) === Number(employeeId);
+
+                    const name =
+                      employee.name ||
+                      employee.full_name ||
+                      employee.username ||
+                      `موظف #${employeeId}`;
+
+                    const email = employee.email || "";
+
+                    const stages = getTaskStages(assigningTask);
+
+                    const selectedStageIds = Array.isArray(
+                      assignment?.stage_ids,
+                    )
+                      ? assignment.stage_ids.map(Number)
+                      : [];
+
+                    return (
+                      <div
+                        key={employeeId}
+                        className={`assignment-employee-card ${
+                          selected ? "selected" : ""
+                        } ${expanded ? "expanded" : ""}`}
+                      >
+                        {/* EMPLOYEE HEADER */}
+
+                        <div
+                          className="assignment-employee-header"
+                          onClick={() => {
+                            if (selected) {
+                              setExpandedEmployee((prev) =>
+                                Number(prev) === Number(employeeId)
+                                  ? null
+                                  : Number(employeeId),
+                              );
+                            } else {
+                              addEmployeeAssignment(employeeId);
+                            }
+                          }}
+                        >
+                          <div className="assignment-employee-main">
+                            <button
+                              type="button"
+                              className={`employee-select-checkbox ${
+                                selected ? "checked" : ""
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleEmployee(employeeId);
+                              }}
+                              disabled={saving}
+                            >
+                              {selected && "✓"}
+                            </button>
+
+                            <div className="employee-check-avatar">
+                              {name.charAt(0).toUpperCase()}
+                            </div>
+
+                            <div className="employee-check-info">
+                              <span className="employee-check-name">
+                                {name}
+                              </span>
+
+                              {email && (
+                                <span className="employee-check-email">
+                                  {email}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {selected && (
+                            <div className="assignment-employee-right">
+                              <span
+                                className={`assignment-type-summary ${
+                                  assignment?.assignment_type === "stage"
+                                    ? "stage-type"
+                                    : "task-type"
+                                }`}
+                              >
+                                {assignment?.assignment_type === "stage"
+                                  ? getAssignmentText(assignment)
+                                  : "المهمة كاملة"}
+                              </span>
+
+                              <button
+                                type="button"
+                                className="expand-assignment-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+
+                                  setExpandedEmployee((prev) =>
+                                    Number(prev) === Number(employeeId)
+                                      ? null
+                                      : Number(employeeId),
+                                  );
+                                }}
+                              >
+                                {expanded ? <FaChevronUp /> : <FaChevronDown />}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ASSIGNMENT OPTIONS */}
+
+                        {selected && expanded && (
+                          <div className="employee-assignment-options">
+                            {/* TYPE HEADER */}
+
+                            <div className="assignment-type-title">
+                              <div className="assignment-type-title-icon">
+                                <FaUserCheck />
+                              </div>
+
+                              <div>
+                                <strong>نوع التعيين</strong>
+                                <span>حدد نطاق مسؤولية الموظف</span>
+                              </div>
+                            </div>
+
+                            {/* FULL TASK */}
+
+                            <button
+                              type="button"
+                              className={`assignment-type-option ${
+                                assignment?.assignment_type === "task"
+                                  ? "active"
+                                  : ""
+                              }`}
+                              onClick={() =>
+                                changeAssignmentType(employeeId, "task")
+                              }
+                              disabled={saving}
+                            >
+                              <div className="assignment-option-radio">
+                                {assignment?.assignment_type === "task" && "✓"}
+                              </div>
+
+                              <div className="assignment-option-icon full">
+                                <FaTasks />
+                              </div>
+
+                              <div className="assignment-option-content">
+                                <strong>المهمة كاملة</strong>
+
+                                <span>الموظف مسؤول عن جميع مراحل المهمة</span>
+                              </div>
+                            </button>
+
+                            {/* SELECTED STAGES */}
+
+                            <button
+                              type="button"
+                              className={`assignment-type-option ${
+                                assignment?.assignment_type === "stage"
+                                  ? "active"
+                                  : ""
+                              }`}
+                              onClick={() =>
+                                changeAssignmentType(employeeId, "stage")
+                              }
+                              disabled={saving}
+                            >
+                              <div className="assignment-option-radio">
+                                {assignment?.assignment_type === "stage" && "✓"}
+                              </div>
+
+                              <div className="assignment-option-icon stages">
+                                <FaListOl />
+                              </div>
+
+                              <div className="assignment-option-content">
+                                <strong>مراحل محددة</strong>
+
+                                <span>
+                                  اختر فقط المراحل التي سيعمل عليها الموظف
+                                </span>
+                              </div>
+                            </button>
+
+                            {/* STAGE SELECTOR */}
+
+                            {assignment?.assignment_type === "stage" && (
+                              <div className="stage-selection-box">
+                                <div className="stage-selection-header">
+                                  <div>
+                                    <strong>اختر المراحل</strong>
+
+                                    <span>
+                                      تم اختيار <b>{selectedStageIds.length}</b>{" "}
+                                      من {stages.length}
+                                    </span>
+                                  </div>
+
+                                  <div className="stage-selection-actions">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        selectAllStagesForEmployee(employeeId)
+                                      }
+                                      disabled={saving}
+                                    >
+                                      تحديد الكل
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        clearStagesForEmployee(employeeId)
+                                      }
+                                      disabled={saving}
+                                    >
+                                      إلغاء الكل
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="stage-selection-list">
+                                  {stages.map((stage, index) => {
+                                    const stageId = getStageId(stage);
+
+                                    if (
+                                      stageId === null ||
+                                      stageId === undefined
+                                    ) {
+                                      return null;
+                                    }
+
+                                    const checked = selectedStageIds.includes(
+                                      Number(stageId),
+                                    );
+
+                                    return (
+                                      <label
+                                        key={stageId}
+                                        className={`stage-selection-item ${
+                                          checked ? "selected" : ""
+                                        }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={() =>
+                                            toggleEmployeeStage(
+                                              employeeId,
+                                              stageId,
+                                            )
+                                          }
+                                          disabled={saving}
+                                        />
+
+                                        <span className="stage-selection-checkbox">
+                                          {checked && "✓"}
+                                        </span>
+
+                                        <span className="stage-selection-number">
+                                          {index + 1}
+                                        </span>
+
+                                        <span className="stage-selection-content">
+                                          <strong>
+                                            {stage.title ||
+                                              stage.name ||
+                                              `المرحلة ${index + 1}`}
+                                          </strong>
+
+                                          {stage.due_date && (
+                                            <small>
+                                              <FaCalendarAlt />
+                                              {formatDate(stage.due_date)}
+                                            </small>
+                                          )}
+                                        </span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* REMOVE */}
+
+                            <button
+                              type="button"
+                              className="remove-assignment-btn"
+                              onClick={() =>
+                                removeEmployeeAssignment(employeeId)
+                              }
+                              disabled={saving}
+                            >
+                              <FaTimes />
+                              إزالة الموظف من التعيين
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* =================================================
           FIXED FOOTER
       ================================================= */}
 
-      <div className="assign-modal-footer">
+            <div className="assign-modal-footer">
+              <div className="selected-footer-info">
+                <div className="selected-footer-icon">
+                  <FaUserCheck />
+                </div>
 
-        <div className="selected-footer-info">
-          <div className="selected-footer-icon">
-            <FaUserCheck />
-          </div>
+                <div>
+                  <span>الموظفون المختارون</span>
 
-          <div>
-            <span>الموظفون المختارون</span>
+                  <strong>{employeeAssignments.length}</strong>
+                </div>
+              </div>
 
-            <strong>
-              {employeeAssignments.length}
-            </strong>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={closeAssignModal}
+                  disabled={saving}
+                >
+                  إلغاء
+                </button>
+
+                <button
+                  type="button"
+                  className="save-btn assign-save-btn"
+                  onClick={assignTask}
+                  disabled={saving || employeeAssignments.length === 0}
+                >
+                  {saving ? (
+                    <>
+                      <span className="assign-button-loader" />
+                      جاري الحفظ...
+                    </>
+                  ) : (
+                    <>
+                      <FaCheckCircle />
+                      حفظ التعيين
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div className="modal-actions">
-          <button
-            type="button"
-            className="cancel-btn"
-            onClick={closeAssignModal}
-            disabled={saving}
-          >
-            إلغاء
-          </button>
-
-          <button
-            type="button"
-            className="save-btn assign-save-btn"
-            onClick={assignTask}
-            disabled={
-              saving ||
-              employeeAssignments.length === 0
-            }
-          >
-            {saving ? (
-              <>
-                <span className="assign-button-loader" />
-                جاري الحفظ...
-              </>
-            ) : (
-              <>
-                <FaCheckCircle />
-                حفظ التعيين
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
       {/* =====================================================
           MESSAGE MODAL
