@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -20,7 +19,9 @@ export default function Home() {
 
   return (
     <div className="home-page" style={styles.page}>
-      {/* ================= BACKGROUND ================= */}
+      {/* =========================================================
+          BACKGROUND
+      ========================================================= */}
 
       <div
         className="home-glow home-glow-one"
@@ -32,45 +33,32 @@ export default function Home() {
         style={styles.backgroundGlow2}
       />
 
-      {/* ================= NAVBAR ================= */}
+      {/* =========================================================
+          NAVBAR
+      ========================================================= */}
 
-      <header
-        className="home-navbar"
-        style={styles.navbar}
-      >
+      <header className="home-navbar" style={styles.navbar}>
         <div style={styles.logoArea}>
-          <div
-            className="home-logo"
-            style={styles.logo}
-          >
+          <div className="home-logo" style={styles.logo}>
             HR
           </div>
 
           <div>
-            <div style={styles.logoTitle}>
-              إدارة الموظفين
-            </div>
+            <div style={styles.logoTitle}>إدارة الموظفين</div>
 
-            <div style={styles.logoSubtitle}>
-              نظام الموارد البشرية
-            </div>
+            <div style={styles.logoSubtitle}>نظام الموارد البشرية</div>
           </div>
         </div>
 
-        <div
-          className="home-nav-actions"
-          style={styles.navActions}
-        >
+        <div className="home-nav-actions" style={styles.navActions}>
           {isLoggedIn ? (
             <>
               <button
                 className="nav-dashboard-btn"
                 style={styles.dashboardButton}
-                onClick={() =>
-                  nav("/admin-dashboard")
-                }
+                onClick={() => nav("/admin-dashboard")}
               >
-                <span>▦</span>
+                <span style={styles.dashboardButtonIcon}>▦</span>
                 لوحة التحكم
               </button>
 
@@ -89,79 +77,55 @@ export default function Home() {
               onClick={() => nav("/login")}
             >
               تسجيل الدخول
-              <span>←</span>
+              <span style={styles.loginArrow}>←</span>
             </button>
           )}
         </div>
       </header>
 
-      {/* ================= MAIN ================= */}
+      {/* =========================================================
+          MAIN
+      ========================================================= */}
 
-      <main
-        className="home-main"
-        style={styles.main}
-      >
-        {/* ================= HERO ================= */}
+      <main className="home-main" style={styles.main}>
+        {/* =======================================================
+            HERO
+        ======================================================= */}
 
-        <section
-          className="home-hero"
-          style={styles.hero}
-        >
-          {/* TEXT */}
+        <section className="home-hero" style={styles.hero}>
+          {/* =====================================================
+              TEXT CONTENT
+          ===================================================== */}
 
-          <div
-            className="home-hero-content"
-            style={styles.heroContent}
-          >
-            <div
-              className="home-badge"
-              style={styles.badge}
-            >
+          <div className="home-hero-content" style={styles.heroContent}>
+            <div className="home-badge" style={styles.badge}>
               <span style={styles.badgeDot} />
-
               نظام إدارة الموارد البشرية
             </div>
 
-            <h1
-              className="home-title"
-              style={styles.heroTitle}
-            >
-              إدارة موظفيك
+            <h1 className="home-title" style={styles.heroTitle}>
+              Blackboard
               <br />
-
-              <span style={styles.gradientText}>
-                بطريقة أذكى وأسهل
-              </span>
+              <span style={styles.gradientText}>قسم البلاك بورد</span>
             </h1>
 
-            <p
-              className="home-description"
-              style={styles.heroDescription}
-            >
-              منصة متكاملة تساعدك على إدارة الموظفين،
-              متابعة الأداء، تنظيم الإجازات والمهام،
-              وإجراء التقييمات بكل سهولة واحترافية.
+            <p className="home-description" style={styles.heroDescription}>
+              منصة متكاملة تساعدك على إدارة الموظفين، متابعة الأداء، تنظيم
+              الإجازات والمهام، وإجراء التقييمات بكل سهولة واحترافية.
             </p>
 
-            {/* BUTTONS */}
+            {/* BUTTON */}
 
-            <div
-              className="home-hero-buttons"
-              style={styles.heroButtons}
-            >
+            <div className="home-hero-buttons" style={styles.heroButtons}>
               {isLoggedIn ? (
                 <button
                   className="hero-primary-btn"
                   style={styles.primaryHeroButton}
-                  onClick={() =>
-                    nav("/admin-dashboard")
-                  }
+                  onClick={() => nav("/admin-dashboard")}
                 >
                   <span>الدخول إلى لوحة التحكم</span>
 
-                  <span style={styles.arrow}>
-                    ←
-                  </span>
+                  <span style={styles.arrow}>←</span>
                 </button>
               ) : (
                 <button
@@ -171,31 +135,23 @@ export default function Home() {
                 >
                   <span>ابدأ الآن</span>
 
-                  <span style={styles.arrow}>
-                    ←
-                  </span>
+                  <span style={styles.arrow}>←</span>
                 </button>
               )}
             </div>
 
-            {/* FEATURES */}
+            {/* ===================================================
+                FEATURES
+            =================================================== */}
 
-            <div
-              className="home-features"
-              style={styles.features}
-            >
-              <div
-                className="home-feature"
-                style={styles.feature}
-              >
+            <div className="home-features" style={styles.features}>
+              <div className="home-feature" style={styles.feature}>
                 <div style={styles.featureIcon}>
-                  👨‍💼
+                  <span>👨‍💼</span>
                 </div>
 
                 <div>
-                  <strong style={styles.featureTitle}>
-                    الموظفين
-                  </strong>
+                  <strong style={styles.featureTitle}>الموظفين</strong>
 
                   <span style={styles.featureText}>
                     إدارة بيانات الموظفين
@@ -203,18 +159,13 @@ export default function Home() {
                 </div>
               </div>
 
-              <div
-                className="home-feature"
-                style={styles.feature}
-              >
+              <div className="home-feature" style={styles.feature}>
                 <div style={styles.featureIcon}>
-                  📅
+                  <span>📅</span>
                 </div>
 
                 <div>
-                  <strong style={styles.featureTitle}>
-                    الإجازات
-                  </strong>
+                  <strong style={styles.featureTitle}>الإجازات</strong>
 
                   <span style={styles.featureText}>
                     متابعة طلبات الإجازات
@@ -222,18 +173,13 @@ export default function Home() {
                 </div>
               </div>
 
-              <div
-                className="home-feature"
-                style={styles.feature}
-              >
+              <div className="home-feature" style={styles.feature}>
                 <div style={styles.featureIcon}>
-                  📊
+                  <span>📊</span>
                 </div>
 
                 <div>
-                  <strong style={styles.featureTitle}>
-                    التقييم
-                  </strong>
+                  <strong style={styles.featureTitle}>التقييم</strong>
 
                   <span style={styles.featureText}>
                     متابعة أداء الموظفين
@@ -243,283 +189,160 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ================= VISUAL ================= */}
+          {/* =====================================================
+              SIMPLE HR VISUAL
+          ===================================================== */}
 
-          <div
-            className="home-visual"
-            style={styles.heroVisual}
-          >
+          <div className="home-visual" style={styles.heroVisual}>
+            {/* Background circle */}
+
             <div
-              className="home-glow-circle"
-              style={styles.glowCircle}
+              className="home-visual-circle"
+              style={styles.visualCircle}
             />
 
-            {/* Dashboard */}
+            {/* Main Illustration */}
 
-            <div
-              className="home-dashboard"
-              style={styles.dashboardCard}
-            >
-              {/* Header */}
+            <div className="home-hr-illustration" style={styles.hrIllustration}>
+              {/* Decorative small dots */}
 
-              <div style={styles.dashboardHeader}>
+              <div
+                className="visual-dot visual-dot-one"
+                style={styles.visualDotOne}
+              />
+
+              <div
+                className="visual-dot visual-dot-two"
+                style={styles.visualDotTwo}
+              />
+
+              <div
+                className="visual-dot visual-dot-three"
+                style={styles.visualDotThree}
+              />
+
+              {/* Main person */}
+
+              <div className="main-person" style={styles.mainPerson}>
+                <div style={styles.personHead} />
+
+                <div style={styles.personBody}>
+                  <div style={styles.personBadge}>HR</div>
+                </div>
+              </div>
+
+              {/* Left small person */}
+
+              <div className="small-person small-person-left" style={styles.smallPersonLeft}>
+                <div style={styles.smallPersonHead} />
+
+                <div style={styles.smallPersonBody} />
+              </div>
+
+              {/* Right small person */}
+
+              <div
+                className="small-person small-person-right"
+                style={styles.smallPersonRight}
+              >
+                <div style={styles.smallPersonHead} />
+
+                <div style={styles.smallPersonBody} />
+              </div>
+
+              {/* Main HR card */}
+
+              <div
+                className="hr-info-card"
+                style={styles.hrInfoCard}
+              >
+                <div style={styles.hrInfoIcon}>✓</div>
+
                 <div>
-                  <div
-                    style={styles.dashboardSmallTitle}
-                  >
-                    لوحة الإدارة
-                  </div>
-
-                  <div
-                    style={styles.dashboardTitle}
-                  >
-                    نظرة عامة
-                  </div>
-                </div>
-
-                <div style={styles.dashboardIcon}>
-                  HR
-                </div>
-              </div>
-
-              {/* Statistics */}
-
-              <div style={styles.miniStats}>
-                <div style={styles.miniStat}>
-                  <div
-                    style={{
-                      ...styles.miniIconBlue,
-                      background:
-                        "linear-gradient(135deg,#eff6ff,#dbeafe)",
-                    }}
-                  >
-                    👥
-                  </div>
-
-                  <div>
-                    <span style={styles.miniLabel}>
-                      الموظفين
-                    </span>
-
-                    <strong style={styles.miniNumber}>
-                      128
-                    </strong>
-                  </div>
-                </div>
-
-                <div style={styles.miniStat}>
-                  <div
-                    style={{
-                      ...styles.miniIconGreen,
-                      background:
-                        "linear-gradient(135deg,#ecfdf5,#d1fae5)",
-                    }}
-                  >
-                    ✓
-                  </div>
-
-                  <div>
-                    <span style={styles.miniLabel}>
-                      التقييمات
-                    </span>
-
-                    <strong style={styles.miniNumber}>
-                      96
-                    </strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Chart */}
-
-              <div style={styles.chartCard}>
-                <div style={styles.chartHeader}>
-                  <span>
-                    أداء الموظفين
-                  </span>
-
-                  <span
-                    style={styles.chartPercentage}
-                  >
-                    +18.5%
-                  </span>
-                </div>
-
-                <div style={styles.chart}>
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "35%",
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "55%",
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "45%",
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "70%",
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "62%",
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "88%",
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      ...styles.bar,
-                      height: "78%",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Leave */}
-
-              <div style={styles.leaveSummary}>
-                <div style={styles.leaveIcon}>
-                  📅
-                </div>
-
-                <div style={styles.leaveText}>
-                  <strong>
-                    طلبات الإجازات
+                  <strong style={styles.hrInfoTitle}>
+                    إدارة الموارد البشرية
                   </strong>
 
-                  <span>
-                    12 طلب قيد المراجعة
+                  <span style={styles.hrInfoText}>
+                    تنظيم ومتابعة الموظفين
                   </span>
                 </div>
+              </div>
 
-                <div style={styles.leaveCount}>
-                  12
+              {/* Small floating card */}
+
+              <div
+                className="hr-small-card"
+                style={styles.hrSmallCard}
+              >
+                <span style={styles.hrSmallIcon}>👥</span>
+
+                <div>
+                  <strong style={styles.hrSmallNumber}>128</strong>
+
+                  <span style={styles.hrSmallText}>موظف</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Floating Card */}
-
-            <div
-              className="home-floating-card"
-              style={styles.floatingCard}
-            >
-              <div style={styles.checkCircle}>
-                ✓
-              </div>
-
-              <div>
-                <strong style={styles.floatingTitle}>
-                  أداء ممتاز
-                </strong>
-
-                <span style={styles.floatingText}>
-                  تم تحديث التقييم
-                </span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ================= BOTTOM ================= */}
+        {/* =========================================================
+            BOTTOM FEATURES
+        ========================================================= */}
 
-        <section
-          className="home-bottom"
-          style={styles.bottomSection}
-        >
-          <div
-            className="home-bottom-card"
-            style={styles.bottomCard}
-          >
-            <span style={styles.bottomIcon}>
-              👥
-            </span>
+        <section className="home-bottom" style={styles.bottomSection}>
+          <div className="home-bottom-card" style={styles.bottomCard}>
+            <span style={styles.bottomIcon}>👥</span>
 
             <div>
-              <strong>
+              <strong style={styles.bottomTitle}>
                 إدارة الموظفين
               </strong>
 
-              <span>
+              <span style={styles.bottomText}>
                 بيانات منظمة وسهلة الوصول
               </span>
             </div>
           </div>
 
-          <div
-            className="home-bottom-card"
-            style={styles.bottomCard}
-          >
-            <span style={styles.bottomIcon}>
-              📅
-            </span>
+          <div className="home-bottom-card" style={styles.bottomCard}>
+            <span style={styles.bottomIcon}>📅</span>
 
             <div>
-              <strong>
+              <strong style={styles.bottomTitle}>
                 تنظيم الإجازات
               </strong>
 
-              <span>
+              <span style={styles.bottomText}>
                 قبول ورفض ومتابعة الطلبات
               </span>
             </div>
           </div>
 
-          <div
-            className="home-bottom-card"
-            style={styles.bottomCard}
-          >
-            <span style={styles.bottomIcon}>
-              ✓
-            </span>
+          <div className="home-bottom-card" style={styles.bottomCard}>
+            <span style={styles.bottomIcon}>✓</span>
 
             <div>
-              <strong>
+              <strong style={styles.bottomTitle}>
                 إدارة المهام
               </strong>
 
-              <span>
+              <span style={styles.bottomText}>
                 توزيع ومتابعة مهام الموظفين
               </span>
             </div>
           </div>
 
-          <div
-            className="home-bottom-card"
-            style={styles.bottomCard}
-          >
-            <span style={styles.bottomIcon}>
-              📈
-            </span>
+          <div className="home-bottom-card" style={styles.bottomCard}>
+            <span style={styles.bottomIcon}>📈</span>
 
             <div>
-              <strong>
+              <strong style={styles.bottomTitle}>
                 تقييم الأداء
               </strong>
 
-              <span>
+              <span style={styles.bottomText}>
                 تقارير ومتابعة الأداء
               </span>
             </div>
@@ -527,7 +350,9 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ================= FOOTER ================= */}
+      {/* =========================================================
+          FOOTER
+      ========================================================= */}
 
       <footer style={styles.footer}>
         © 2026 نظام إدارة الموظفين — جميع الحقوق محفوظة
@@ -536,33 +361,37 @@ export default function Home() {
   );
 }
 
-/* =========================================================
-   LIGHT THEME
-========================================================= */
+/* ===============================================================
+   STYLES
+================================================================ */
 
 const styles = {
+  /* =============================================================
+     PAGE
+  ============================================================= */
+
   page: {
     minHeight: "100vh",
     width: "100%",
     background:
       "linear-gradient(135deg,#f8fbff 0%,#f5f8ff 45%,#eef4ff 100%)",
     color: "#172033",
-    fontFamily:
-      "Cairo, Tahoma, Arial, sans-serif",
+    fontFamily: "Cairo, Tahoma, Arial, sans-serif",
     direction: "rtl",
     position: "relative",
     overflow: "hidden",
   },
 
-  /* ================= BACKGROUND ================= */
+  /* =============================================================
+     BACKGROUND
+  ============================================================= */
 
   backgroundGlow1: {
     position: "absolute",
     width: "500px",
     height: "500px",
     borderRadius: "50%",
-    background:
-      "rgba(99,102,241,0.09)",
+    background: "rgba(99,102,241,0.09)",
     filter: "blur(100px)",
     top: "-200px",
     left: "-150px",
@@ -574,15 +403,16 @@ const styles = {
     width: "450px",
     height: "450px",
     borderRadius: "50%",
-    background:
-      "rgba(59,130,246,0.08)",
+    background: "rgba(59,130,246,0.08)",
     filter: "blur(100px)",
     bottom: "-200px",
     right: "-150px",
     pointerEvents: "none",
   },
 
-  /* ================= NAVBAR ================= */
+  /* =============================================================
+     NAVBAR
+  ============================================================= */
 
   navbar: {
     position: "relative",
@@ -592,10 +422,8 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    borderBottom:
-      "1px solid rgba(148,163,184,0.16)",
-    background:
-      "rgba(255,255,255,0.82)",
+    borderBottom: "1px solid rgba(148,163,184,0.16)",
+    background: "rgba(255,255,255,0.82)",
     backdropFilter: "blur(20px)",
     boxSizing: "border-box",
   },
@@ -616,10 +444,8 @@ const styles = {
     fontSize: "14px",
     fontWeight: "900",
     color: "#ffffff",
-    background:
-      "linear-gradient(135deg,#4f46e5,#3b82f6)",
-    boxShadow:
-      "0 10px 25px rgba(79,70,229,0.22)",
+    background: "linear-gradient(135deg,#4f46e5,#3b82f6)",
+    boxShadow: "0 10px 25px rgba(79,70,229,0.22)",
   },
 
   logoTitle: {
@@ -641,8 +467,7 @@ const styles = {
   },
 
   loginButton: {
-    border:
-      "1px solid #dbe3f0",
+    border: "1px solid #dbe3f0",
     background: "#ffffff",
     color: "#334155",
     padding: "10px 17px",
@@ -653,14 +478,16 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    boxShadow:
-      "0 4px 14px rgba(15,23,42,0.05)",
+    boxShadow: "0 4px 14px rgba(15,23,42,0.05)",
+  },
+
+  loginArrow: {
+    fontSize: "17px",
   },
 
   dashboardButton: {
     border: "none",
-    background:
-      "linear-gradient(135deg,#4f46e5,#3b82f6)",
+    background: "linear-gradient(135deg,#4f46e5,#3b82f6)",
     color: "#ffffff",
     padding: "10px 17px",
     borderRadius: "11px",
@@ -670,13 +497,15 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "7px",
-    boxShadow:
-      "0 8px 20px rgba(59,130,246,0.20)",
+    boxShadow: "0 8px 20px rgba(59,130,246,0.20)",
+  },
+
+  dashboardButtonIcon: {
+    fontSize: "15px",
   },
 
   logoutButton: {
-    border:
-      "1px solid #fecaca",
+    border: "1px solid #fecaca",
     background: "#fff7f7",
     color: "#dc2626",
     padding: "10px 15px",
@@ -686,7 +515,9 @@ const styles = {
     fontWeight: "600",
   },
 
-  /* ================= MAIN ================= */
+  /* =============================================================
+     MAIN
+  ============================================================= */
 
   main: {
     position: "relative",
@@ -696,13 +527,14 @@ const styles = {
     margin: "0 auto",
   },
 
-  /* ================= HERO ================= */
+  /* =============================================================
+     HERO
+  ============================================================= */
 
   hero: {
     minHeight: "650px",
     display: "grid",
-    gridTemplateColumns:
-      "1fr 0.9fr",
+    gridTemplateColumns: "1fr 0.9fr",
     alignItems: "center",
     gap: "70px",
     padding: "55px 0 45px",
@@ -718,10 +550,8 @@ const styles = {
     gap: "8px",
     padding: "7px 14px",
     borderRadius: "30px",
-    background:
-      "linear-gradient(135deg,#eef2ff,#eff6ff)",
-    border:
-      "1px solid #dbe4ff",
+    background: "linear-gradient(135deg,#eef2ff,#eff6ff)",
+    border: "1px solid #dbe4ff",
     color: "#4f46e5",
     fontSize: "11px",
     fontWeight: "800",
@@ -733,8 +563,7 @@ const styles = {
     height: "7px",
     borderRadius: "50%",
     background: "#4f46e5",
-    boxShadow:
-      "0 0 0 4px rgba(79,70,229,0.10)",
+    boxShadow: "0 0 0 4px rgba(79,70,229,0.10)",
   },
 
   heroTitle: {
@@ -747,8 +576,7 @@ const styles = {
   },
 
   gradientText: {
-    background:
-      "linear-gradient(90deg,#4f46e5,#2563eb,#0284c7)",
+    background: "linear-gradient(90deg,#4f46e5,#2563eb,#0284c7)",
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
   },
@@ -770,16 +598,14 @@ const styles = {
 
   primaryHeroButton: {
     border: "none",
-    background:
-      "linear-gradient(135deg,#4f46e5,#3b82f6)",
+    background: "linear-gradient(135deg,#4f46e5,#3b82f6)",
     color: "#ffffff",
     padding: "14px 23px",
     borderRadius: "12px",
     cursor: "pointer",
     fontFamily: "inherit",
     fontWeight: "800",
-    boxShadow:
-      "0 12px 28px rgba(59,130,246,0.22)",
+    boxShadow: "0 12px 28px rgba(59,130,246,0.22)",
     display: "flex",
     alignItems: "center",
     gap: "12px",
@@ -789,7 +615,9 @@ const styles = {
     fontSize: "18px",
   },
 
-  /* ================= FEATURES ================= */
+  /* =============================================================
+     FEATURES
+  ============================================================= */
 
   features: {
     display: "flex",
@@ -812,10 +640,9 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     background: "#ffffff",
-    border:
-      "1px solid #e2e8f0",
-    boxShadow:
-      "0 5px 15px rgba(15,23,42,0.05)",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 5px 15px rgba(15,23,42,0.05)",
+    fontSize: "17px",
   },
 
   featureTitle: {
@@ -831,7 +658,9 @@ const styles = {
     marginTop: "2px",
   },
 
-  /* ================= VISUAL ================= */
+  /* =============================================================
+     VISUAL AREA
+  ============================================================= */
 
   heroVisual: {
     position: "relative",
@@ -841,245 +670,268 @@ const styles = {
     minHeight: "500px",
   },
 
-  glowCircle: {
+  visualCircle: {
     position: "absolute",
-    width: "370px",
-    height: "370px",
+    width: "390px",
+    height: "390px",
     borderRadius: "50%",
     background:
-      "rgba(99,102,241,0.11)",
-    filter: "blur(75px)",
+      "radial-gradient(circle,rgba(99,102,241,0.13) 0%,rgba(59,130,246,0.06) 45%,rgba(255,255,255,0) 72%)",
   },
 
-  dashboardCard: {
+  /* =============================================================
+     HR ILLUSTRATION
+  ============================================================= */
+
+  hrIllustration: {
+    position: "relative",
+    width: "430px",
+    height: "430px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  /* =============================================================
+     MAIN PERSON
+  ============================================================= */
+
+  mainPerson: {
+    position: "relative",
+    zIndex: 3,
+    width: "180px",
+    height: "250px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+
+  personHead: {
+    width: "92px",
+    height: "92px",
+    borderRadius: "50%",
+    background:
+      "linear-gradient(135deg,#e0e7ff,#c7d2fe)",
+    border: "7px solid rgba(255,255,255,0.9)",
+    boxShadow: "0 15px 35px rgba(79,70,229,0.12)",
     position: "relative",
     zIndex: 2,
-    width: "410px",
-    padding: "23px",
-    borderRadius: "23px",
+  },
+
+  personBody: {
+    width: "145px",
+    height: "145px",
+    marginTop: "-12px",
+    borderRadius: "70px 70px 25px 25px",
     background:
-      "rgba(255,255,255,0.96)",
-    border:
-      "1px solid #e2e8f0",
-    boxShadow:
-      "0 30px 70px rgba(30,64,175,0.13)",
-    backdropFilter: "blur(20px)",
-    transform:
-      "perspective(1000px) rotateY(-5deg) rotateX(2deg)",
-  },
-
-  dashboardHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "22px",
-  },
-
-  dashboardSmallTitle: {
-    color: "#94a3b8",
-    fontSize: "10px",
-  },
-
-  dashboardTitle: {
-    fontSize: "20px",
-    fontWeight: "800",
-    marginTop: "4px",
-    color: "#172033",
-  },
-
-  dashboardIcon: {
-    width: "42px",
-    height: "42px",
-    borderRadius: "12px",
+      "linear-gradient(145deg,#4f46e5,#3b82f6)",
+    boxShadow: "0 22px 40px rgba(59,130,246,0.20)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background:
-      "linear-gradient(135deg,#4f46e5,#3b82f6)",
+    position: "relative",
+  },
+
+  personBadge: {
+    width: "54px",
+    height: "54px",
+    borderRadius: "16px",
+    background: "rgba(255,255,255,0.18)",
+    border: "1px solid rgba(255,255,255,0.28)",
     color: "#ffffff",
-    fontSize: "11px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "14px",
     fontWeight: "900",
-    boxShadow:
-      "0 8px 20px rgba(59,130,246,0.20)",
+    backdropFilter: "blur(10px)",
   },
 
-  /* ================= MINI STATS ================= */
+  /* =============================================================
+     SMALL PERSON LEFT
+  ============================================================= */
 
-  miniStats: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "10px",
-    marginBottom: "12px",
-  },
-
-  miniStat: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    padding: "13px",
-    borderRadius: "13px",
-    background: "#f8fafc",
-    border:
-      "1px solid #edf1f7",
-  },
-
-  miniIconBlue: {
-    width: "35px",
-    height: "35px",
-    borderRadius: "9px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  miniIconGreen: {
-    width: "35px",
-    height: "35px",
-    borderRadius: "9px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#16a34a",
-  },
-
-  miniLabel: {
-    display: "block",
-    color: "#94a3b8",
-    fontSize: "9px",
-  },
-
-  miniNumber: {
-    display: "block",
-    fontSize: "17px",
-    marginTop: "2px",
-    color: "#1e293b",
-  },
-
-  /* ================= CHART ================= */
-
-  chartCard: {
-    padding: "15px",
-    borderRadius: "14px",
-    background: "#f8fafc",
-    border:
-      "1px solid #edf1f7",
-  },
-
-  chartHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    color: "#64748b",
-    fontSize: "10px",
-  },
-
-  chartPercentage: {
-    color: "#16a34a",
-    fontWeight: "800",
-  },
-
-  chart: {
-    height: "120px",
-    display: "flex",
-    alignItems: "flex-end",
-    justifyContent: "space-around",
-    gap: "8px",
-    marginTop: "15px",
-    padding:
-      "0 8px",
-  },
-
-  bar: {
-    width: "28px",
-    borderRadius: "7px 7px 3px 3px",
-    background:
-      "linear-gradient(to top,#6366f1,#60a5fa)",
-    opacity: 0.9,
-  },
-
-  /* ================= LEAVE ================= */
-
-  leaveSummary: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    marginTop: "12px",
-    padding: "12px",
-    borderRadius: "13px",
-    background: "#fffbeb",
-    border:
-      "1px solid #fef3c7",
-  },
-
-  leaveIcon: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "9px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#fef3c7",
-  },
-
-  leaveText: {
-    flex: 1,
-  },
-
-  leaveCount: {
-    fontSize: "18px",
-    fontWeight: "900",
-    color: "#d97706",
-  },
-
-  /* ================= FLOATING CARD ================= */
-
-  floatingCard: {
+  smallPersonLeft: {
     position: "absolute",
-    zIndex: 3,
-    left: "-8px",
-    bottom: "42px",
+    zIndex: 2,
+    left: "48px",
+    top: "126px",
+    width: "95px",
+    height: "155px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+
+  smallPersonHead: {
+    width: "55px",
+    height: "55px",
+    borderRadius: "50%",
+    background: "#e2e8f0",
+    border: "5px solid #ffffff",
+    boxShadow: "0 10px 25px rgba(15,23,42,0.08)",
+  },
+
+  smallPersonBody: {
+    width: "82px",
+    height: "88px",
+    marginTop: "-5px",
+    borderRadius: "40px 40px 16px 16px",
+    background:
+      "linear-gradient(145deg,#dbeafe,#bfdbfe)",
+    boxShadow: "0 12px 25px rgba(59,130,246,0.10)",
+  },
+
+  /* =============================================================
+     SMALL PERSON RIGHT
+  ============================================================= */
+
+  smallPersonRight: {
+    position: "absolute",
+    zIndex: 2,
+    right: "48px",
+    top: "126px",
+    width: "95px",
+    height: "155px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+
+  /* =============================================================
+     INFO CARD
+  ============================================================= */
+
+  hrInfoCard: {
+    position: "absolute",
+    zIndex: 5,
+    right: "10px",
+    bottom: "55px",
     display: "flex",
     alignItems: "center",
     gap: "10px",
-    padding: "12px 15px",
-    borderRadius: "14px",
-    background: "#ffffff",
-    border:
-      "1px solid #e2e8f0",
-    boxShadow:
-      "0 15px 35px rgba(15,23,42,0.12)",
+    padding: "13px 16px",
+    borderRadius: "15px",
+    background: "rgba(255,255,255,0.96)",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 18px 40px rgba(15,23,42,0.10)",
+    backdropFilter: "blur(15px)",
   },
 
-  checkCircle: {
-    width: "32px",
-    height: "32px",
-    borderRadius: "50%",
+  hrInfoIcon: {
+    width: "34px",
+    height: "34px",
+    borderRadius: "10px",
     background: "#dcfce7",
     color: "#16a34a",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontWeight: "900",
+    fontSize: "15px",
   },
 
-  floatingTitle: {
+  hrInfoTitle: {
     display: "block",
-    fontSize: "11px",
+    fontSize: "10px",
     color: "#1e293b",
   },
 
-  floatingText: {
+  hrInfoText: {
     display: "block",
-    color: "#94a3b8",
     fontSize: "8px",
-    marginTop: "2px",
+    color: "#94a3b8",
+    marginTop: "3px",
   },
 
-  /* ================= BOTTOM ================= */
+  /* =============================================================
+     SMALL FLOATING CARD
+  ============================================================= */
+
+  hrSmallCard: {
+    position: "absolute",
+    zIndex: 5,
+    left: "18px",
+    top: "75px",
+    display: "flex",
+    alignItems: "center",
+    gap: "9px",
+    padding: "11px 14px",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.96)",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 15px 35px rgba(15,23,42,0.09)",
+  },
+
+  hrSmallIcon: {
+    width: "32px",
+    height: "32px",
+    borderRadius: "9px",
+    background: "#eef2ff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "14px",
+  },
+
+  hrSmallNumber: {
+    display: "block",
+    fontSize: "14px",
+    color: "#1e293b",
+    lineHeight: "1",
+  },
+
+  hrSmallText: {
+    display: "block",
+    fontSize: "8px",
+    color: "#94a3b8",
+    marginTop: "3px",
+  },
+
+  /* =============================================================
+     DECORATIVE DOTS
+  ============================================================= */
+
+  visualDotOne: {
+    position: "absolute",
+    width: "9px",
+    height: "9px",
+    borderRadius: "50%",
+    background: "#818cf8",
+    top: "80px",
+    right: "80px",
+    boxShadow: "0 0 0 6px rgba(129,140,248,0.10)",
+  },
+
+  visualDotTwo: {
+    position: "absolute",
+    width: "7px",
+    height: "7px",
+    borderRadius: "50%",
+    background: "#60a5fa",
+    bottom: "95px",
+    left: "70px",
+    boxShadow: "0 0 0 5px rgba(96,165,250,0.10)",
+  },
+
+  visualDotThree: {
+    position: "absolute",
+    width: "6px",
+    height: "6px",
+    borderRadius: "50%",
+    background: "#a5b4fc",
+    top: "180px",
+    right: "30px",
+  },
+
+  /* =============================================================
+     BOTTOM
+  ============================================================= */
 
   bottomSection: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(4,1fr)",
+    gridTemplateColumns: "repeat(4,1fr)",
     gap: "14px",
     paddingBottom: "40px",
   },
@@ -1091,12 +943,9 @@ const styles = {
     padding: "17px",
     borderRadius: "15px",
     background: "#ffffff",
-    border:
-      "1px solid #e5eaf2",
-    boxShadow:
-      "0 8px 25px rgba(15,23,42,0.045)",
-    transition:
-      "all 0.25s ease",
+    border: "1px solid #e5eaf2",
+    boxShadow: "0 8px 25px rgba(15,23,42,0.045)",
+    transition: "all 0.25s ease",
   },
 
   bottomIcon: {
@@ -1108,9 +957,25 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    fontSize: "17px",
   },
 
-  /* ================= FOOTER ================= */
+  bottomTitle: {
+    display: "block",
+    fontSize: "11px",
+    color: "#334155",
+  },
+
+  bottomText: {
+    display: "block",
+    fontSize: "9px",
+    color: "#94a3b8",
+    marginTop: "3px",
+  },
+
+  /* =============================================================
+     FOOTER
+  ============================================================= */
 
   footer: {
     position: "relative",
@@ -1119,16 +984,14 @@ const styles = {
     padding: "18px",
     color: "#94a3b8",
     fontSize: "10px",
-    borderTop:
-      "1px solid #e5eaf2",
-    background:
-      "rgba(255,255,255,0.55)",
+    borderTop: "1px solid #e5eaf2",
+    background: "rgba(255,255,255,0.55)",
   },
 };
 
-/* =========================================================
+/* ===============================================================
    RESPONSIVE
-========================================================= */
+================================================================ */
 
 if (typeof document !== "undefined") {
   const styleId = "home-responsive-styles";
@@ -1164,6 +1027,10 @@ if (typeof document !== "undefined") {
         transform: translateY(-2px);
       }
 
+      /* =====================================================
+         NAVBAR HOVER
+      ===================================================== */
+
       .nav-login-btn:hover {
         border-color: #bfdbfe !important;
         box-shadow:
@@ -1181,12 +1048,20 @@ if (typeof document !== "undefined") {
         border-color: #fca5a5 !important;
       }
 
+      /* =====================================================
+         BOTTOM CARDS
+      ===================================================== */
+
       .home-bottom-card:hover {
         transform: translateY(-4px);
         box-shadow:
           0 15px 35px rgba(15,23,42,0.09) !important;
         border-color: #dbe4f0 !important;
       }
+
+      /* =====================================================
+         FEATURES
+      ===================================================== */
 
       .home-feature {
         transition: transform 0.2s ease;
@@ -1196,43 +1071,58 @@ if (typeof document !== "undefined") {
         transform: translateY(-2px);
       }
 
-      .home-floating-card {
+      /* =====================================================
+         SIMPLE ILLUSTRATION ANIMATION
+      ===================================================== */
+
+      .home-hr-illustration {
         animation:
-          floatingCard 4s ease-in-out infinite;
+          hrIllustrationFloat 5s ease-in-out infinite;
       }
 
-      .home-dashboard {
+      .hr-small-card {
         animation:
-          dashboardFloat 5s ease-in-out infinite;
+          smallCardFloat 4s ease-in-out infinite;
       }
 
-      @keyframes floatingCard {
+      .hr-info-card {
+        animation:
+          infoCardFloat 4.5s ease-in-out infinite;
+      }
+
+      @keyframes hrIllustrationFloat {
         0%, 100% {
           transform: translateY(0);
         }
 
         50% {
-          transform: translateY(-8px);
+          transform: translateY(-7px);
         }
       }
 
-      @keyframes dashboardFloat {
+      @keyframes smallCardFloat {
         0%, 100% {
-          transform:
-            perspective(1000px)
-            rotateY(-5deg)
-            rotateX(2deg)
-            translateY(0);
+          transform: translateY(0);
         }
 
         50% {
-          transform:
-            perspective(1000px)
-            rotateY(-5deg)
-            rotateX(2deg)
-            translateY(-6px);
+          transform: translateY(-7px);
         }
       }
+
+      @keyframes infoCardFloat {
+        0%, 100% {
+          transform: translateY(0);
+        }
+
+        50% {
+          transform: translateY(6px);
+        }
+      }
+
+      /* =====================================================
+         1000px
+      ===================================================== */
 
       @media (max-width: 1000px) {
         .home-main {
@@ -1247,10 +1137,14 @@ if (typeof document !== "undefined") {
           font-size: 46px !important;
         }
 
-        .home-dashboard {
-          width: 390px !important;
+        .home-hr-illustration {
+          transform: scale(0.92);
         }
       }
+
+      /* =====================================================
+         850px
+      ===================================================== */
 
       @media (max-width: 850px) {
         body {
@@ -1287,7 +1181,11 @@ if (typeof document !== "undefined") {
         }
 
         .home-visual {
-          min-height: 480px !important;
+          min-height: 450px !important;
+        }
+
+        .home-hr-illustration {
+          transform: scale(0.95);
         }
 
         .home-bottom {
@@ -1295,6 +1193,10 @@ if (typeof document !== "undefined") {
             repeat(2,1fr) !important;
         }
       }
+
+      /* =====================================================
+         700px
+      ===================================================== */
 
       @media (max-width: 700px) {
         .home-navbar {
@@ -1304,10 +1206,6 @@ if (typeof document !== "undefined") {
 
         .home-main {
           width: 92% !important;
-        }
-
-        .logo-title {
-          font-size: 13px;
         }
 
         .home-logo {
@@ -1332,21 +1230,19 @@ if (typeof document !== "undefined") {
 
         .home-hero {
           padding-top: 35px !important;
-          gap: 15px !important;
+          gap: 10px !important;
         }
 
         .home-features {
           gap: 18px !important;
         }
 
-        .home-dashboard {
-          width: 100% !important;
-          max-width: 390px !important;
+        .home-visual {
+          min-height: 430px !important;
         }
 
-        .home-floating-card {
-          left: 0 !important;
-          bottom: 30px !important;
+        .home-hr-illustration {
+          transform: scale(0.82);
         }
 
         .home-bottom {
@@ -1355,17 +1251,21 @@ if (typeof document !== "undefined") {
         }
       }
 
+      /* =====================================================
+         500px
+      ===================================================== */
+
       @media (max-width: 500px) {
         .home-navbar {
           padding: 0 14px !important;
         }
 
-        .logoSubtitle {
-          display: none;
-        }
-
         .home-nav-actions {
           gap: 6px !important;
+        }
+
+        .home-nav-actions button {
+          font-size: 9px !important;
         }
 
         .home-title {
@@ -1395,36 +1295,21 @@ if (typeof document !== "undefined") {
         }
 
         .home-visual {
-          min-height: 430px !important;
+          min-height: 370px !important;
+          overflow: hidden;
         }
 
-        .home-dashboard {
-          width: 100% !important;
-          padding: 17px !important;
-          border-radius: 18px !important;
-          transform: none !important;
+        .home-hr-illustration {
+          transform: scale(0.67);
         }
 
-        .home-dashboard:hover {
-          transform: none !important;
-        }
-
-        .home-floating-card {
-          position: relative !important;
-          left: auto !important;
-          bottom: auto !important;
-          margin-top: -25px;
-          align-self: flex-start;
-          margin-left: auto;
-          margin-right: auto;
+        .home-visual-circle {
+          width: 300px !important;
+          height: 300px !important;
         }
 
         .home-bottom {
           grid-template-columns: 1fr !important;
-        }
-
-        .miniStats {
-          gap: 7px;
         }
       }
     `;
