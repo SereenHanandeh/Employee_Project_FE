@@ -33,6 +33,7 @@ export default function SelectTask() {
   const [saving, setSaving] = useState(false);
 
   const [search, setSearch] = useState("");
+  const [activeStat, setActiveStat] = useState("all");
 
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
@@ -616,11 +617,29 @@ export default function SelectTask() {
   const filteredTasks = useMemo(() => {
     const value = search.trim().toLowerCase();
 
-    if (!value) {
-      return tasks;
+    let result = tasks;
+
+    // Statistics filter
+    if (activeStat === "assigned") {
+      result = result.filter((task) => getTaskEmployeeIds(task).length > 0);
+    } else if (activeStat === "pending") {
+      result = result.filter(
+        (task) => getTaskOverallStatus(task).className === "pending",
+      );
+    } else if (activeStat === "completed") {
+      result = result.filter(
+        (task) => getTaskOverallStatus(task).className === "completed",
+      );
+    } else if (activeStat === "unassigned") {
+      result = result.filter((task) => getTaskEmployeeIds(task).length === 0);
     }
 
-    return tasks.filter((task) => {
+    // Search filter
+    if (!value) {
+      return result;
+    }
+
+    return result.filter((task) => {
       const title = String(task.title || "").toLowerCase();
 
       const description = String(task.description || "").toLowerCase();
@@ -645,7 +664,27 @@ export default function SelectTask() {
         stageNames.includes(value)
       );
     });
-  }, [tasks, search, getTaskEmployees, getTaskStages]);
+  }, [
+    tasks,
+    search,
+    activeStat,
+    getTaskEmployeeIds,
+    getTaskOverallStatus,
+    getTaskEmployees,
+    getTaskStages,
+  ]);
+
+  const handleStatClick = (stat) => {
+    setActiveStat((prev) => (prev === stat ? "all" : stat));
+  };
+
+  const activeStatLabel = {
+    all: "كل المهام",
+    assigned: "المهام المعينة",
+    pending: "المهام قيد التنفيذ",
+    completed: "المهام المكتملة",
+    unassigned: "المهام المتاحة للجميع",
+  }[activeStat];
 
   // =========================================================
   // STATISTICS
@@ -1645,7 +1684,21 @@ export default function SelectTask() {
       ====================================================== */}
 
       <div className="task-stats">
-        <div className="stat-card">
+        <div
+          className={`stat-card ${
+            activeStat === "all" ? "stat-card-active" : ""
+          }`}
+          role="button"
+          tabIndex={0}
+          onClick={() => handleStatClick("all")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleStatClick("all");
+            }
+          }}
+          title="عرض جميع المهام"
+        >
           <div className="stat-icon">📋</div>
 
           <div>
@@ -1655,7 +1708,21 @@ export default function SelectTask() {
           </div>
         </div>
 
-        <div className="stat-card">
+        <div
+          className={`stat-card ${
+            activeStat === "assigned" ? "stat-card-active" : ""
+          }`}
+          role="button"
+          tabIndex={0}
+          onClick={() => handleStatClick("assigned")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleStatClick("assigned");
+            }
+          }}
+          title="عرض المهام المعينة"
+        >
           <div className="stat-icon">👥</div>
 
           <div>
@@ -1665,7 +1732,21 @@ export default function SelectTask() {
           </div>
         </div>
 
-        <div className="stat-card">
+        <div
+          className={`stat-card ${
+            activeStat === "pending" ? "stat-card-active" : ""
+          }`}
+          role="button"
+          tabIndex={0}
+          onClick={() => handleStatClick("pending")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleStatClick("pending");
+            }
+          }}
+          title="عرض المهام قيد التنفيذ"
+        >
           <div className="stat-icon">⏳</div>
 
           <div>
@@ -1675,7 +1756,21 @@ export default function SelectTask() {
           </div>
         </div>
 
-        <div className="stat-card">
+        <div
+          className={`stat-card ${
+            activeStat === "completed" ? "stat-card-active" : ""
+          }`}
+          role="button"
+          tabIndex={0}
+          onClick={() => handleStatClick("completed")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleStatClick("completed");
+            }
+          }}
+          title="عرض المهام المكتملة"
+        >
           <div className="stat-icon">✅</div>
 
           <div>
@@ -1685,7 +1780,21 @@ export default function SelectTask() {
           </div>
         </div>
 
-        <div className="stat-card">
+        <div
+          className={`stat-card ${
+            activeStat === "unassigned" ? "stat-card-active" : ""
+          }`}
+          role="button"
+          tabIndex={0}
+          onClick={() => handleStatClick("unassigned")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleStatClick("unassigned");
+            }
+          }}
+          title="عرض المهام المتاحة لجميع الموظفين"
+        >
           <div className="stat-icon">🌐</div>
 
           <div>
@@ -1695,6 +1804,24 @@ export default function SelectTask() {
           </div>
         </div>
       </div>
+
+      {activeStat !== "all" && (
+        <div className="active-stat-filter">
+          <div>
+            <span>الفئة الحالية:</span>
+            <strong>{activeStatLabel}</strong>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setActiveStat("all")}
+            aria-label="إظهار جميع المهام"
+          >
+            عرض جميع المهام
+            <FaTimes />
+          </button>
+        </div>
+      )}
 
       {/* =====================================================
           SEARCH
@@ -1741,18 +1868,36 @@ export default function SelectTask() {
         <div className="empty-state">
           <div className="empty-icon">📋</div>
 
-          <h3>{search ? "لا توجد نتائج" : "لا توجد مهام"}</h3>
+          <h3>
+            {search
+              ? "لا توجد نتائج"
+              : activeStat !== "all"
+                ? `لا توجد ${activeStatLabel}`
+                : "لا توجد مهام"}
+          </h3>
 
           <p>
             {search
               ? "جرّب البحث باستخدام كلمة أخرى"
-              : "قم بإضافة أول مهمة من زر إضافة مهمة"}
+              : activeStat !== "all"
+                ? "جرّبي اختيار إحصائية أخرى لعرض المهام"
+                : "قم بإضافة أول مهمة من زر إضافة مهمة"}
           </p>
 
-          {!search && (
-            <button className="add-task-btn" onClick={openAddModal}>
-              ＋ إضافة مهمة
+          {activeStat !== "all" ? (
+            <button
+              type="button"
+              className="add-task-btn"
+              onClick={() => setActiveStat("all")}
+            >
+              عرض جميع المهام
             </button>
+          ) : (
+            !search && (
+              <button className="add-task-btn" onClick={openAddModal}>
+                ＋ إضافة مهمة
+              </button>
+            )
           )}
         </div>
       ) : (
