@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
-
 import "./AdminDashboard.css";
 
 export default function Dashboard() {
   const nav = useNavigate();
+
+  // =====================================================
+  // STATS
+  // =====================================================
 
   const [stats, setStats] = useState({
     employees: 0,
@@ -20,9 +23,113 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // =====================================================
+  // NOTIFICATIONS
+  // =====================================================
+
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const notificationsRef = useRef(null);
+
+  const initializedLeaveNotificationsRef = useRef(false);
+  const initializedTaskNotificationsRef = useRef(false);
+
+  // =====================================================
+  // LOAD DASHBOARD
+  // =====================================================
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // =====================================================
+  // LOAD SAVED NOTIFICATIONS
+  // =====================================================
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(
+        "adminNotificationsList"
+      );
+
+      if (saved) {
+        const parsed = JSON.parse(saved);
+
+        if (Array.isArray(parsed)) {
+          setNotifications(parsed);
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Load Admin Notifications Error:",
+        error
+      );
+
+      setNotifications([]);
+    }
+  }, []);
+
+  // =====================================================
+  // SAVE NOTIFICATIONS
+  // =====================================================
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "adminNotificationsList",
+        JSON.stringify(notifications)
+      );
+    } catch (error) {
+      console.error(
+        "Save Admin Notifications Error:",
+        error
+      );
+    }
+  }, [notifications]);
+
+  // =====================================================
+  // CLOSE NOTIFICATIONS WHEN CLICK OUTSIDE
+  // =====================================================
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target)
+      ) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
+  }, []);
+
+  // =====================================================
+  // AUTO REFRESH
+  // =====================================================
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // =====================================================
+  // FETCH DASHBOARD DATA
+  // =====================================================
 
   const fetchDashboardData = async () => {
     try {
@@ -36,7 +143,17 @@ export default function Dashboard() {
         API.get("/tasks"),
       ]);
 
-      const [empRes, deptRes, evalRes, leaveRes, taskRes] = results;
+      const [
+        empRes,
+        deptRes,
+        evalRes,
+        leaveRes,
+        taskRes,
+      ] = results;
+
+      // =====================================================
+      // EMPLOYEES
+      // =====================================================
 
       const employees =
         empRes.status === "fulfilled"
@@ -45,12 +162,20 @@ export default function Dashboard() {
             : empRes.value.data?.employees || []
           : [];
 
+      // =====================================================
+      // DEPARTMENTS
+      // =====================================================
+
       const departments =
         deptRes.status === "fulfilled"
           ? Array.isArray(deptRes.value.data)
             ? deptRes.value.data
             : deptRes.value.data?.departments || []
           : [];
+
+      // =====================================================
+      // EVALUATIONS
+      // =====================================================
 
       const evaluations =
         evalRes.status === "fulfilled"
@@ -59,12 +184,20 @@ export default function Dashboard() {
             : evalRes.value.data?.evaluations || []
           : [];
 
+      // =====================================================
+      // LEAVES
+      // =====================================================
+
       const allLeaves =
         leaveRes.status === "fulfilled"
           ? Array.isArray(leaveRes.value.data)
             ? leaveRes.value.data
             : leaveRes.value.data?.leaves || []
           : [];
+
+      // =====================================================
+      // TASKS
+      // =====================================================
 
       const allTasks =
         taskRes.status === "fulfilled"
@@ -73,40 +206,65 @@ export default function Dashboard() {
             : taskRes.value.data?.tasks || []
           : [];
 
+      // =====================================================
+      // ERRORS
+      // =====================================================
+
       if (empRes.status === "rejected") {
         console.error(
           "Employees Error:",
-          empRes.reason?.response?.data || empRes.reason
+          empRes.reason?.response?.data ||
+            empRes.reason
         );
       }
 
       if (deptRes.status === "rejected") {
         console.error(
           "Departments Error:",
-          deptRes.reason?.response?.data || deptRes.reason
+          deptRes.reason?.response?.data ||
+            deptRes.reason
         );
       }
 
       if (evalRes.status === "rejected") {
         console.error(
           "Evaluations Error:",
-          evalRes.reason?.response?.data || evalRes.reason
+          evalRes.reason?.response?.data ||
+            evalRes.reason
         );
       }
 
       if (leaveRes.status === "rejected") {
         console.error(
           "Leaves Error:",
-          leaveRes.reason?.response?.data || leaveRes.reason
+          leaveRes.reason?.response?.data ||
+            leaveRes.reason
         );
       }
 
       if (taskRes.status === "rejected") {
         console.error(
           "Tasks Error:",
-          taskRes.reason?.response?.data || taskRes.reason
+          taskRes.reason?.response?.data ||
+            taskRes.reason
         );
       }
+
+      // =====================================================
+      // CHECK NOTIFICATIONS
+      // =====================================================
+
+      if (leaveRes.status === "fulfilled") {
+        checkLeaveNotifications(allLeaves);
+      }
+
+      if (taskRes.status === "fulfilled") {
+        checkTaskNotifications(allTasks);
+      }
+
+      // =====================================================
+      // UPDATE STATS
+      // =====================================================
 
       setStats({
         employees: employees.length,
@@ -116,9 +274,29 @@ export default function Dashboard() {
         tasks: allTasks.length,
       });
 
-      setLeaves([...allLeaves].reverse().slice(0, 5));
+      // =====================================================
+      // LAST LEAVES
+      // =====================================================
 
-      setEvaluations([...evaluations].reverse().slice(0, 5));
+      setLeaves(
+        [...allLeaves]
+          .reverse()
+          .slice(0, 5)
+      );
+
+      // =====================================================
+      // LAST EVALUATIONS
+      // =====================================================
+
+      setEvaluations(
+        [...evaluations]
+          .reverse()
+          .slice(0, 5)
+      );
+
+      // =====================================================
+      // PENDING TASKS
+      // =====================================================
 
       const pendingTasks = allTasks.filter(
         (task) =>
@@ -126,13 +304,467 @@ export default function Dashboard() {
           task.status !== "مكتملة"
       );
 
-      setTasks(pendingTasks.slice(0, 5));
+      setTasks(
+        pendingTasks.slice(0, 5)
+      );
     } catch (error) {
-      console.error("Dashboard Error:", error);
+      console.error(
+        "Dashboard Error:",
+        error
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  // =====================================================
+  // ADD NOTIFICATION
+  // =====================================================
+
+  const addNotification = ({
+    id,
+    type,
+    title,
+    message,
+    referenceId = null,
+  }) => {
+    setNotifications((prev) => {
+      const exists = prev.some(
+        (notification) =>
+          notification.id === id
+      );
+
+      if (exists) {
+        return prev;
+      }
+
+      const newNotification = {
+        id,
+        type,
+        title,
+        message,
+        referenceId,
+        read: false,
+        createdAt:
+          new Date().toISOString(),
+      };
+
+      return [
+        newNotification,
+        ...prev,
+      ].slice(0, 50);
+    });
+  };
+
+  // =====================================================
+  // CHECK NEW LEAVE REQUESTS
+  // =====================================================
+
+  const checkLeaveNotifications = (
+    newLeaves
+  ) => {
+    try {
+      const storageKey =
+        "adminLeavesNotificationState";
+
+      const savedState =
+        localStorage.getItem(
+          storageKey
+        );
+
+      const previousLeaves =
+        savedState
+          ? JSON.parse(savedState)
+          : {};
+
+      const currentState = {};
+
+      newLeaves.forEach((leave) => {
+        const leaveId = String(
+          leave.leave_id
+        );
+
+        const employeeName =
+          leave.name ||
+          leave.employeeName ||
+          leave.employee?.name ||
+          "موظف";
+
+        const leaveType =
+          leave.type ||
+          "إجازة";
+
+        currentState[leaveId] = {
+          leaveId,
+          employeeId:
+            leave.employee_id,
+          employeeName,
+          type: leaveType,
+          status: leave.status,
+        };
+
+        // =================================================
+        // FIRST LOAD
+        // =================================================
+
+        if (
+          !initializedLeaveNotificationsRef.current
+        ) {
+          return;
+        }
+
+        // =================================================
+        // NEW LEAVE REQUEST
+        // =================================================
+
+        if (
+          !previousLeaves[leaveId]
+        ) {
+          addNotification({
+            id: `admin-leave-new-${leaveId}`,
+            type: "leave-new",
+            title:
+              "طلب إجازة جديد",
+            message: `الموظف ${employeeName} أرسل طلب إجازة جديد (${leaveType}).`,
+            referenceId:
+              leave.leave_id,
+          });
+        }
+      });
+
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify(currentState)
+      );
+
+      initializedLeaveNotificationsRef.current =
+        true;
+    } catch (error) {
+      console.error(
+        "Admin Leave Notification Error:",
+        error
+      );
+    }
+  };
+
+  // =====================================================
+  // CHECK EMPLOYEE TASK COMPLETION
+  // =====================================================
+
+  const checkTaskNotifications = (
+    newTasks
+  ) => {
+    try {
+      const storageKey =
+        "adminTasksNotificationState";
+
+      const savedState =
+        localStorage.getItem(
+          storageKey
+        );
+
+      const previousTasks =
+        savedState
+          ? JSON.parse(savedState)
+          : {};
+
+      const currentState = {};
+
+      newTasks.forEach((task) => {
+        const employees =
+          Array.isArray(task.employees)
+            ? task.employees
+            : [];
+
+        // =================================================
+        // TASK WITHOUT EMPLOYEES
+        // =================================================
+
+        if (employees.length === 0) {
+          return;
+        }
+
+        employees.forEach((employee) => {
+          const employeeId =
+            employee.employee_id;
+
+          if (!employeeId) {
+            return;
+          }
+
+          const taskId =
+            task.task_id;
+
+          const stateId =
+            `${taskId}-${employeeId}`;
+
+          const employeeName =
+            employee.name ||
+            "موظف";
+
+          const taskTitle =
+            task.title ||
+            "مهمة";
+
+          const status =
+            employee.status;
+
+          currentState[stateId] = {
+            taskId,
+            employeeId,
+            employeeName,
+            taskTitle,
+            status,
+          };
+
+          // =================================================
+          // FIRST LOAD
+          // =================================================
+
+          if (
+            !initializedTaskNotificationsRef.current
+          ) {
+            return;
+          }
+
+          // =================================================
+          // EMPLOYEE COMPLETED TASK
+          // =================================================
+
+          if (
+            previousTasks[stateId]?.status !==
+              "completed" &&
+            status === "completed"
+          ) {
+            addNotification({
+              id: `admin-task-completed-${stateId}`,
+              type: "task-completed",
+              title:
+                "تم إنهاء مهمة",
+              message: `الموظف ${employeeName} أنهى المهمة "${taskTitle}".`,
+              referenceId:
+                taskId,
+            });
+          }
+        });
+      });
+
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify(currentState)
+      );
+
+      initializedTaskNotificationsRef.current =
+        true;
+    } catch (error) {
+      console.error(
+        "Admin Task Notification Error:",
+        error
+      );
+    }
+  };
+
+  // =====================================================
+  // NOTIFICATION COUNT
+  // =====================================================
+
+  const unreadNotifications =
+    notifications.filter(
+      (notification) =>
+        !notification.read
+    ).length;
+
+  // =====================================================
+  // MARK NOTIFICATION AS READ
+  // =====================================================
+
+  const markNotificationAsRead = (
+    notificationId
+  ) => {
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id ===
+        notificationId
+          ? {
+              ...notification,
+              read: true,
+            }
+          : notification
+      )
+    );
+  };
+
+  // =====================================================
+  // MARK ALL AS READ
+  // =====================================================
+
+  const markAllNotificationsAsRead =
+    () => {
+      setNotifications((prev) =>
+        prev.map((notification) => ({
+          ...notification,
+          read: true,
+        }))
+      );
+    };
+
+  // =====================================================
+  // DELETE NOTIFICATION
+  // =====================================================
+
+  const deleteNotification = (
+    notificationId
+  ) => {
+    setNotifications((prev) =>
+      prev.filter(
+        (notification) =>
+          notification.id !==
+          notificationId
+      )
+    );
+  };
+
+  // =====================================================
+  // CLEAR ALL NOTIFICATIONS
+  // =====================================================
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  // =====================================================
+  // FORMAT NOTIFICATION TIME
+  // =====================================================
+
+  const formatNotificationTime = (
+    date
+  ) => {
+    if (!date) return "";
+
+    const notificationDate =
+      new Date(date);
+
+    if (
+      Number.isNaN(
+        notificationDate.getTime()
+      )
+    ) {
+      return "";
+    }
+
+    const diff =
+      Date.now() -
+      notificationDate.getTime();
+
+    const seconds = Math.floor(
+      diff / 1000
+    );
+
+    const minutes = Math.floor(
+      seconds / 60
+    );
+
+    const hours = Math.floor(
+      minutes / 60
+    );
+
+    const days = Math.floor(
+      hours / 24
+    );
+
+    if (seconds < 60) {
+      return "الآن";
+    }
+
+    if (minutes < 60) {
+      return `منذ ${minutes} دقيقة`;
+    }
+
+    if (hours < 24) {
+      return `منذ ${hours} ساعة`;
+    }
+
+    if (days < 7) {
+      return `منذ ${days} يوم`;
+    }
+
+    return notificationDate.toLocaleDateString(
+      "ar-SA"
+    );
+  };
+
+  // =====================================================
+  // NOTIFICATION ICON
+  // =====================================================
+
+  const getNotificationIcon = (
+    type
+  ) => {
+    switch (type) {
+      case "leave-new":
+        return "🏖️";
+
+      case "task-completed":
+        return "✅";
+
+      default:
+        return "🔔";
+    }
+  };
+
+  // =====================================================
+  // NOTIFICATION CLASS
+  // =====================================================
+
+  const getNotificationClass = (
+    type
+  ) => {
+    switch (type) {
+      case "task-completed":
+        return "success";
+
+      case "leave-new":
+        return "info";
+
+      default:
+        return "info";
+    }
+  };
+
+  // =====================================================
+  // NOTIFICATION CLICK
+  // =====================================================
+
+  const handleNotificationClick = (
+    notification
+  ) => {
+    markNotificationAsRead(
+      notification.id
+    );
+
+    setShowNotifications(false);
+
+    // طلب إجازة جديد
+    if (
+      notification.type ===
+      "leave-new"
+    ) {
+      nav("/leaves-list");
+      return;
+    }
+
+    // موظف أنهى مهمة
+    if (
+      notification.type ===
+      "task-completed"
+    ) {
+      nav("/tasks");
+    }
+  };
+
+  // =====================================================
+  // STAT CARDS
+  // =====================================================
 
   const statCards = [
     {
@@ -177,17 +809,21 @@ export default function Dashboard() {
     },
   ];
 
-  return (
-    <div className="dashboard" dir="rtl">
+  // =====================================================
+  // RETURN
+  // =====================================================
 
+  return (
+    <div
+      className="dashboard"
+      dir="rtl"
+    >
       {/* =====================================================
           TOP HEADER
       ===================================================== */}
 
       <header className="top-header">
-
         <div className="header-title">
-
           <div className="header-title-top">
             <span className="header-label">
               لوحة الإدارة
@@ -206,31 +842,187 @@ export default function Dashboard() {
           <p>
             أهلاً بك 👋 إليك نظرة شاملة على نظام إدارة الموظفين
           </p>
-
         </div>
 
         <div className="header-actions">
 
-          <button
-            className="notification-button"
-            onClick={() => nav("/leaves-list")}
-            title="الإجازات"
-          >
-            <span className="notification-icon">
-              🔔
-            </span>
+          {/* =================================================
+              NOTIFICATIONS
+          ================================================= */}
 
-            {stats.leaves > 0 && (
-              <span className="notification-badge">
-                {stats.leaves > 99 ? "99+" : stats.leaves}
+          <div
+            className="notification-wrapper"
+            ref={notificationsRef}
+          >
+            <button
+              className="notification-button"
+              type="button"
+              onClick={() =>
+                setShowNotifications(
+                  (prev) => !prev
+                )
+              }
+              title="الإشعارات"
+            >
+              <span className="notification-icon">
+                🔔
               </span>
+
+              {unreadNotifications >
+                0 && (
+                <span className="notification-badge">
+                  {unreadNotifications >
+                  99
+                    ? "99+"
+                    : unreadNotifications}
+                </span>
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="admin-notifications-panel">
+
+                {/* HEADER */}
+
+                <div className="admin-notifications-header">
+                  <div>
+                    <h3>
+                      الإشعارات
+                    </h3>
+
+                    <span>
+                      {unreadNotifications >
+                      0
+                        ? `${unreadNotifications} إشعار غير مقروء`
+                        : "جميع الإشعارات مقروءة"}
+                    </span>
+                  </div>
+
+                  <div className="admin-notifications-actions">
+
+                    {unreadNotifications >
+                      0 && (
+                      <button
+                        type="button"
+                        onClick={
+                          markAllNotificationsAsRead
+                        }
+                        title="تحديد الكل كمقروء"
+                      >
+                        ✓✓
+                      </button>
+                    )}
+
+                    {notifications.length >
+                      0 && (
+                      <button
+                        type="button"
+                        onClick={
+                          clearAllNotifications
+                        }
+                        title="حذف جميع الإشعارات"
+                      >
+                        🗑
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* LIST */}
+
+                <div className="admin-notifications-list">
+
+                  {notifications.length ===
+                  0 ? (
+                    <div className="admin-notifications-empty">
+                      <div>
+                        🔔
+                      </div>
+
+                      <strong>
+                        لا توجد إشعارات
+                      </strong>
+
+                      <span>
+                        ستظهر هنا طلبات الإجازات وإنجازات المهام
+                      </span>
+                    </div>
+                  ) : (
+                    notifications.map(
+                      (notification) => (
+                        <div
+                          key={
+                            notification.id
+                          }
+                          className={`admin-notification-item ${
+                            notification.read
+                              ? "read"
+                              : "unread"
+                          }`}
+                          onClick={() =>
+                            handleNotificationClick(
+                              notification
+                            )
+                          }
+                        >
+                          <div
+                            className={`admin-notification-icon ${getNotificationClass(
+                              notification.type
+                            )}`}
+                          >
+                            {getNotificationIcon(
+                              notification.type
+                            )}
+                          </div>
+
+                          <div className="admin-notification-content">
+                            <strong>
+                              {
+                                notification.title
+                              }
+                            </strong>
+
+                            <p>
+                              {
+                                notification.message
+                              }
+                            </p>
+
+                            <small>
+                              {formatNotificationTime(
+                                notification.createdAt
+                              )}
+                            </small>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="admin-notification-delete"
+                            onClick={(
+                              event
+                            ) => {
+                              event.stopPropagation();
+
+                              deleteNotification(
+                                notification.id
+                              );
+                            }}
+                            title="حذف الإشعار"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )
+                    )
+                  )}
+                </div>
+              </div>
             )}
-          </button>
+          </div>
 
           <div className="header-divider"></div>
 
           <div className="admin-profile">
-
             <div className="avatar">
               A
             </div>
@@ -246,15 +1038,11 @@ export default function Dashboard() {
             </div>
 
             <span className="profile-arrow">
-             ⌄
+              ⌄
             </span>
-
           </div>
-
         </div>
-
       </header>
-
 
       {/* =====================================================
           CONTENT
@@ -267,7 +1055,6 @@ export default function Dashboard() {
         ===================================================== */}
 
         <section className="welcome-card">
-
           <div className="welcome-decoration decoration-one"></div>
           <div className="welcome-decoration decoration-two"></div>
 
@@ -291,25 +1078,32 @@ export default function Dashboard() {
             </p>
 
             <div className="welcome-actions">
-
               <button
                 className="primary-welcome-button"
-                onClick={() => nav("/employees")}
+                onClick={() =>
+                  nav("/employees")
+                }
               >
-                <span>👨‍💼</span>
+                <span>
+                  👨‍💼
+                </span>
+
                 إدارة الموظفين
-                <b>←</b>
+
+                <b>
+                  ←
+                </b>
               </button>
 
               <button
                 className="secondary-welcome-button"
-                onClick={() => nav("/tasks")}
+                onClick={() =>
+                  nav("/tasks")
+                }
               >
                 متابعة المهام
               </button>
-
             </div>
-
           </div>
 
           <div className="welcome-visual">
@@ -317,33 +1111,48 @@ export default function Dashboard() {
             <div className="visual-glow"></div>
 
             <div className="visual-circle circle-large">
-              <span>📊</span>
+              <span>
+                📊
+              </span>
             </div>
 
             <div className="floating-card floating-card-one">
-              <span>👥</span>
+              <span>
+                👥
+              </span>
+
               <div>
-                <small>الموظفين</small>
+                <small>
+                  الموظفين
+                </small>
+
                 <strong>
-                  {loading ? "..." : stats.employees}
+                  {loading
+                    ? "..."
+                    : stats.employees}
                 </strong>
               </div>
             </div>
 
             <div className="floating-card floating-card-two">
-              <span>✓</span>
+              <span>
+                ✓
+              </span>
+
               <div>
-                <small>المهام</small>
+                <small>
+                  المهام
+                </small>
+
                 <strong>
-                  {loading ? "..." : stats.tasks}
+                  {loading
+                    ? "..."
+                    : stats.tasks}
                 </strong>
               </div>
             </div>
-
           </div>
-
         </section>
-
 
         {/* =====================================================
             STATS
@@ -368,84 +1177,75 @@ export default function Dashboard() {
                   ملخص سريع لأهم بيانات النظام
                 </p>
               </div>
-
             </div>
 
             <span className="section-count">
               5 مؤشرات رئيسية
             </span>
-
           </div>
-
 
           <div className="stats-grid">
 
-            {statCards.map((card) => (
+            {statCards.map(
+              (card) => (
+                <button
+                  key={card.title}
+                  type="button"
+                  className={`stat-card ${card.color}`}
+                  onClick={() =>
+                    nav(card.path)
+                  }
+                >
+                  <div className="stat-card-glow"></div>
 
-              <button
-                key={card.title}
-                type="button"
-                className={`stat-card ${card.color}`}
-                onClick={() => nav(card.path)}
-              >
+                  <div className="stat-top">
 
-                <div className="stat-card-glow"></div>
+                    <div className="stat-icon">
+                      {card.icon}
+                    </div>
 
-                <div className="stat-top">
-
-                  <div className="stat-icon">
-                    {card.icon}
+                    <span className="stat-arrow">
+                      ←
+                    </span>
                   </div>
 
-                  <span className="stat-arrow">
-                    ←
-                  </span>
+                  <div className="stat-content">
 
-                </div>
+                    <span className="stat-subtitle">
+                      {card.subtitle}
+                    </span>
 
-                <div className="stat-content">
+                    <div className="stat-number">
+                      {loading
+                        ? "..."
+                        : card.value}
+                    </div>
 
-                  <span className="stat-subtitle">
-                    {card.subtitle}
-                  </span>
-
-                  <div className="stat-number">
-                    {loading ? "..." : card.value}
+                    <div className="stat-title">
+                      {card.title}
+                    </div>
                   </div>
 
-                  <div className="stat-title">
-                    {card.title}
+                  <div className="stat-footer">
+                    <span>
+                      عرض التفاصيل
+                    </span>
+
+                    <span className="footer-arrow">
+                      ←
+                    </span>
                   </div>
-
-                </div>
-
-                <div className="stat-footer">
-
-                  <span>
-                    عرض التفاصيل
-                  </span>
-
-                  <span className="footer-arrow">
-                    ←
-                  </span>
-
-                </div>
-
-              </button>
-
-            ))}
-
+                </button>
+              )
+            )}
           </div>
-
         </section>
-
 
         {/* =====================================================
             THREE DASHBOARD CARDS
         ===================================================== */}
 
         <div className="dashboard-grid">
-
 
           {/* =================================================
               LEAVES
@@ -470,25 +1270,27 @@ export default function Dashboard() {
                     أحدث طلبات الإجازات
                   </span>
                 </div>
-
               </div>
 
               <button
                 className="view-all-button"
-                onClick={() => nav("/leaves-list")}
+                onClick={() =>
+                  nav("/leaves-list")
+                }
               >
                 عرض الكل
-                <span>←</span>
+                <span>
+                  ←
+                </span>
               </button>
-
             </div>
-
 
             <div className="list">
 
-              {leaves.length === 0 ? (
-
+              {leaves.length ===
+              0 ? (
                 <div className="empty">
+
                   <div className="empty-icon">
                     🏖️
                   </div>
@@ -501,86 +1303,85 @@ export default function Dashboard() {
                     ستظهر طلبات الإجازات هنا
                   </span>
                 </div>
-
               ) : (
+                leaves.map(
+                  (
+                    leave,
+                    index
+                  ) => {
+                    const status =
+                      leave.status;
 
-                leaves.map((leave, index) => {
+                    const isApproved =
+                      status ===
+                        "approved" ||
+                      status ===
+                        "مقبولة";
 
-                  const status = leave.status;
+                    const isRejected =
+                      status ===
+                        "rejected" ||
+                      status ===
+                        "مرفوضة";
 
-                  const isApproved =
-                    status === "approved" ||
-                    status === "مقبولة";
-
-                  const isRejected =
-                    status === "rejected" ||
-                    status === "مرفوضة";
-
-                  return (
-
-                    <div
-                      className="list-item"
-                      key={
-                        leave.id ||
-                        leave.leave_id ||
-                        index
-                      }
-                    >
-
-                      <div className="item-avatar leave-avatar">
-                        🏖️
-                      </div>
-
-                      <div className="item-info">
-
-                        <strong>
-                          {leave.employeeName ||
-                            leave.employee?.name ||
-                            leave.name ||
-                            "موظف"}
-                        </strong>
-
-                        <span>
-                          <span className="mini-calendar">
-                            📅
-                          </span>
-
-                          {leave.startDate ||
-                            leave.from ||
-                            "تاريخ غير محدد"}
-                        </span>
-
-                      </div>
-
-                      <span
-                        className={`status ${
-                          isApproved
-                            ? "approved"
-                            : isRejected
-                            ? "rejected"
-                            : "pending"
-                        }`}
+                    return (
+                      <div
+                        className="list-item"
+                        key={
+                          leave.id ||
+                          leave.leave_id ||
+                          index
+                        }
                       >
-                        <span className="status-dot"></span>
+                        <div className="item-avatar leave-avatar">
+                          🏖️
+                        </div>
 
-                        {isApproved
-                          ? "مقبولة"
-                          : isRejected
-                          ? "مرفوضة"
-                          : "قيد الانتظار"}
-                      </span>
+                        <div className="item-info">
 
-                    </div>
+                          <strong>
+                            {leave.employeeName ||
+                              leave.employee?.name ||
+                              leave.name ||
+                              "موظف"}
+                          </strong>
 
-                  );
-                })
+                          <span>
+                            <span className="mini-calendar">
+                              📅
+                            </span>
 
+                            {leave.startDate ||
+                              leave.from ||
+                              leave.from_date ||
+                              "تاريخ غير محدد"}
+                          </span>
+                        </div>
+
+                        <span
+                          className={`status ${
+                            isApproved
+                              ? "approved"
+                              : isRejected
+                              ? "rejected"
+                              : "pending"
+                          }`}
+                        >
+                          <span className="status-dot"></span>
+
+                          {isApproved
+                            ? "مقبولة"
+                            : isRejected
+                            ? "مرفوضة"
+                            : "قيد الانتظار"}
+                        </span>
+                      </div>
+                    );
+                  }
+                )
               )}
-
             </div>
-
           </section>
-
 
           {/* =================================================
               EVALUATIONS
@@ -605,24 +1406,25 @@ export default function Dashboard() {
                     أحدث تقييمات الموظفين
                   </span>
                 </div>
-
               </div>
 
               <button
                 className="view-all-button"
-                onClick={() => nav("/history")}
+                onClick={() =>
+                  nav("/history")
+                }
               >
                 عرض الكل
-                <span>←</span>
+                <span>
+                  ←
+                </span>
               </button>
-
             </div>
-
 
             <div className="list">
 
-              {evaluations.length === 0 ? (
-
+              {evaluations.length ===
+              0 ? (
                 <div className="empty">
 
                   <div className="empty-icon">
@@ -636,68 +1438,60 @@ export default function Dashboard() {
                   <span>
                     ستظهر التقييمات الجديدة هنا
                   </span>
-
                 </div>
-
               ) : (
+                evaluations.map(
+                  (
+                    evaluation,
+                    index
+                  ) => (
+                    <div
+                      className="list-item"
+                      key={
+                        evaluation.id ||
+                        evaluation.evaluation_id ||
+                        index
+                      }
+                    >
+                      <div className="item-avatar evaluation-avatar">
+                        📊
+                      </div>
 
-                evaluations.map((evaluation, index) => (
+                      <div className="item-info">
 
-                  <div
-                    className="list-item"
-                    key={
-                      evaluation.id ||
-                      evaluation.evaluation_id ||
-                      index
-                    }
-                  >
+                        <strong>
+                          {evaluation.employeeName ||
+                            evaluation.employee?.name ||
+                            evaluation.name ||
+                            "موظف"}
+                        </strong>
 
-                    <div className="item-avatar evaluation-avatar">
-                      📊
+                        <span>
+                          📅{" "}
+                          {evaluation.date ||
+                            evaluation.createdAt ||
+                            "تقييم حديث"}
+                        </span>
+                      </div>
+
+                      <div className="rating">
+
+                        <span className="rating-star">
+                          ★
+                        </span>
+
+                        <strong>
+                          {evaluation.rating ||
+                            evaluation.score ||
+                            "-"}
+                        </strong>
+                      </div>
                     </div>
-
-                    <div className="item-info">
-
-                      <strong>
-                        {evaluation.employeeName ||
-                          evaluation.employee?.name ||
-                          evaluation.name ||
-                          "موظف"}
-                      </strong>
-
-                      <span>
-                        📅{" "}
-                        {evaluation.date ||
-                          evaluation.createdAt ||
-                          "تقييم حديث"}
-                      </span>
-
-                    </div>
-
-                    <div className="rating">
-
-                      <span className="rating-star">
-                        ★
-                      </span>
-
-                      <strong>
-                        {evaluation.rating ||
-                          evaluation.score ||
-                          "-"}
-                      </strong>
-
-                    </div>
-
-                  </div>
-
-                ))
-
+                  )
+                )
               )}
-
             </div>
-
           </section>
-
 
           {/* =================================================
               TASKS
@@ -722,24 +1516,25 @@ export default function Dashboard() {
                     المهام التي تحتاج متابعة
                   </span>
                 </div>
-
               </div>
 
               <button
                 className="view-all-button"
-                onClick={() => nav("/tasks")}
+                onClick={() =>
+                  nav("/tasks")
+                }
               >
                 عرض الكل
-                <span>←</span>
+                <span>
+                  ←
+                </span>
               </button>
-
             </div>
-
 
             <div className="list">
 
-              {tasks.length === 0 ? (
-
+              {tasks.length ===
+              0 ? (
                 <div className="empty success">
 
                   <div className="empty-icon success-icon">
@@ -753,77 +1548,70 @@ export default function Dashboard() {
                   <span>
                     جميع المهام محدثة حالياً 🎉
                   </span>
-
                 </div>
-
               ) : (
-
-                tasks.map((task, index) => (
-
-                  <div
-                    className="task-item"
-                    key={
-                      task.task_id ||
-                      task.id ||
-                      index
-                    }
-                  >
-
-                    <div className="task-check">
-                      ○
-                    </div>
-
-                    <div className="item-info">
-
-                      <strong>
-                        {task.title ||
-                          task.name ||
-                          "مهمة بدون اسم"}
-                      </strong>
-
-                      <span>
-                        👤{" "}
-                        {task.employeeName ||
-                          task.employee?.name ||
-                          "غير محدد"}
-                      </span>
-
-                    </div>
-
-                    <span
-                      className={`task-priority ${
-                        task.priority === "high"
-                          ? "priority-high"
-                          : task.priority === "low"
-                          ? "priority-low"
-                          : "priority-medium"
-                      }`}
+                tasks.map(
+                  (
+                    task,
+                    index
+                  ) => (
+                    <div
+                      className="task-item"
+                      key={
+                        task.task_id ||
+                        task.id ||
+                        index
+                      }
                     >
+                      <div className="task-check">
+                        ○
+                      </div>
 
-                      <span className="priority-dot"></span>
+                      <div className="item-info">
 
-                      {task.priority === "high"
-                        ? "عالية"
-                        : task.priority === "low"
-                        ? "منخفضة"
-                        : "متوسطة"}
+                        <strong>
+                          {task.title ||
+                            task.name ||
+                            "مهمة بدون اسم"}
+                        </strong>
 
-                    </span>
+                        <span>
+                          👤{" "}
+                          {task.employeeName ||
+                            task.employee?.name ||
+                            "غير محدد"}
+                        </span>
+                      </div>
 
-                  </div>
+                      <span
+                        className={`task-priority ${
+                          task.priority ===
+                          "high"
+                            ? "priority-high"
+                            : task.priority ===
+                              "low"
+                            ? "priority-low"
+                            : "priority-medium"
+                        }`}
+                      >
+                        <span className="priority-dot"></span>
 
-                ))
-
+                        {task.priority ===
+                        "high"
+                          ? "عالية"
+                          : task.priority ===
+                            "low"
+                          ? "منخفضة"
+                          : "متوسطة"}
+                      </span>
+                    </div>
+                  )
+                )
               )}
-
             </div>
-
           </section>
-
         </div>
-
       </main>
-
     </div>
   );
 }

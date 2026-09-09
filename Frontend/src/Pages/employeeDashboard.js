@@ -52,8 +52,8 @@ export default function EmployeeDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const notificationsRef = useRef(null);
-  const initializedNotificationsRef = useRef(false);
-
+const initializedTaskNotificationsRef = useRef(false);
+const initializedLeaveNotificationsRef = useRef(false);
   // =====================================================
   // STAGES MODAL
   // =====================================================
@@ -138,10 +138,14 @@ export default function EmployeeDashboard() {
   // =====================================================
 
   useEffect(() => {
-    fetchEmployee();
-    fetchLeaves();
-    fetchTasks();
-  }, []);
+  const loadDashboard = async () => {
+    await fetchEmployee();
+    await fetchLeaves();
+    await fetchTasks();
+  };
+
+  loadDashboard();
+}, []);
 
   // =====================================================
   // GET EMPLOYEE
@@ -235,214 +239,242 @@ export default function EmployeeDashboard() {
   };
 
   // =====================================================
-  // POLLING
-  // =====================================================
+// POLLING
+// =====================================================
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchTasks();
-      fetchLeaves();
-    }, 15000);
+useEffect(() => {
+  const interval = setInterval(() => {
+    fetchTasks();
+    fetchLeaves();
+  }, 15000);
 
-    return () => clearInterval(interval);
-  }, []);
+  return () => clearInterval(interval);
+}, []);
 
-  // =====================================================
-  // ADD NOTIFICATION
-  // =====================================================
+// =====================================================
+// ADD NOTIFICATION
+// =====================================================
 
-  const addNotification = ({
-    id,
-    type,
-    title,
-    message,
-    referenceId = null,
-  }) => {
-    setNotifications((prev) => {
-      const exists = prev.some(
-        (notification) => notification.id === id
-      );
+const addNotification = ({
+  id,
+  type,
+  title,
+  message,
+  referenceId = null,
+}) => {
+  setNotifications((prev) => {
+    const exists = prev.some(
+      (notification) => notification.id === id
+    );
 
-      if (exists) {
-        return prev;
-      }
+    if (exists) {
+      return prev;
+    }
 
-      const newNotification = {
-        id,
-        type,
-        title,
-        message,
-        referenceId,
-        read: false,
-        createdAt: new Date().toISOString(),
+    const newNotification = {
+      id,
+      type,
+      title,
+      message,
+      referenceId,
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    return [newNotification, ...prev].slice(0, 50);
+  });
+};
+
+ // =====================================================
+// TASK NOTIFICATIONS
+// =====================================================
+
+const checkTaskNotifications = (newTasks) => {
+  try {
+    const storageKey = "employeeTasksNotificationState";
+
+    const savedState = localStorage.getItem(storageKey);
+
+    const previousTasks = savedState
+      ? JSON.parse(savedState)
+      : {};
+
+    const currentState = {};
+
+    newTasks.forEach((task) => {
+      const taskId = String(task.employee_task_id);
+
+      currentState[taskId] = {
+        taskId: task.employee_task_id,
+        taskTitle: task.title,
+        status: task.status,
+        selectedAt: task.selected_at || null,
       };
 
-      return [newNotification, ...prev].slice(0, 50);
+      // ---------------------------------------------
+      // أول تحميل للصفحة
+      // لا نريد إنشاء إشعارات للمهمات الموجودة مسبقًا
+      // ---------------------------------------------
+      if (!initializedTaskNotificationsRef.current) {
+        return;
+      }
+
+      // ---------------------------------------------
+      // مهمة جديدة
+      // ---------------------------------------------
+      if (!previousTasks[taskId]) {
+        addNotification({
+          id: `task-new-${task.employee_task_id}`,
+          type: "task-new",
+          title: "مهمة جديدة",
+          message: `تم تعيين مهمة جديدة لك: ${task.title}`,
+          referenceId: task.employee_task_id,
+        });
+
+        return;
+      }
+
+      // ---------------------------------------------
+      // المهمة أصبحت مكتملة
+      // ---------------------------------------------
+      if (
+        previousTasks[taskId].status !== "completed" &&
+        task.status === "completed"
+      ) {
+        addNotification({
+          id: `task-completed-${task.employee_task_id}`,
+          type: "task-completed",
+          title: "تم إنجاز المهمة",
+          message: `تم إكمال جميع مراحل المهمة "${task.title}".`,
+          referenceId: task.employee_task_id,
+        });
+      }
+
+      // ---------------------------------------------
+      // المهمة أعيد فتحها
+      // ---------------------------------------------
+      if (
+        previousTasks[taskId].status === "completed" &&
+        task.status !== "completed"
+      ) {
+        addNotification({
+          id: `task-reopened-${task.employee_task_id}`,
+          type: "task-reopened",
+          title: "تم إعادة فتح المهمة",
+          message: `تمت إعادة المهمة "${task.title}" إلى حالة قيد التنفيذ.`,
+          referenceId: task.employee_task_id,
+        });
+      }
     });
-  };
 
-  // =====================================================
-  // TASK NOTIFICATIONS
-  // =====================================================
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify(currentState)
+    );
 
-  const checkTaskNotifications = (newTasks) => {
-    try {
-      const storageKey = "employeeTasksNotificationState";
+    initializedTaskNotificationsRef.current = true;
+  } catch (error) {
+    console.error(
+      "Task Notification Error:",
+      error
+    );
+  }
+};
 
-      const savedState = localStorage.getItem(storageKey);
+// =====================================================
+// LEAVE NOTIFICATIONS
+// =====================================================
 
-      const previousTasks = savedState
-        ? JSON.parse(savedState)
-        : {};
+const checkLeaveNotifications = (newLeaves) => {
+  try {
+    const storageKey = "employeeLeavesNotificationState";
 
-      const currentState = {};
+    const savedState = localStorage.getItem(storageKey);
 
-      newTasks.forEach((task) => {
-        const taskId = String(task.employee_task_id);
+    const previousLeaves = savedState
+      ? JSON.parse(savedState)
+      : {};
 
-        currentState[taskId] = {
-          taskId: task.employee_task_id,
-          taskTitle: task.title,
-          status: task.status,
-          selectedAt: task.selected_at || null,
-        };
+    const currentState = {};
 
-        if (!initializedNotificationsRef.current) {
-          return;
-        }
+    newLeaves.forEach((leave) => {
+      const leaveId = String(leave.leave_id);
 
-        // NEW TASK
-        if (!previousTasks[taskId]) {
-          addNotification({
-            id: `task-new-${task.employee_task_id}`,
-            type: "task-new",
-            title: "مهمة جديدة",
-            message: `تم تعيين مهمة جديدة لك: ${task.title}`,
-            referenceId: task.employee_task_id,
-          });
+      currentState[leaveId] = {
+        leaveId: leave.leave_id,
+        type: leave.type,
+        status: leave.status,
+      };
 
-          return;
-        }
+      // ---------------------------------------------
+      // أول تحميل
+      // لا نريد إشعارًا عن الإجازات الموجودة مسبقًا
+      // ---------------------------------------------
+      if (!initializedLeaveNotificationsRef.current) {
+        return;
+      }
 
-        // TASK COMPLETED
-        if (
-          previousTasks[taskId].status !== "completed" &&
-          task.status === "completed"
-        ) {
-          addNotification({
-            id: `task-completed-${task.employee_task_id}-${Date.now()}`,
-            type: "task-completed",
-            title: "تم إنجاز المهمة",
-            message: `تم إكمال جميع مراحل المهمة "${task.title}".`,
-            referenceId: task.employee_task_id,
-          });
-        }
+      // ---------------------------------------------
+      // طلب إجازة جديد
+      // ---------------------------------------------
+      if (!previousLeaves[leaveId]) {
+        addNotification({
+          id: `leave-new-${leave.leave_id}`,
+          type: "leave-new",
+          title: "تم تسجيل طلب إجازة",
+          message: `تم تسجيل طلب إجازتك من نوع "${leave.type}".`,
+          referenceId: leave.leave_id,
+        });
 
-        // TASK REOPENED
-        if (
-          previousTasks[taskId].status === "completed" &&
-          task.status !== "completed"
-        ) {
-          addNotification({
-            id: `task-reopened-${task.employee_task_id}-${Date.now()}`,
-            type: "task-reopened",
-            title: "تم إعادة فتح المهمة",
-            message: `تمت إعادة المهمة "${task.title}" إلى حالة قيد التنفيذ.`,
-            referenceId: task.employee_task_id,
-          });
-        }
-      });
+        return;
+      }
 
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify(currentState)
-      );
+      // ---------------------------------------------
+      // تمت الموافقة
+      // ---------------------------------------------
+      if (
+        previousLeaves[leaveId].status !== "approved" &&
+        leave.status === "approved"
+      ) {
+        addNotification({
+          id: `leave-approved-${leave.leave_id}`,
+          type: "leave-approved",
+          title: "تمت الموافقة على الإجازة",
+          message: `تمت الموافقة على طلب إجازتك (${leave.type}).`,
+          referenceId: leave.leave_id,
+        });
+      }
 
-      initializedNotificationsRef.current = true;
-    } catch (error) {
-      console.error("Task Notification Error:", error);
-    }
-  };
+      // ---------------------------------------------
+      // تم الرفض
+      // ---------------------------------------------
+      if (
+        previousLeaves[leaveId].status !== "rejected" &&
+        leave.status === "rejected"
+      ) {
+        addNotification({
+          id: `leave-rejected-${leave.leave_id}`,
+          type: "leave-rejected",
+          title: "تم رفض الإجازة",
+          message: `تم رفض طلب إجازتك (${leave.type}).`,
+          referenceId: leave.leave_id,
+        });
+      }
+    });
 
-  // =====================================================
-  // LEAVE NOTIFICATIONS
-  // =====================================================
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify(currentState)
+    );
 
-  const checkLeaveNotifications = (newLeaves) => {
-    try {
-      const storageKey = "employeeLeavesNotificationState";
-
-      const savedState = localStorage.getItem(storageKey);
-
-      const previousLeaves = savedState
-        ? JSON.parse(savedState)
-        : {};
-
-      const currentState = {};
-
-      newLeaves.forEach((leave) => {
-        const leaveId = String(leave.leave_id);
-
-        currentState[leaveId] = {
-          leaveId: leave.leave_id,
-          type: leave.type,
-          status: leave.status,
-        };
-
-        if (!initializedNotificationsRef.current) {
-          return;
-        }
-
-        // NEW LEAVE
-        if (!previousLeaves[leaveId]) {
-          addNotification({
-            id: `leave-new-${leave.leave_id}`,
-            type: "leave-new",
-            title: "طلب إجازة جديد",
-            message: `تم تسجيل طلب إجازة من نوع "${leave.type}".`,
-            referenceId: leave.leave_id,
-          });
-
-          return;
-        }
-
-        // APPROVED
-        if (
-          previousLeaves[leaveId].status !== "approved" &&
-          leave.status === "approved"
-        ) {
-          addNotification({
-            id: `leave-approved-${leave.leave_id}-${Date.now()}`,
-            type: "leave-approved",
-            title: "تمت الموافقة على الإجازة",
-            message: `تمت الموافقة على طلب إجازتك (${leave.type}).`,
-            referenceId: leave.leave_id,
-          });
-        }
-
-        // REJECTED
-        if (
-          previousLeaves[leaveId].status !== "rejected" &&
-          leave.status === "rejected"
-        ) {
-          addNotification({
-            id: `leave-rejected-${leave.leave_id}-${Date.now()}`,
-            type: "leave-rejected",
-            title: "تم رفض الإجازة",
-            message: `تم رفض طلب إجازتك (${leave.type}).`,
-            referenceId: leave.leave_id,
-          });
-        }
-      });
-
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify(currentState)
-      );
-    } catch (error) {
-      console.error("Leave Notification Error:", error);
-    }
-  };
+    initializedLeaveNotificationsRef.current = true;
+  } catch (error) {
+    console.error(
+      "Leave Notification Error:",
+      error
+    );
+  }
+};
 
   // =====================================================
   // UNREAD COUNT
