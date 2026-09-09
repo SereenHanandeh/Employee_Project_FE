@@ -49,9 +49,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(
-        "adminNotificationsList"
-      );
+      const saved = localStorage.getItem("adminNotificationsList");
 
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -61,11 +59,7 @@ export default function Dashboard() {
         }
       }
     } catch (error) {
-      console.error(
-        "Load Admin Notifications Error:",
-        error
-      );
-
+      console.error("Load Admin Notifications Error:", error);
       setNotifications([]);
     }
   }, []);
@@ -81,10 +75,7 @@ export default function Dashboard() {
         JSON.stringify(notifications)
       );
     } catch (error) {
-      console.error(
-        "Save Admin Notifications Error:",
-        error
-      );
+      console.error("Save Admin Notifications Error:", error);
     }
   }, [notifications]);
 
@@ -102,16 +93,10 @@ export default function Dashboard() {
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      handleClickOutside
-    );
+    document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -128,13 +113,94 @@ export default function Dashboard() {
   }, []);
 
   // =====================================================
+  // NORMALIZE STATUS
+  // =====================================================
+
+  const normalizeStatus = (status) => {
+    if (status === null || status === undefined) {
+      return "";
+    }
+
+    return String(status).trim().toLowerCase();
+  };
+
+  // =====================================================
+  // IS TASK COMPLETED
+  // =====================================================
+
+  const isTaskCompleted = (employee, task) => {
+    const status = normalizeStatus(
+      employee?.status ??
+        employee?.task_status ??
+        task?.status ??
+        task?.task_status
+    );
+
+    const completedStatuses = [
+      "completed",
+      "complete",
+      "done",
+      "finished",
+      "success",
+      "مكتملة",
+      "مكتمل",
+      "منجزة",
+      "منجز",
+      "منتهية",
+      "منتهي",
+    ];
+
+    if (completedStatuses.includes(status)) {
+      return true;
+    }
+
+    if (
+      employee?.all_stages_completed === true ||
+      employee?.allStagesCompleted === true ||
+      employee?.stages_completed === true ||
+      employee?.stagesCompleted === true
+    ) {
+      return true;
+    }
+
+    if (
+      task?.all_stages_completed === true ||
+      task?.allStagesCompleted === true ||
+      task?.stages_completed === true ||
+      task?.stagesCompleted === true
+    ) {
+      return true;
+    }
+
+    const totalStages = Number(
+      employee?.total_stages ??
+        employee?.totalStages ??
+        task?.total_stages ??
+        task?.totalStages ??
+        0
+    );
+
+    const completedStages = Number(
+      employee?.completed_stages ??
+        employee?.completedStages ??
+        task?.completed_stages ??
+        task?.completedStages ??
+        0
+    );
+
+    if (totalStages > 0 && completedStages >= totalStages) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // =====================================================
   // FETCH DASHBOARD DATA
   // =====================================================
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true);
-
       const results = await Promise.allSettled([
         API.get("/employees"),
         API.get("/departments/active"),
@@ -177,7 +243,7 @@ export default function Dashboard() {
       // EVALUATIONS
       // =====================================================
 
-      const evaluations =
+      const evaluationsData =
         evalRes.status === "fulfilled"
           ? Array.isArray(evalRes.value.data)
             ? evalRes.value.data
@@ -213,40 +279,35 @@ export default function Dashboard() {
       if (empRes.status === "rejected") {
         console.error(
           "Employees Error:",
-          empRes.reason?.response?.data ||
-            empRes.reason
+          empRes.reason?.response?.data || empRes.reason
         );
       }
 
       if (deptRes.status === "rejected") {
         console.error(
           "Departments Error:",
-          deptRes.reason?.response?.data ||
-            deptRes.reason
+          deptRes.reason?.response?.data || deptRes.reason
         );
       }
 
       if (evalRes.status === "rejected") {
         console.error(
           "Evaluations Error:",
-          evalRes.reason?.response?.data ||
-            evalRes.reason
+          evalRes.reason?.response?.data || evalRes.reason
         );
       }
 
       if (leaveRes.status === "rejected") {
         console.error(
           "Leaves Error:",
-          leaveRes.reason?.response?.data ||
-            leaveRes.reason
+          leaveRes.reason?.response?.data || leaveRes.reason
         );
       }
 
       if (taskRes.status === "rejected") {
         console.error(
           "Tasks Error:",
-          taskRes.reason?.response?.data ||
-            taskRes.reason
+          taskRes.reason?.response?.data || taskRes.reason
         );
       }
 
@@ -269,7 +330,7 @@ export default function Dashboard() {
       setStats({
         employees: employees.length,
         departments: departments.length,
-        evaluations: evaluations.length,
+        evaluations: evaluationsData.length,
         leaves: allLeaves.length,
         tasks: allTasks.length,
       });
@@ -280,7 +341,12 @@ export default function Dashboard() {
 
       setLeaves(
         [...allLeaves]
-          .reverse()
+          .sort((a, b) => {
+            const aId = Number(a.leave_id ?? a.id ?? 0);
+            const bId = Number(b.leave_id ?? b.id ?? 0);
+
+            return bId - aId;
+          })
           .slice(0, 5)
       );
 
@@ -289,8 +355,18 @@ export default function Dashboard() {
       // =====================================================
 
       setEvaluations(
-        [...evaluations]
-          .reverse()
+        [...evaluationsData]
+          .sort((a, b) => {
+            const aId = Number(
+              a.evaluation_id ?? a.id ?? 0
+            );
+
+            const bId = Number(
+              b.evaluation_id ?? b.id ?? 0
+            );
+
+            return bId - aId;
+          })
           .slice(0, 5)
       );
 
@@ -298,20 +374,23 @@ export default function Dashboard() {
       // PENDING TASKS
       // =====================================================
 
-      const pendingTasks = allTasks.filter(
-        (task) =>
-          task.status !== "completed" &&
-          task.status !== "مكتملة"
-      );
+      const pendingTasks = allTasks.filter((task) => {
+        const employeesList = Array.isArray(task.employees)
+          ? task.employees
+          : [];
 
-      setTasks(
-        pendingTasks.slice(0, 5)
-      );
+        if (employeesList.length === 0) {
+          return !isTaskCompleted({}, task);
+        }
+
+        return employeesList.some(
+          (employee) => !isTaskCompleted(employee, task)
+        );
+      });
+
+      setTasks(pendingTasks.slice(0, 5));
     } catch (error) {
-      console.error(
-        "Dashboard Error:",
-        error
-      );
+      console.error("Dashboard Error:", error);
     } finally {
       setLoading(false);
     }
@@ -328,10 +407,13 @@ export default function Dashboard() {
     message,
     referenceId = null,
   }) => {
+    if (!id) {
+      return;
+    }
+
     setNotifications((prev) => {
       const exists = prev.some(
-        (notification) =>
-          notification.id === id
+        (notification) => notification.id === id
       );
 
       if (exists) {
@@ -345,14 +427,10 @@ export default function Dashboard() {
         message,
         referenceId,
         read: false,
-        createdAt:
-          new Date().toISOString(),
+        createdAt: new Date().toISOString(),
       };
 
-      return [
-        newNotification,
-        ...prev,
-      ].slice(0, 50);
+      return [newNotification, ...prev].slice(0, 50);
     });
   };
 
@@ -360,29 +438,26 @@ export default function Dashboard() {
   // CHECK NEW LEAVE REQUESTS
   // =====================================================
 
-  const checkLeaveNotifications = (
-    newLeaves
-  ) => {
+  const checkLeaveNotifications = (newLeaves) => {
     try {
-      const storageKey =
-        "adminLeavesNotificationState";
+      const storageKey = "adminLeavesNotificationState";
 
-      const savedState =
-        localStorage.getItem(
-          storageKey
-        );
+      const savedState = localStorage.getItem(storageKey);
 
-      const previousLeaves =
-        savedState
-          ? JSON.parse(savedState)
-          : {};
+      const previousLeaves = savedState
+        ? JSON.parse(savedState)
+        : {};
 
       const currentState = {};
 
       newLeaves.forEach((leave) => {
         const leaveId = String(
-          leave.leave_id
+          leave.leave_id ?? leave.id ?? ""
         );
+
+        if (!leaveId) {
+          return;
+        }
 
         const employeeName =
           leave.name ||
@@ -392,42 +467,70 @@ export default function Dashboard() {
 
         const leaveType =
           leave.type ||
+          leave.leave_type ||
           "إجازة";
+
+        const status = normalizeStatus(leave.status);
 
         currentState[leaveId] = {
           leaveId,
           employeeId:
-            leave.employee_id,
+            leave.employee_id ??
+            leave.employeeId,
+
           employeeName,
           type: leaveType,
-          status: leave.status,
+          status,
         };
 
-        // =================================================
-        // FIRST LOAD
-        // =================================================
+        // أول تحميل = حفظ الحالة فقط
+        if (!initializedLeaveNotificationsRef.current) {
+          return;
+        }
 
-        if (
-          !initializedLeaveNotificationsRef.current
-        ) {
+        const previous = previousLeaves[leaveId];
+
+        // طلب جديد
+        if (!previous) {
+          addNotification({
+            id: `admin-leave-new-${leaveId}`,
+            type: "leave-new",
+            title: "طلب إجازة جديد",
+            message: `الموظف ${employeeName} أرسل طلب إجازة جديد (${leaveType}).`,
+            referenceId:
+              leave.leave_id ?? leave.id,
+          });
+
           return;
         }
 
         // =================================================
-        // NEW LEAVE REQUEST
+        // تغير الطلب إلى قيد الانتظار
         // =================================================
 
+        const previousStatus = normalizeStatus(
+          previous.status
+        );
+
+        const pendingStatuses = [
+          "pending",
+          "waiting",
+          "قيد الانتظار",
+          "معلق",
+          "معلقة",
+        ];
+
         if (
-          !previousLeaves[leaveId]
+          !pendingStatuses.includes(previousStatus) &&
+          pendingStatuses.includes(status)
         ) {
           addNotification({
-            id: `admin-leave-new-${leaveId}`,
+            id: `admin-leave-pending-${leaveId}`,
             type: "leave-new",
-            title:
-              "طلب إجازة جديد",
-            message: `الموظف ${employeeName} أرسل طلب إجازة جديد (${leaveType}).`,
+            title: "طلب إجازة يحتاج مراجعة",
+            message: `طلب إجازة الموظف ${employeeName} أصبح قيد الانتظار.`,
             referenceId:
-              leave.leave_id,
+              leave.leave_id ?? leave.id,
           });
         }
       });
@@ -437,8 +540,7 @@ export default function Dashboard() {
         JSON.stringify(currentState)
       );
 
-      initializedLeaveNotificationsRef.current =
-        true;
+      initializedLeaveNotificationsRef.current = true;
     } catch (error) {
       console.error(
         "Admin Leave Notification Error:",
@@ -448,37 +550,27 @@ export default function Dashboard() {
   };
 
   // =====================================================
-  // CHECK EMPLOYEE TASK COMPLETION
+  // CHECK TASK COMPLETION
   // =====================================================
 
-  const checkTaskNotifications = (
-    newTasks
-  ) => {
+  const checkTaskNotifications = (newTasks) => {
     try {
       const storageKey =
         "adminTasksNotificationState";
 
       const savedState =
-        localStorage.getItem(
-          storageKey
-        );
+        localStorage.getItem(storageKey);
 
-      const previousTasks =
-        savedState
-          ? JSON.parse(savedState)
-          : {};
+      const previousTasks = savedState
+        ? JSON.parse(savedState)
+        : {};
 
       const currentState = {};
 
       newTasks.forEach((task) => {
-        const employees =
-          Array.isArray(task.employees)
-            ? task.employees
-            : [];
-
-        // =================================================
-        // TASK WITHOUT EMPLOYEES
-        // =================================================
+        const employees = Array.isArray(task.employees)
+          ? task.employees
+          : [];
 
         if (employees.length === 0) {
           return;
@@ -486,64 +578,74 @@ export default function Dashboard() {
 
         employees.forEach((employee) => {
           const employeeId =
-            employee.employee_id;
+            employee.employee_id ??
+            employee.employeeId;
 
           if (!employeeId) {
             return;
           }
 
           const taskId =
-            task.task_id;
+            task.task_id ??
+            task.id;
 
-          const stateId =
-            `${taskId}-${employeeId}`;
+          if (!taskId) {
+            return;
+          }
+
+          const stateId = `${taskId}-${employeeId}`;
 
           const employeeName =
             employee.name ||
+            employee.employeeName ||
             "موظف";
 
           const taskTitle =
             task.title ||
+            task.name ||
             "مهمة";
 
-          const status =
-            employee.status;
+          const completed = isTaskCompleted(
+            employee,
+            task
+          );
 
           currentState[stateId] = {
             taskId,
             employeeId,
             employeeName,
             taskTitle,
-            status,
+            status:
+              employee.status ??
+              employee.task_status ??
+              "",
+            completed,
           };
 
-          // =================================================
-          // FIRST LOAD
-          // =================================================
-
+          // أول تحميل
           if (
             !initializedTaskNotificationsRef.current
           ) {
             return;
           }
 
-          // =================================================
-          // EMPLOYEE COMPLETED TASK
-          // =================================================
+          const previous =
+            previousTasks[stateId];
 
+          const previousCompleted =
+            previous?.completed === true;
+
+          // الموظف أنهى المهمة الآن
           if (
-            previousTasks[stateId]?.status !==
-              "completed" &&
-            status === "completed"
+            !previousCompleted &&
+            completed
           ) {
             addNotification({
               id: `admin-task-completed-${stateId}`,
               type: "task-completed",
-              title:
-                "تم إنهاء مهمة",
+              title: "تم إنهاء مهمة",
               message: `الموظف ${employeeName} أنهى المهمة "${taskTitle}".`,
-              referenceId:
-                taskId,
+              referenceId: taskId,
             });
           }
         });
@@ -554,8 +656,7 @@ export default function Dashboard() {
         JSON.stringify(currentState)
       );
 
-      initializedTaskNotificationsRef.current =
-        true;
+      initializedTaskNotificationsRef.current = true;
     } catch (error) {
       console.error(
         "Admin Task Notification Error:",
@@ -570,12 +671,11 @@ export default function Dashboard() {
 
   const unreadNotifications =
     notifications.filter(
-      (notification) =>
-        !notification.read
+      (notification) => !notification.read
     ).length;
 
   // =====================================================
-  // MARK NOTIFICATION AS READ
+  // MARK ONE AS READ
   // =====================================================
 
   const markNotificationAsRead = (
@@ -583,8 +683,7 @@ export default function Dashboard() {
   ) => {
     setNotifications((prev) =>
       prev.map((notification) =>
-        notification.id ===
-        notificationId
+        notification.id === notificationId
           ? {
               ...notification,
               read: true,
@@ -598,34 +697,30 @@ export default function Dashboard() {
   // MARK ALL AS READ
   // =====================================================
 
-  const markAllNotificationsAsRead =
-    () => {
-      setNotifications((prev) =>
-        prev.map((notification) => ({
-          ...notification,
-          read: true,
-        }))
-      );
-    };
+  const markAllNotificationsAsRead = () => {
+    setNotifications((prev) =>
+      prev.map((notification) => ({
+        ...notification,
+        read: true,
+      }))
+    );
+  };
 
   // =====================================================
   // DELETE NOTIFICATION
   // =====================================================
 
-  const deleteNotification = (
-    notificationId
-  ) => {
+  const deleteNotification = (notificationId) => {
     setNotifications((prev) =>
       prev.filter(
         (notification) =>
-          notification.id !==
-          notificationId
+          notification.id !== notificationId
       )
     );
   };
 
   // =====================================================
-  // CLEAR ALL NOTIFICATIONS
+  // CLEAR ALL
   // =====================================================
 
   const clearAllNotifications = () => {
@@ -633,16 +728,15 @@ export default function Dashboard() {
   };
 
   // =====================================================
-  // FORMAT NOTIFICATION TIME
+  // FORMAT TIME
   // =====================================================
 
-  const formatNotificationTime = (
-    date
-  ) => {
-    if (!date) return "";
+  const formatNotificationTime = (date) => {
+    if (!date) {
+      return "";
+    }
 
-    const notificationDate =
-      new Date(date);
+    const notificationDate = new Date(date);
 
     if (
       Number.isNaN(
@@ -656,21 +750,10 @@ export default function Dashboard() {
       Date.now() -
       notificationDate.getTime();
 
-    const seconds = Math.floor(
-      diff / 1000
-    );
-
-    const minutes = Math.floor(
-      seconds / 60
-    );
-
-    const hours = Math.floor(
-      minutes / 60
-    );
-
-    const days = Math.floor(
-      hours / 24
-    );
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
 
     if (seconds < 60) {
       return "الآن";
@@ -694,18 +777,16 @@ export default function Dashboard() {
   };
 
   // =====================================================
-  // NOTIFICATION ICON
+  // ICON
   // =====================================================
 
-  const getNotificationIcon = (
-    type
-  ) => {
+  const getNotificationIcon = (type) => {
     switch (type) {
       case "leave-new":
         return "🏖️";
 
       case "task-completed":
-        return "✅";
+        return "✓";
 
       default:
         return "🔔";
@@ -713,12 +794,10 @@ export default function Dashboard() {
   };
 
   // =====================================================
-  // NOTIFICATION CLASS
+  // CLASS
   // =====================================================
 
-  const getNotificationClass = (
-    type
-  ) => {
+  const getNotificationClass = (type) => {
     switch (type) {
       case "task-completed":
         return "success";
@@ -732,7 +811,7 @@ export default function Dashboard() {
   };
 
   // =====================================================
-  // NOTIFICATION CLICK
+  // CLICK NOTIFICATION
   // =====================================================
 
   const handleNotificationClick = (
@@ -744,16 +823,13 @@ export default function Dashboard() {
 
     setShowNotifications(false);
 
-    // طلب إجازة جديد
     if (
-      notification.type ===
-      "leave-new"
+      notification.type === "leave-new"
     ) {
       nav("/leaves-list");
       return;
     }
 
-    // موظف أنهى مهمة
     if (
       notification.type ===
       "task-completed"
@@ -814,16 +890,16 @@ export default function Dashboard() {
   // =====================================================
 
   return (
-    <div
-      className="dashboard"
-      dir="rtl"
-    >
+    <div className="dashboard" dir="rtl">
+
       {/* =====================================================
           TOP HEADER
       ===================================================== */}
 
       <header className="top-header">
+
         <div className="header-title">
+
           <div className="header-title-top">
             <span className="header-label">
               لوحة الإدارة
@@ -835,13 +911,12 @@ export default function Dashboard() {
             </span>
           </div>
 
-          <h1>
-            لوحة التحكم
-          </h1>
+          <h1>لوحة التحكم</h1>
 
           <p>
             أهلاً بك 👋 إليك نظرة شاملة على نظام إدارة الموظفين
           </p>
+
         </div>
 
         <div className="header-actions">
@@ -854,8 +929,13 @@ export default function Dashboard() {
             className="notification-wrapper"
             ref={notificationsRef}
           >
+
             <button
-              className="notification-button"
+              className={`notification-button ${
+                unreadNotifications > 0
+                  ? "has-notifications"
+                  : ""
+              }`}
               type="button"
               onClick={() =>
                 setShowNotifications(
@@ -864,79 +944,95 @@ export default function Dashboard() {
               }
               title="الإشعارات"
             >
+
               <span className="notification-icon">
                 🔔
               </span>
 
-              {unreadNotifications >
-                0 && (
+              {unreadNotifications > 0 && (
                 <span className="notification-badge">
-                  {unreadNotifications >
-                  99
+                  {unreadNotifications > 99
                     ? "99+"
                     : unreadNotifications}
                 </span>
               )}
+
             </button>
 
             {showNotifications && (
+
               <div className="admin-notifications-panel">
 
                 {/* HEADER */}
 
                 <div className="admin-notifications-header">
-                  <div>
-                    <h3>
-                      الإشعارات
-                    </h3>
 
-                    <span>
-                      {unreadNotifications >
-                      0
-                        ? `${unreadNotifications} إشعار غير مقروء`
-                        : "جميع الإشعارات مقروءة"}
-                    </span>
+                  <div className="notifications-title-area">
+
+                    <div className="notifications-title-icon">
+                      🔔
+                    </div>
+
+                    <div>
+                      <h3>الإشعارات</h3>
+
+                      <span>
+                        {unreadNotifications > 0
+                          ? `${unreadNotifications} إشعار غير مقروء`
+                          : notifications.length > 0
+                          ? "جميع الإشعارات مقروءة"
+                          : "لا توجد إشعارات جديدة"}
+                      </span>
+                    </div>
+
                   </div>
 
                   <div className="admin-notifications-actions">
 
-                    {unreadNotifications >
-                      0 && (
+                    {unreadNotifications > 0 && (
                       <button
                         type="button"
                         onClick={
                           markAllNotificationsAsRead
                         }
                         title="تحديد الكل كمقروء"
+                        className="notification-action-button"
                       >
                         ✓✓
                       </button>
                     )}
 
-                    {notifications.length >
-                      0 && (
+                    {notifications.length > 0 && (
                       <button
                         type="button"
                         onClick={
                           clearAllNotifications
                         }
                         title="حذف جميع الإشعارات"
+                        className="notification-action-button danger"
                       >
                         🗑
                       </button>
                     )}
+
                   </div>
+
                 </div>
+
+                {/* DIVIDER */}
+
+                <div className="notifications-header-line"></div>
 
                 {/* LIST */}
 
                 <div className="admin-notifications-list">
 
-                  {notifications.length ===
-                  0 ? (
+                  {notifications.length === 0 ? (
+
                     <div className="admin-notifications-empty">
-                      <div>
-                        🔔
+
+                      <div className="empty-notification-icon">
+                        <span>🔔</span>
                       </div>
 
                       <strong>
@@ -946,14 +1042,16 @@ export default function Dashboard() {
                       <span>
                         ستظهر هنا طلبات الإجازات وإنجازات المهام
                       </span>
+
                     </div>
+
                   ) : (
+
                     notifications.map(
                       (notification) => (
+
                         <div
-                          key={
-                            notification.id
-                          }
+                          key={notification.id}
                           className={`admin-notification-item ${
                             notification.read
                               ? "read"
@@ -965,6 +1063,9 @@ export default function Dashboard() {
                             )
                           }
                         >
+
+                          {/* ICON */}
+
                           <div
                             className={`admin-notification-icon ${getNotificationClass(
                               notification.type
@@ -975,32 +1076,42 @@ export default function Dashboard() {
                             )}
                           </div>
 
+                          {/* CONTENT */}
+
                           <div className="admin-notification-content">
-                            <strong>
-                              {
-                                notification.title
-                              }
-                            </strong>
+
+                            <div className="notification-content-top">
+
+                              <strong>
+                                {notification.title}
+                              </strong>
+
+                              {!notification.read && (
+                                <span className="unread-dot"></span>
+                              )}
+
+                            </div>
 
                             <p>
-                              {
-                                notification.message
-                              }
+                              {notification.message}
                             </p>
 
-                            <small>
+                            <div className="notification-time">
+                              <span>◷</span>
+
                               {formatNotificationTime(
                                 notification.createdAt
                               )}
-                            </small>
+                            </div>
+
                           </div>
+
+                          {/* DELETE */}
 
                           <button
                             type="button"
                             className="admin-notification-delete"
-                            onClick={(
-                              event
-                            ) => {
+                            onClick={(event) => {
                               event.stopPropagation();
 
                               deleteNotification(
@@ -1011,37 +1122,57 @@ export default function Dashboard() {
                           >
                             ×
                           </button>
+
                         </div>
+
                       )
                     )
+
                   )}
+
                 </div>
+
+                {/* FOOTER */}
+
+                {notifications.length > 0 && (
+                  <div className="notifications-footer">
+                    <span>
+                      يتم تحديث الإشعارات تلقائياً
+                    </span>
+
+                    <span className="footer-live-dot">
+                      ●
+                    </span>
+                  </div>
+                )}
+
               </div>
+
             )}
+
           </div>
 
           <div className="header-divider"></div>
 
           <div className="admin-profile">
+
             <div className="avatar">
               A
             </div>
 
             <div className="profile-info">
-              <strong>
-                Admin
-              </strong>
-
-              <span>
-                مدير النظام
-              </span>
+              <strong>Admin</strong>
+              <span>مدير النظام</span>
             </div>
 
             <span className="profile-arrow">
               ⌄
             </span>
+
           </div>
+
         </div>
+
       </header>
 
       {/* =====================================================
@@ -1055,6 +1186,7 @@ export default function Dashboard() {
         ===================================================== */}
 
         <section className="welcome-card">
+
           <div className="welcome-decoration decoration-one"></div>
           <div className="welcome-decoration decoration-two"></div>
 
@@ -1078,32 +1210,25 @@ export default function Dashboard() {
             </p>
 
             <div className="welcome-actions">
+
               <button
                 className="primary-welcome-button"
-                onClick={() =>
-                  nav("/employees")
-                }
+                onClick={() => nav("/employees")}
               >
-                <span>
-                  👨‍💼
-                </span>
-
+                <span>👨‍💼</span>
                 إدارة الموظفين
-
-                <b>
-                  ←
-                </b>
+                <b>←</b>
               </button>
 
               <button
                 className="secondary-welcome-button"
-                onClick={() =>
-                  nav("/tasks")
-                }
+                onClick={() => nav("/tasks")}
               >
                 متابعة المهام
               </button>
+
             </div>
+
           </div>
 
           <div className="welcome-visual">
@@ -1111,20 +1236,15 @@ export default function Dashboard() {
             <div className="visual-glow"></div>
 
             <div className="visual-circle circle-large">
-              <span>
-                📊
-              </span>
+              <span>📊</span>
             </div>
 
             <div className="floating-card floating-card-one">
-              <span>
-                👥
-              </span>
+
+              <span>👥</span>
 
               <div>
-                <small>
-                  الموظفين
-                </small>
+                <small>الموظفين</small>
 
                 <strong>
                   {loading
@@ -1132,17 +1252,15 @@ export default function Dashboard() {
                     : stats.employees}
                 </strong>
               </div>
+
             </div>
 
             <div className="floating-card floating-card-two">
-              <span>
-                ✓
-              </span>
+
+              <span>✓</span>
 
               <div>
-                <small>
-                  المهام
-                </small>
+                <small>المهام</small>
 
                 <strong>
                   {loading
@@ -1150,8 +1268,11 @@ export default function Dashboard() {
                     : stats.tasks}
                 </strong>
               </div>
+
             </div>
+
           </div>
+
         </section>
 
         {/* =====================================================
@@ -1169,76 +1290,82 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <h2>
-                  نظرة عامة
-                </h2>
+                <h2>نظرة عامة</h2>
 
                 <p>
                   ملخص سريع لأهم بيانات النظام
                 </p>
               </div>
+
             </div>
 
             <span className="section-count">
               5 مؤشرات رئيسية
             </span>
+
           </div>
 
           <div className="stats-grid">
 
-            {statCards.map(
-              (card) => (
-                <button
-                  key={card.title}
-                  type="button"
-                  className={`stat-card ${card.color}`}
-                  onClick={() =>
-                    nav(card.path)
-                  }
-                >
-                  <div className="stat-card-glow"></div>
+            {statCards.map((card) => (
 
-                  <div className="stat-top">
+              <button
+                key={card.title}
+                type="button"
+                className={`stat-card ${card.color}`}
+                onClick={() => nav(card.path)}
+              >
 
-                    <div className="stat-icon">
-                      {card.icon}
-                    </div>
+                <div className="stat-card-glow"></div>
 
-                    <span className="stat-arrow">
-                      ←
-                    </span>
+                <div className="stat-top">
+
+                  <div className="stat-icon">
+                    {card.icon}
                   </div>
 
-                  <div className="stat-content">
+                  <span className="stat-arrow">
+                    ←
+                  </span>
 
-                    <span className="stat-subtitle">
-                      {card.subtitle}
-                    </span>
+                </div>
 
-                    <div className="stat-number">
-                      {loading
-                        ? "..."
-                        : card.value}
-                    </div>
+                <div className="stat-content">
 
-                    <div className="stat-title">
-                      {card.title}
-                    </div>
+                  <span className="stat-subtitle">
+                    {card.subtitle}
+                  </span>
+
+                  <div className="stat-number">
+                    {loading
+                      ? "..."
+                      : card.value}
                   </div>
 
-                  <div className="stat-footer">
-                    <span>
-                      عرض التفاصيل
-                    </span>
-
-                    <span className="footer-arrow">
-                      ←
-                    </span>
+                  <div className="stat-title">
+                    {card.title}
                   </div>
-                </button>
-              )
-            )}
+
+                </div>
+
+                <div className="stat-footer">
+
+                  <span>
+                    عرض التفاصيل
+                  </span>
+
+                  <span className="footer-arrow">
+                    ←
+                  </span>
+
+                </div>
+
+              </button>
+
+            ))}
+
           </div>
+
         </section>
 
         {/* =====================================================
@@ -1247,9 +1374,7 @@ export default function Dashboard() {
 
         <div className="dashboard-grid">
 
-          {/* =================================================
-              LEAVES
-          ================================================= */}
+          {/* LEAVES */}
 
           <section className="dashboard-card">
 
@@ -1262,14 +1387,13 @@ export default function Dashboard() {
                 </div>
 
                 <div>
-                  <h2>
-                    آخر الإجازات
-                  </h2>
+                  <h2>آخر الإجازات</h2>
 
                   <span>
                     أحدث طلبات الإجازات
                   </span>
                 </div>
+
               </div>
 
               <button
@@ -1279,16 +1403,15 @@ export default function Dashboard() {
                 }
               >
                 عرض الكل
-                <span>
-                  ←
-                </span>
+                <span>←</span>
               </button>
+
             </div>
 
             <div className="list">
 
-              {leaves.length ===
-              0 ? (
+              {leaves.length === 0 ? (
+
                 <div className="empty">
 
                   <div className="empty-icon">
@@ -1302,29 +1425,29 @@ export default function Dashboard() {
                   <span>
                     ستظهر طلبات الإجازات هنا
                   </span>
+
                 </div>
+
               ) : (
+
                 leaves.map(
-                  (
-                    leave,
-                    index
-                  ) => {
+                  (leave, index) => {
+
                     const status =
-                      leave.status;
+                      normalizeStatus(
+                        leave.status
+                      );
 
                     const isApproved =
-                      status ===
-                        "approved" ||
-                      status ===
-                        "مقبولة";
+                      status === "approved" ||
+                      status === "مقبولة";
 
                     const isRejected =
-                      status ===
-                        "rejected" ||
-                      status ===
-                        "مرفوضة";
+                      status === "rejected" ||
+                      status === "مرفوضة";
 
                     return (
+
                       <div
                         className="list-item"
                         key={
@@ -1333,6 +1456,7 @@ export default function Dashboard() {
                           index
                         }
                       >
+
                         <div className="item-avatar leave-avatar">
                           🏖️
                         </div>
@@ -1356,6 +1480,7 @@ export default function Dashboard() {
                               leave.from_date ||
                               "تاريخ غير محدد"}
                           </span>
+
                         </div>
 
                         <span
@@ -1367,6 +1492,7 @@ export default function Dashboard() {
                               : "pending"
                           }`}
                         >
+
                           <span className="status-dot"></span>
 
                           {isApproved
@@ -1374,18 +1500,22 @@ export default function Dashboard() {
                             : isRejected
                             ? "مرفوضة"
                             : "قيد الانتظار"}
+
                         </span>
+
                       </div>
+
                     );
                   }
                 )
+
               )}
+
             </div>
+
           </section>
 
-          {/* =================================================
-              EVALUATIONS
-          ================================================= */}
+          {/* EVALUATIONS */}
 
           <section className="dashboard-card">
 
@@ -1398,14 +1528,13 @@ export default function Dashboard() {
                 </div>
 
                 <div>
-                  <h2>
-                    آخر التقييمات
-                  </h2>
+                  <h2>آخر التقييمات</h2>
 
                   <span>
                     أحدث تقييمات الموظفين
                   </span>
                 </div>
+
               </div>
 
               <button
@@ -1415,16 +1544,15 @@ export default function Dashboard() {
                 }
               >
                 عرض الكل
-                <span>
-                  ←
-                </span>
+                <span>←</span>
               </button>
+
             </div>
 
             <div className="list">
 
-              {evaluations.length ===
-              0 ? (
+              {evaluations.length === 0 ? (
+
                 <div className="empty">
 
                   <div className="empty-icon">
@@ -1438,13 +1566,14 @@ export default function Dashboard() {
                   <span>
                     ستظهر التقييمات الجديدة هنا
                   </span>
+
                 </div>
+
               ) : (
+
                 evaluations.map(
-                  (
-                    evaluation,
-                    index
-                  ) => (
+                  (evaluation, index) => (
+
                     <div
                       className="list-item"
                       key={
@@ -1453,6 +1582,7 @@ export default function Dashboard() {
                         index
                       }
                     >
+
                       <div className="item-avatar evaluation-avatar">
                         📊
                       </div>
@@ -1470,8 +1600,10 @@ export default function Dashboard() {
                           📅{" "}
                           {evaluation.date ||
                             evaluation.createdAt ||
+                            evaluation.created_at ||
                             "تقييم حديث"}
                         </span>
+
                       </div>
 
                       <div className="rating">
@@ -1483,19 +1615,24 @@ export default function Dashboard() {
                         <strong>
                           {evaluation.rating ||
                             evaluation.score ||
+                            evaluation.percentage ||
                             "-"}
                         </strong>
+
                       </div>
+
                     </div>
+
                   )
                 )
+
               )}
+
             </div>
+
           </section>
 
-          {/* =================================================
-              TASKS
-          ================================================= */}
+          {/* TASKS */}
 
           <section className="dashboard-card">
 
@@ -1508,14 +1645,13 @@ export default function Dashboard() {
                 </div>
 
                 <div>
-                  <h2>
-                    المهام المعلقة
-                  </h2>
+                  <h2>المهام المعلقة</h2>
 
                   <span>
                     المهام التي تحتاج متابعة
                   </span>
                 </div>
+
               </div>
 
               <button
@@ -1525,16 +1661,15 @@ export default function Dashboard() {
                 }
               >
                 عرض الكل
-                <span>
-                  ←
-                </span>
+                <span>←</span>
               </button>
+
             </div>
 
             <div className="list">
 
-              {tasks.length ===
-              0 ? (
+              {tasks.length === 0 ? (
+
                 <div className="empty success">
 
                   <div className="empty-icon success-icon">
@@ -1548,13 +1683,14 @@ export default function Dashboard() {
                   <span>
                     جميع المهام محدثة حالياً 🎉
                   </span>
+
                 </div>
+
               ) : (
+
                 tasks.map(
-                  (
-                    task,
-                    index
-                  ) => (
+                  (task, index) => (
+
                     <div
                       className="task-item"
                       key={
@@ -1563,6 +1699,7 @@ export default function Dashboard() {
                         index
                       }
                     >
+
                       <div className="task-check">
                         ○
                       </div>
@@ -1581,37 +1718,44 @@ export default function Dashboard() {
                             task.employee?.name ||
                             "غير محدد"}
                         </span>
+
                       </div>
 
                       <span
                         className={`task-priority ${
-                          task.priority ===
-                          "high"
+                          task.priority === "high"
                             ? "priority-high"
-                            : task.priority ===
-                              "low"
+                            : task.priority === "low"
                             ? "priority-low"
                             : "priority-medium"
                         }`}
                       >
+
                         <span className="priority-dot"></span>
 
-                        {task.priority ===
-                        "high"
+                        {task.priority === "high"
                           ? "عالية"
-                          : task.priority ===
-                            "low"
+                          : task.priority === "low"
                           ? "منخفضة"
                           : "متوسطة"}
+
                       </span>
+
                     </div>
+
                   )
                 )
+
               )}
+
             </div>
+
           </section>
+
         </div>
+
       </main>
+
     </div>
   );
 }
