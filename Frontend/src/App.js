@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./Pages/home";
 import Login from "./Pages/login";
+import WelcomeEmployee from "./Pages/WelcomeEmployee";
 
 // ================= EVALUATION =================
 
@@ -93,6 +94,8 @@ function App() {
         ===================================================== */}
 
         <Route element={<ProtectedRoute allowedRoles={["employee"]} />}>
+          <Route path="/employee/welcome" element={<WelcomeEmployee />} />
+
           <Route path="/employee" element={<EmployeeDashboard />} />
 
           <Route path="/employee/settings" element={<EmployeeSettings />} />

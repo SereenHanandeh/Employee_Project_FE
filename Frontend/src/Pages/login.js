@@ -23,7 +23,7 @@ export default function Login() {
   // =========================
 
   const [email, setEmail] = useState(
-    localStorage.getItem("rememberEmail") || ""
+    localStorage.getItem("rememberEmail") || "",
   );
 
   const [password, setPassword] = useState("");
@@ -31,7 +31,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [remember, setRemember] = useState(
-    Boolean(localStorage.getItem("rememberEmail"))
+    Boolean(localStorage.getItem("rememberEmail")),
   );
 
   const [error, setError] = useState("");
@@ -280,10 +280,7 @@ export default function Login() {
       // =========================
 
       if (remember) {
-        localStorage.setItem(
-          "rememberEmail",
-          email.trim()
-        );
+        localStorage.setItem("rememberEmail", email.trim());
       } else {
         localStorage.removeItem("rememberEmail");
       }
@@ -294,21 +291,15 @@ export default function Login() {
 
       if (user.role === "admin") {
         nav("/admin-dashboard");
+      } else if (user.role === "employee" && !user.welcome_seen) {
+        nav("/employee/welcome");
       } else {
         nav("/employee");
       }
     } catch (err) {
       console.error("Login Error:", err);
 
-      /*
-        مهم:
-        لا نكشف للمستخدم هل الإيميل موجود أو لا،
-        ولا نقول إن كلمة المرور هي الخطأ تحديدًا.
-      */
-
-      setError(
-        "البريد الإلكتروني أو كلمة المرور غير صحيحة"
-      );
+      setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
     } finally {
       setLoading(false);
     }
@@ -340,7 +331,6 @@ export default function Login() {
 
   return (
     <div style={styles.wrapper} className="login-wrapper">
-
       {/* =========================================
           BACKGROUND
       ========================================= */}
@@ -376,26 +366,19 @@ export default function Login() {
       ========================================= */}
 
       <div style={styles.mainContainer}>
-
         {/* =======================================
             LEFT / BRAND PANEL
         ======================================= */}
 
-        <div
-          style={styles.leftPanel}
-          className="login-left-panel"
-        >
+        <div style={styles.leftPanel} className="login-left-panel">
           <div style={styles.leftContent}>
-
             {/* Logo */}
 
             <div style={styles.brandLogo}>
               <span>HR</span>
             </div>
 
-            <div style={styles.brandSmallTitle}>
-              نظام الموارد البشرية
-            </div>
+            <div style={styles.brandSmallTitle}>نظام الموارد البشرية</div>
 
             <h2 style={styles.brandTitle}>
               إدارة فريقك
@@ -404,41 +387,30 @@ export default function Login() {
             </h2>
 
             <p style={styles.brandDescription}>
-              منصة متكاملة تساعدك على إدارة الموظفين
-              والإجازات والمهام وتقييم الأداء من مكان واحد.
+              منصة متكاملة تساعدك على إدارة الموظفين والإجازات والمهام وتقييم
+              الأداء من مكان واحد.
             </p>
 
             {/* Features */}
 
             <div style={styles.featuresList}>
-
-              <div
-                style={styles.featureItem}
-                className="login-feature"
-              >
+              <div style={styles.featureItem} className="login-feature">
                 <div style={styles.featureIcon}>
                   <FaUsers />
                 </div>
 
                 <div>
-                  <div style={styles.featureTitle}>
-                    إدارة الموظفين
-                  </div>
+                  <div style={styles.featureTitle}>إدارة الموظفين</div>
 
                   <div style={styles.featureText}>
                     بيانات الموظفين في مكان واحد
                   </div>
                 </div>
 
-                <FaCheckCircle
-                  style={styles.checkIcon}
-                />
+                <FaCheckCircle style={styles.checkIcon} />
               </div>
 
-              <div
-                style={styles.featureItem}
-                className="login-feature"
-              >
+              <div style={styles.featureItem} className="login-feature">
                 <div
                   style={{
                     ...styles.featureIcon,
@@ -450,13 +422,9 @@ export default function Login() {
                 </div>
 
                 <div>
-                  <div style={styles.featureTitle}>
-                    متابعة الأداء
-                  </div>
+                  <div style={styles.featureTitle}>متابعة الأداء</div>
 
-                  <div style={styles.featureText}>
-                    تقييم ومتابعة أداء فريقك
-                  </div>
+                  <div style={styles.featureText}>تقييم ومتابعة أداء فريقك</div>
                 </div>
 
                 <FaCheckCircle
@@ -467,10 +435,7 @@ export default function Login() {
                 />
               </div>
 
-              <div
-                style={styles.featureItem}
-                className="login-feature"
-              >
+              <div style={styles.featureItem} className="login-feature">
                 <div
                   style={{
                     ...styles.featureIcon,
@@ -482,9 +447,7 @@ export default function Login() {
                 </div>
 
                 <div>
-                  <div style={styles.featureTitle}>
-                    تنظيم العمل
-                  </div>
+                  <div style={styles.featureTitle}>تنظيم العمل</div>
 
                   <div style={styles.featureText}>
                     أقسام ومهام وإجازات بشكل منظم
@@ -498,30 +461,21 @@ export default function Login() {
                   }}
                 />
               </div>
-
             </div>
 
             {/* Floating mini card */}
 
-            <div
-              style={styles.floatingCard}
-              className="login-floating"
-            >
+            <div style={styles.floatingCard} className="login-floating">
               <div style={styles.floatingIcon}>
                 <FaShieldAlt />
               </div>
 
               <div>
-                <div style={styles.floatingTitle}>
-                  بيئة آمنة
-                </div>
+                <div style={styles.floatingTitle}>بيئة آمنة</div>
 
-                <div style={styles.floatingText}>
-                  بياناتك محمية وآمنة
-                </div>
+                <div style={styles.floatingText}>بياناتك محمية وآمنة</div>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -529,29 +483,17 @@ export default function Login() {
             RIGHT / LOGIN
         ======================================= */}
 
-        <div
-          style={styles.mainArea}
-          className="login-main-area"
-        >
-
-          <div
-            style={styles.card}
-            className="login-card login-card-animation"
-          >
-
+        <div style={styles.mainArea} className="login-main-area">
+          <div style={styles.card} className="login-card login-card-animation">
             {/* ===================================
                 LOGO MOBILE
             =================================== */}
 
             <div style={styles.mobileLogo}>
-              <div style={styles.mobileLogoBox}>
-                HR
-              </div>
+              <div style={styles.mobileLogoBox}>HR</div>
 
               <div>
-                <div style={styles.mobileBrandTitle}>
-                  نظام الموارد البشرية
-                </div>
+                <div style={styles.mobileBrandTitle}>نظام الموارد البشرية</div>
 
                 <div style={styles.mobileBrandSubtitle}>
                   Employee Management System
@@ -564,20 +506,14 @@ export default function Login() {
             =================================== */}
 
             <div style={styles.header}>
-
               <div style={styles.welcomeBadge}>
                 <span style={styles.badgeDot} />
                 مرحباً بك من جديد
               </div>
 
-              <h1 style={styles.title}>
-                تسجيل الدخول
-              </h1>
+              <h1 style={styles.title}>تسجيل الدخول</h1>
 
-              <p style={styles.subtitle}>
-                أدخل بياناتك للوصول إلى حسابك
-              </p>
-
+              <p style={styles.subtitle}>أدخل بياناتك للوصول إلى حسابك</p>
             </div>
 
             {/* ===================================
@@ -590,13 +526,9 @@ export default function Login() {
               </div>
 
               <div>
-                <div style={styles.securityTitle}>
-                  تسجيل دخول آمن
-                </div>
+                <div style={styles.securityTitle}>تسجيل دخول آمن</div>
 
-                <div style={styles.securityText}>
-                  معلوماتك محمية ومشفرة
-                </div>
+                <div style={styles.securityText}>معلوماتك محمية ومشفرة</div>
               </div>
             </div>
 
@@ -605,20 +537,13 @@ export default function Login() {
             =================================== */}
 
             <div style={styles.fieldContainer}>
-
-              <label style={styles.label}>
-                البريد الإلكتروني
-              </label>
+              <label style={styles.label}>البريد الإلكتروني</label>
 
               <div
                 style={{
                   ...styles.inputBox,
-                  ...(focusedField === "email"
-                    ? styles.inputFocused
-                    : {}),
-                  ...(error && !email.trim()
-                    ? styles.inputError
-                    : {}),
+                  ...(focusedField === "email" ? styles.inputFocused : {}),
+                  ...(error && !email.trim() ? styles.inputError : {}),
                 }}
               >
                 <div
@@ -640,12 +565,8 @@ export default function Login() {
                     setEmail(e.target.value);
                     clearError();
                   }}
-                  onFocus={() =>
-                    setFocusedField("email")
-                  }
-                  onBlur={() =>
-                    setFocusedField("")
-                  }
+                  onFocus={() => setFocusedField("email")}
+                  onBlur={() => setFocusedField("")}
                   onKeyDown={handleKeyDown}
                   style={styles.input}
                   className="login-page-input"
@@ -653,7 +574,6 @@ export default function Login() {
                   dir="ltr"
                 />
               </div>
-
             </div>
 
             {/* ===================================
@@ -661,23 +581,15 @@ export default function Login() {
             =================================== */}
 
             <div style={styles.fieldContainer}>
-
-              <label style={styles.label}>
-                كلمة المرور
-              </label>
+              <label style={styles.label}>كلمة المرور</label>
 
               <div
                 style={{
                   ...styles.inputBox,
-                  ...(focusedField === "password"
-                    ? styles.inputFocused
-                    : {}),
-                  ...(error && !password
-                    ? styles.inputError
-                    : {}),
+                  ...(focusedField === "password" ? styles.inputFocused : {}),
+                  ...(error && !password ? styles.inputError : {}),
                 }}
               >
-
                 <div
                   style={{
                     ...styles.inputIcon,
@@ -690,23 +602,15 @@ export default function Login() {
                 </div>
 
                 <input
-                  type={
-                    showPassword
-                      ? "text"
-                      : "password"
-                  }
+                  type={showPassword ? "text" : "password"}
                   placeholder="أدخل كلمة المرور"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     clearError();
                   }}
-                  onFocus={() =>
-                    setFocusedField("password")
-                  }
-                  onBlur={() =>
-                    setFocusedField("")
-                  }
+                  onFocus={() => setFocusedField("password")}
+                  onBlur={() => setFocusedField("")}
                   onKeyDown={handleKeyDown}
                   style={styles.input}
                   className="login-page-input"
@@ -716,25 +620,15 @@ export default function Login() {
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowPassword(!showPassword)
-                  }
+                  onClick={() => setShowPassword(!showPassword)}
                   style={styles.eyeButton}
                   aria-label={
-                    showPassword
-                      ? "إخفاء كلمة المرور"
-                      : "إظهار كلمة المرور"
+                    showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
                   }
                 >
-                  {showPassword ? (
-                    <FaEyeSlash />
-                  ) : (
-                    <FaEye />
-                  )}
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
-
               </div>
-
             </div>
 
             {/* ===================================
@@ -742,42 +636,28 @@ export default function Login() {
             =================================== */}
 
             <div style={styles.options}>
-
               <label style={styles.rememberLabel}>
-
                 <input
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => {
-                    const checked =
-                      e.target.checked;
+                    const checked = e.target.checked;
 
                     setRemember(checked);
 
                     if (!checked) {
-                      localStorage.removeItem(
-                        "rememberEmail"
-                      );
+                      localStorage.removeItem("rememberEmail");
                     } else if (email.trim()) {
-                      localStorage.setItem(
-                        "rememberEmail",
-                        email.trim()
-                      );
+                      localStorage.setItem("rememberEmail", email.trim());
                     }
                   }}
                   className="login-checkbox"
                 />
 
-                <span>
-                  تذكر البريد الإلكتروني
-                </span>
-
+                <span>تذكر البريد الإلكتروني</span>
               </label>
 
-              <span style={styles.rememberHint}>
-                لن يتم حفظ كلمة المرور
-              </span>
-
+              <span style={styles.rememberHint}>لن يتم حفظ كلمة المرور</span>
             </div>
 
             {/* ===================================
@@ -786,21 +666,13 @@ export default function Login() {
 
             {error && (
               <div style={styles.errorBox}>
-
-                <div style={styles.errorIcon}>
-                  !
-                </div>
+                <div style={styles.errorIcon}>!</div>
 
                 <div style={styles.errorContent}>
-                  <div style={styles.errorTitle}>
-                    تعذر تسجيل الدخول
-                  </div>
+                  <div style={styles.errorTitle}>تعذر تسجيل الدخول</div>
 
-                  <div style={styles.errorText}>
-                    {error}
-                  </div>
+                  <div style={styles.errorText}>{error}</div>
                 </div>
-
               </div>
             )}
 
@@ -814,38 +686,29 @@ export default function Login() {
               disabled={loading}
               style={{
                 ...styles.button,
-                ...(loading
-                  ? styles.buttonDisabled
-                  : {}),
+                ...(loading ? styles.buttonDisabled : {}),
               }}
               className="login-page-button"
             >
-
               {loading ? (
                 <>
                   <span style={styles.spinner} />
 
-                  <span>
-                    جاري تسجيل الدخول...
-                  </span>
+                  <span>جاري تسجيل الدخول...</span>
                 </>
               ) : (
                 <>
-                  <span>
-                    تسجيل الدخول
-                  </span>
+                  <span>تسجيل الدخول</span>
 
                   <span style={styles.buttonArrow}>
                     <FaArrowRight
                       style={{
-                        transform:
-                          "rotate(180deg)",
+                        transform: "rotate(180deg)",
                       }}
                     />
                   </span>
                 </>
               )}
-
             </button>
 
             {/* ===================================
@@ -853,47 +716,30 @@ export default function Login() {
             =================================== */}
 
             <div style={styles.footer}>
-
               <div style={styles.footerIcon}>
                 <FaUsers />
               </div>
 
               <div style={{ flex: 1 }}>
-
-                <div style={styles.footerTitle}>
-                  نظام إدارة الموظفين
-                </div>
+                <div style={styles.footerTitle}>نظام إدارة الموظفين</div>
 
                 <div style={styles.footerText}>
-                  إدارة الموظفين والأداء والإجازات
-                  والمهام بسهولة
+                  إدارة الموظفين والأداء والإجازات والمهام بسهولة
                 </div>
-
               </div>
 
-              <FaShieldAlt
-                style={styles.footerShield}
-              />
-
+              <FaShieldAlt style={styles.footerShield} />
             </div>
-
           </div>
 
           {/* COPYRIGHT */}
 
-          <div
-            style={styles.copyright}
-            className="login-copyright"
-          >
+          <div style={styles.copyright} className="login-copyright">
             © 2026 نظام إدارة الموظفين
-            <span style={styles.copyrightDot}>
-              •
-            </span>
+            <span style={styles.copyrightDot}>•</span>
             جميع الحقوق محفوظة
           </div>
-
         </div>
-
       </div>
     </div>
   );
@@ -920,8 +766,7 @@ const styles = {
     boxSizing: "border-box",
     background:
       "linear-gradient(135deg, #f8faff 0%, #f1f4ff 48%, #f9fbff 100%)",
-    fontFamily:
-      "Cairo, Tahoma, Arial, sans-serif",
+    fontFamily: "Cairo, Tahoma, Arial, sans-serif",
     direction: "rtl",
   },
 
@@ -934,8 +779,7 @@ const styles = {
     width: "550px",
     height: "550px",
     borderRadius: "50%",
-    background:
-      "rgba(99, 102, 241, 0.12)",
+    background: "rgba(99, 102, 241, 0.12)",
     filter: "blur(100px)",
     top: "-280px",
     right: "-180px",
@@ -947,8 +791,7 @@ const styles = {
     width: "500px",
     height: "500px",
     borderRadius: "50%",
-    background:
-      "rgba(59, 130, 246, 0.09)",
+    background: "rgba(59, 130, 246, 0.09)",
     filter: "blur(100px)",
     bottom: "-280px",
     left: "-180px",
@@ -960,8 +803,7 @@ const styles = {
     width: "280px",
     height: "280px",
     borderRadius: "50%",
-    background:
-      "rgba(139, 92, 246, 0.07)",
+    background: "rgba(139, 92, 246, 0.07)",
     filter: "blur(80px)",
     top: "35%",
     left: "38%",
@@ -993,16 +835,14 @@ const styles = {
     padding: "10px 16px",
     borderRadius: "12px",
     border: "1px solid rgba(226,232,240,0.9)",
-    background:
-      "rgba(255,255,255,0.75)",
+    background: "rgba(255,255,255,0.75)",
     backdropFilter: "blur(12px)",
     color: "#64748b",
     cursor: "pointer",
     fontFamily: "inherit",
     fontWeight: "700",
     fontSize: "11px",
-    boxShadow:
-      "0 8px 25px rgba(15,23,42,0.05)",
+    boxShadow: "0 8px 25px rgba(15,23,42,0.05)",
   },
 
   // =========================
@@ -1019,12 +859,9 @@ const styles = {
     zIndex: 2,
     borderRadius: "32px",
     overflow: "hidden",
-    background:
-      "rgba(255,255,255,0.80)",
-    border:
-      "1px solid rgba(255,255,255,0.9)",
-    boxShadow:
-      "0 35px 100px rgba(30,41,100,0.13)",
+    background: "rgba(255,255,255,0.80)",
+    border: "1px solid rgba(255,255,255,0.9)",
+    boxShadow: "0 35px 100px rgba(30,41,100,0.13)",
     backdropFilter: "blur(20px)",
   },
 
@@ -1060,12 +897,9 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background:
-      "rgba(255,255,255,0.14)",
-    border:
-      "1px solid rgba(255,255,255,0.22)",
-    boxShadow:
-      "0 12px 30px rgba(0,0,0,0.12)",
+    background: "rgba(255,255,255,0.14)",
+    border: "1px solid rgba(255,255,255,0.22)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
     marginBottom: "20px",
     backdropFilter: "blur(10px)",
   },
@@ -1091,8 +925,7 @@ const styles = {
   },
 
   brandDescription: {
-    margin:
-      "18px 0 30px",
+    margin: "18px 0 30px",
     color: "rgba(255,255,255,0.75)",
     fontSize: "12px",
     lineHeight: "2",
@@ -1111,10 +944,8 @@ const styles = {
     gap: "12px",
     padding: "11px 13px",
     borderRadius: "15px",
-    background:
-      "rgba(255,255,255,0.075)",
-    border:
-      "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.075)",
+    border: "1px solid rgba(255,255,255,0.08)",
   },
 
   featureIcon: {
@@ -1157,13 +988,10 @@ const styles = {
     gap: "10px",
     padding: "11px 14px",
     borderRadius: "14px",
-    background:
-      "rgba(255,255,255,0.11)",
-    border:
-      "1px solid rgba(255,255,255,0.15)",
+    background: "rgba(255,255,255,0.11)",
+    border: "1px solid rgba(255,255,255,0.15)",
     backdropFilter: "blur(14px)",
-    boxShadow:
-      "0 15px 35px rgba(0,0,0,0.12)",
+    boxShadow: "0 15px 35px rgba(0,0,0,0.12)",
   },
 
   floatingIcon: {
@@ -1173,8 +1001,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background:
-      "rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.16)",
     color: "#c7d2fe",
     fontSize: "12px",
   },
@@ -1202,8 +1029,7 @@ const styles = {
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    background:
-      "rgba(255,255,255,0.92)",
+    background: "rgba(255,255,255,0.92)",
     position: "relative",
     padding: "50px 45px 40px",
     boxSizing: "border-box",
@@ -1237,13 +1063,11 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background:
-      "linear-gradient(135deg,#6366f1,#8b5cf6)",
+    background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
     color: "#fff",
     fontSize: "15px",
     fontWeight: "900",
-    boxShadow:
-      "0 8px 20px rgba(99,102,241,0.20)",
+    boxShadow: "0 8px 20px rgba(99,102,241,0.20)",
   },
 
   mobileBrandTitle: {
@@ -1285,8 +1109,7 @@ const styles = {
     height: "6px",
     borderRadius: "50%",
     background: "#6366f1",
-    animation:
-      "loginPulse 2s infinite",
+    animation: "loginPulse 2s infinite",
   },
 
   title: {
@@ -1316,10 +1139,8 @@ const styles = {
     padding: "11px 13px",
     marginBottom: "22px",
     borderRadius: "14px",
-    background:
-      "linear-gradient(135deg,#f0fdf9,#f7fffc)",
-    border:
-      "1px solid #d5f5e8",
+    background: "linear-gradient(135deg,#f0fdf9,#f7fffc)",
+    border: "1px solid #d5f5e8",
   },
 
   securityIcon: {
@@ -1372,24 +1193,19 @@ const styles = {
     boxSizing: "border-box",
     padding: "0 13px",
     borderRadius: "13px",
-    border:
-      "1px solid #e2e8f0",
+    border: "1px solid #e2e8f0",
     background: "#f8fafc",
-    transition:
-      "all 0.2s ease",
+    transition: "all 0.2s ease",
   },
 
   inputFocused: {
-    border:
-      "1px solid #818cf8",
+    border: "1px solid #818cf8",
     background: "#fff",
-    boxShadow:
-      "0 0 0 4px rgba(99,102,241,0.08)",
+    boxShadow: "0 0 0 4px rgba(99,102,241,0.08)",
   },
 
   inputError: {
-    border:
-      "1px solid #fca5a5",
+    border: "1px solid #fca5a5",
     background: "#fffafa",
   },
 
@@ -1447,8 +1263,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    margin:
-      "4px 0 17px",
+    margin: "4px 0 17px",
   },
 
   rememberLabel: {
@@ -1478,10 +1293,8 @@ const styles = {
     padding: "11px 12px",
     marginBottom: "14px",
     borderRadius: "12px",
-    background:
-      "linear-gradient(135deg,#fff5f5,#fffafa)",
-    border:
-      "1px solid #fecaca",
+    background: "linear-gradient(135deg,#fff5f5,#fffafa)",
+    border: "1px solid #fecaca",
     color: "#b91c1c",
   },
 
@@ -1528,15 +1341,13 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     gap: "11px",
-    background:
-      "linear-gradient(135deg,#4f46e5 0%,#6366f1 50%,#7c3aed 100%)",
+    background: "linear-gradient(135deg,#4f46e5 0%,#6366f1 50%,#7c3aed 100%)",
     color: "#fff",
     fontFamily: "inherit",
     fontSize: "11px",
     fontWeight: "800",
     cursor: "pointer",
-    boxShadow:
-      "0 12px 28px rgba(79,70,229,0.22)",
+    boxShadow: "0 12px 28px rgba(79,70,229,0.22)",
   },
 
   buttonDisabled: {
@@ -1552,21 +1363,17 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background:
-      "rgba(255,255,255,0.15)",
+    background: "rgba(255,255,255,0.15)",
     fontSize: "10px",
   },
 
   spinner: {
     width: "15px",
     height: "15px",
-    border:
-      "2px solid rgba(255,255,255,0.35)",
-    borderTop:
-      "2px solid #fff",
+    border: "2px solid rgba(255,255,255,0.35)",
+    borderTop: "2px solid #fff",
     borderRadius: "50%",
-    animation:
-      "loginSpin 0.75s linear infinite",
+    animation: "loginSpin 0.75s linear infinite",
   },
 
   // =========================
@@ -1579,8 +1386,7 @@ const styles = {
     gap: "10px",
     marginTop: "24px",
     paddingTop: "17px",
-    borderTop:
-      "1px solid #eef2f7",
+    borderTop: "1px solid #eef2f7",
   },
 
   footerIcon: {
@@ -1625,8 +1431,7 @@ const styles = {
   },
 
   copyrightDot: {
-    margin:
-      "0 7px",
+    margin: "0 7px",
     color: "#cbd5e1",
   },
 };
