@@ -1,20 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
+import * as XLSX from "xlsx";
 import "./History.css";
 
 export default function History() {
   const nav = useNavigate();
 
   const [data, setData] = useState([]);
+  const [deletedData, setDeletedData] = useState([]);
+
   const [loading, setLoading] = useState(true);
+  const [loadingTrash, setLoadingTrash] = useState(false);
 
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState("الكل");
   const [sortOrder, setSortOrder] = useState("newest");
 
+  const [activeStat, setActiveStat] = useState("all");
+
   const [deleteId, setDeleteId] = useState(null);
+  const [restoreId, setRestoreId] = useState(null);
+
   const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+
+  const [showTrash, setShowTrash] = useState(false);
 
   // =====================================================
   // FETCH EVALUATIONS
@@ -30,7 +41,11 @@ export default function History() {
 
       const res = await API.get("/evaluations");
 
-      setData(Array.isArray(res.data) ? res.data : []);
+      setData(
+        Array.isArray(res.data)
+          ? res.data
+          : res.data?.evaluations || []
+      );
     } catch (err) {
       console.error("Fetch Evaluations Error:", err);
 
@@ -41,6 +56,45 @@ export default function History() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // =====================================================
+  // FETCH TRASH
+  // =====================================================
+
+  const fetchDeletedEvaluations = async () => {
+    try {
+      setLoadingTrash(true);
+
+      const res = await API.get("/evaluations/trash");
+
+      setDeletedData(
+        Array.isArray(res.data)
+          ? res.data
+          : res.data?.evaluations || []
+      );
+    } catch (err) {
+      console.error(
+        "Fetch Deleted Evaluations Error:",
+        err
+      );
+
+      alert(
+        err?.response?.data?.message ||
+          "فشل تحميل سلة المهملات"
+      );
+    } finally {
+      setLoadingTrash(false);
+    }
+  };
+
+  // =====================================================
+  // OPEN TRASH
+  // =====================================================
+
+  const openTrash = async () => {
+    setShowTrash(true);
+    await fetchDeletedEvaluations();
   };
 
   // =====================================================
@@ -72,19 +126,12 @@ export default function History() {
   const editEvaluation = (evaluation) => {
     if (!evaluation?.evaluation_id) return;
 
-    /*
-      نبدأ من صفحة Performance
-      ونرسل evaluationId + editMode
-    */
-
     nav("/performance", {
       state: {
         evaluationId: evaluation.evaluation_id,
         editMode: true,
-
         employee_id: evaluation.employee_id,
         name: evaluation.name,
-
         from_date: evaluation.from_date,
         to_date: evaluation.to_date,
 
@@ -116,11 +163,14 @@ export default function History() {
 
       setData((prev) =>
         prev.filter(
-          (item) => item.evaluation_id !== id
+          (item) =>
+            Number(item.evaluation_id) !== Number(id)
         )
       );
 
       setDeleteId(null);
+
+      await fetchDeletedEvaluations();
     } catch (err) {
       console.error(
         "Delete Evaluation Error:",
@@ -133,6 +183,45 @@ export default function History() {
       );
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // =====================================================
+  // RESTORE
+  // =====================================================
+
+  const restoreEvaluation = async (id) => {
+    if (!id || restoring) return;
+
+    try {
+      setRestoring(true);
+
+      await API.put(
+        `/evaluations/${id}/restore`
+      );
+
+      setDeletedData((prev) =>
+        prev.filter(
+          (item) =>
+            Number(item.evaluation_id) !== Number(id)
+        )
+      );
+
+      setRestoreId(null);
+
+      await fetchEvaluations();
+    } catch (err) {
+      console.error(
+        "Restore Evaluation Error:",
+        err
+      );
+
+      alert(
+        err?.response?.data?.message ||
+          "فشل استرجاع التقييم"
+      );
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -204,7 +293,7 @@ export default function History() {
 
     return {
       background: "rgba(148,163,184,.12)",
-      color: "#94a3b8",
+      color: "#64748b",
       border:
         "1px solid rgba(148,163,184,.18)",
     };
@@ -257,6 +346,37 @@ export default function History() {
       });
     }
 
+    // STAT FILTER
+    if (activeStat !== "all") {
+      result = result.filter((item) => {
+        const grade =
+          normalizeGrade(item.grade);
+
+        switch (activeStat) {
+          case "excellent":
+            return grade.includes("ممتاز");
+
+          case "veryGood":
+            return grade.includes("جيد جدا");
+
+          case "good":
+            return (
+              grade.includes("جيد") &&
+              !grade.includes("جيد جدا")
+            );
+
+          case "acceptable":
+            return grade.includes("مقبول");
+
+          case "weak":
+            return grade.includes("ضعيف");
+
+          default:
+            return true;
+        }
+      });
+    }
+
     // SORT
     result.sort((a, b) => {
       if (sortOrder === "newest") {
@@ -275,15 +395,23 @@ export default function History() {
 
       if (sortOrder === "highest") {
         return (
-          Number(b.percentage || b.total || 0) -
-          Number(a.percentage || a.total || 0)
+          Number(
+            b.percentage ?? b.total ?? 0
+          ) -
+          Number(
+            a.percentage ?? a.total ?? 0
+          )
         );
       }
 
       if (sortOrder === "lowest") {
         return (
-          Number(a.percentage || a.total || 0) -
-          Number(b.percentage || b.total || 0)
+          Number(
+            a.percentage ?? a.total ?? 0
+          ) -
+          Number(
+            b.percentage ?? b.total ?? 0
+          )
         );
       }
 
@@ -296,6 +424,7 @@ export default function History() {
     search,
     gradeFilter,
     sortOrder,
+    activeStat,
   ]);
 
   // =====================================================
@@ -312,8 +441,8 @@ export default function History() {
               (sum, item) =>
                 sum +
                 Number(
-                  item.percentage ||
-                    item.total ||
+                  item.percentage ??
+                    item.total ??
                     0
                 ),
               0
@@ -334,9 +463,8 @@ export default function History() {
     ).length;
 
     const good = data.filter((item) => {
-      const grade = normalizeGrade(
-        item.grade
-      );
+      const grade =
+        normalizeGrade(item.grade);
 
       return (
         grade.includes("جيد") &&
@@ -376,7 +504,9 @@ export default function History() {
 
     const parsedDate = new Date(date);
 
-    if (Number.isNaN(parsedDate.getTime())) {
+    if (
+      Number.isNaN(parsedDate.getTime())
+    ) {
       return "-";
     }
 
@@ -398,6 +528,142 @@ export default function History() {
     setSearch("");
     setGradeFilter("الكل");
     setSortOrder("newest");
+    setActiveStat("all");
+  };
+
+  // =====================================================
+  // STAT CLICK
+  // =====================================================
+
+  const handleStatClick = (stat) => {
+    setActiveStat(stat);
+
+    if (stat === "all") {
+      setGradeFilter("الكل");
+    }
+
+    const element =
+      document.querySelector(
+        ".history-grid"
+      );
+
+    if (element) {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  };
+
+  // =====================================================
+  // EXPORT CURRENT
+  // =====================================================
+
+  const exportCurrentEvaluations = () => {
+    if (!data.length) {
+      alert("لا توجد تقييمات لتصديرها");
+      return;
+    }
+
+    const exportData = filteredData.map(
+      (item, index) => ({
+        "#": index + 1,
+        "رقم التقييم":
+          item.evaluation_id || "-",
+        "اسم الموظف":
+          item.name || "غير معروف",
+        "من":
+          item.from_date || "-",
+        "إلى":
+          item.to_date || "-",
+        "النتيجة":
+          Number(
+            item.percentage ??
+              item.total ??
+              0
+          ),
+        "التقدير":
+          item.grade || "-",
+        "تاريخ الإنشاء":
+          formatDate(item.created_at),
+      })
+    );
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(
+        exportData
+      );
+
+    const workbook =
+      XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "التقييمات"
+    );
+
+    XLSX.writeFile(
+      workbook,
+      "سجل_التقييمات.xlsx"
+    );
+  };
+
+  // =====================================================
+  // EXPORT TRASH
+  // =====================================================
+
+  const exportDeletedEvaluations = () => {
+    if (!deletedData.length) {
+      alert(
+        "لا توجد تقييمات محذوفة لتصديرها"
+      );
+      return;
+    }
+
+    const exportData =
+      deletedData.map((item, index) => ({
+        "#": index + 1,
+        "رقم التقييم":
+          item.evaluation_id || "-",
+        "اسم الموظف":
+          item.name || "غير معروف",
+        "من":
+          item.from_date || "-",
+        "إلى":
+          item.to_date || "-",
+        "النتيجة":
+          Number(
+            item.percentage ??
+              item.total ??
+              0
+          ),
+        "التقدير":
+          item.grade || "-",
+        "تاريخ الإنشاء":
+          formatDate(item.created_at),
+        "تاريخ الحذف":
+          formatDate(item.deleted_at),
+      }));
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(
+        exportData
+      );
+
+    const workbook =
+      XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "المحذوفات"
+    );
+
+    XLSX.writeFile(
+      workbook,
+      "التقييمات_المحذوفة.xlsx"
+    );
   };
 
   // =====================================================
@@ -428,6 +694,7 @@ export default function History() {
       ================================================= */}
 
       <div className="history-page-header">
+
         <div className="history-heading">
 
           <div className="history-breadcrumb">
@@ -443,16 +710,53 @@ export default function History() {
           <p>
             إدارة ومتابعة جميع تقييمات الموظفين
           </p>
+
         </div>
 
-        <button
-          className="history-add-btn"
-          onClick={goToAddEvaluation}
-          type="button"
-        >
-          <span>+</span>
-          إضافة تقييم جديد
-        </button>
+        <div className="history-header-actions">
+
+          <button
+            className="history-trash-btn"
+            type="button"
+            onClick={openTrash}
+          >
+            <span className="history-trash-icon">
+              🗑️
+            </span>
+
+            <span>
+              سلة المهملات
+            </span>
+
+            <strong>
+              {deletedData.length}
+            </strong>
+          </button>
+
+          <button
+            className="history-export-btn"
+            onClick={
+              exportCurrentEvaluations
+            }
+            type="button"
+          >
+            <span>📥</span>
+            تنزيل Excel
+          </button>
+
+          <button
+            className="history-add-btn"
+            onClick={
+              goToAddEvaluation
+            }
+            type="button"
+          >
+            <span>+</span>
+            إضافة تقييم جديد
+          </button>
+
+        </div>
+
       </div>
 
       {/* =================================================
@@ -461,13 +765,27 @@ export default function History() {
 
       <div className="history-stats">
 
-        <div className="history-stat-card">
+        {/* ALL */}
+
+        <button
+          type="button"
+          className={`history-stat-card history-stat-clickable ${
+            activeStat === "all"
+              ? "active"
+              : ""
+          }`}
+          onClick={() =>
+            handleStatClick("all")
+          }
+        >
           <div className="history-stat-icon blue">
             📊
           </div>
 
           <div className="history-stat-content">
-            <span>إجمالي التقييمات</span>
+            <span>
+              إجمالي التقييمات
+            </span>
 
             <strong>
               {statistics.total}
@@ -477,15 +795,29 @@ export default function History() {
               جميع التقييمات
             </small>
           </div>
-        </div>
 
-        <div className="history-stat-card">
+          <div className="history-stat-card-arrow">
+            ←
+          </div>
+        </button>
+
+        {/* AVERAGE */}
+
+        <button
+          type="button"
+          className="history-stat-card history-stat-clickable"
+          onClick={() =>
+            handleStatClick("all")
+          }
+        >
           <div className="history-stat-icon purple">
             %
           </div>
 
           <div className="history-stat-content">
-            <span>متوسط التقييم</span>
+            <span>
+              متوسط التقييم
+            </span>
 
             <strong>
               {statistics.average}%
@@ -495,15 +827,33 @@ export default function History() {
               متوسط النتائج
             </small>
           </div>
-        </div>
 
-        <div className="history-stat-card">
+          <div className="history-stat-card-arrow">
+            ←
+          </div>
+        </button>
+
+        {/* EXCELLENT */}
+
+        <button
+          type="button"
+          className={`history-stat-card history-stat-clickable ${
+            activeStat === "excellent"
+              ? "active"
+              : ""
+          }`}
+          onClick={() =>
+            handleStatClick("excellent")
+          }
+        >
           <div className="history-stat-icon green">
             ★
           </div>
 
           <div className="history-stat-content">
-            <span>ممتاز</span>
+            <span>
+              ممتاز
+            </span>
 
             <strong>
               {statistics.excellent}
@@ -513,15 +863,33 @@ export default function History() {
               تقييم ممتاز
             </small>
           </div>
-        </div>
 
-        <div className="history-stat-card">
+          <div className="history-stat-card-arrow">
+            ←
+          </div>
+        </button>
+
+        {/* VERY GOOD */}
+
+        <button
+          type="button"
+          className={`history-stat-card history-stat-clickable ${
+            activeStat === "veryGood"
+              ? "active"
+              : ""
+          }`}
+          onClick={() =>
+            handleStatClick("veryGood")
+          }
+        >
           <div className="history-stat-icon blue">
             ✓
           </div>
 
           <div className="history-stat-content">
-            <span>جيد جدًا</span>
+            <span>
+              جيد جدًا
+            </span>
 
             <strong>
               {statistics.veryGood}
@@ -531,15 +899,33 @@ export default function History() {
               أداء جيد جدًا
             </small>
           </div>
-        </div>
 
-        <div className="history-stat-card">
+          <div className="history-stat-card-arrow">
+            ←
+          </div>
+        </button>
+
+        {/* GOOD */}
+
+        <button
+          type="button"
+          className={`history-stat-card history-stat-clickable ${
+            activeStat === "good"
+              ? "active"
+              : ""
+          }`}
+          onClick={() =>
+            handleStatClick("good")
+          }
+        >
           <div className="history-stat-icon orange">
             ✓
           </div>
 
           <div className="history-stat-content">
-            <span>جيد</span>
+            <span>
+              جيد
+            </span>
 
             <strong>
               {statistics.good}
@@ -549,15 +935,33 @@ export default function History() {
               أداء جيد
             </small>
           </div>
-        </div>
 
-        <div className="history-stat-card">
+          <div className="history-stat-card-arrow">
+            ←
+          </div>
+        </button>
+
+        {/* ACCEPTABLE */}
+
+        <button
+          type="button"
+          className={`history-stat-card history-stat-clickable ${
+            activeStat === "acceptable"
+              ? "active"
+              : ""
+          }`}
+          onClick={() =>
+            handleStatClick("acceptable")
+          }
+        >
           <div className="history-stat-icon orange">
             !
           </div>
 
           <div className="history-stat-content">
-            <span>مقبول</span>
+            <span>
+              مقبول
+            </span>
 
             <strong>
               {statistics.acceptable}
@@ -567,15 +971,33 @@ export default function History() {
               أداء مقبول
             </small>
           </div>
-        </div>
 
-        <div className="history-stat-card">
+          <div className="history-stat-card-arrow">
+            ←
+          </div>
+        </button>
+
+        {/* WEAK */}
+
+        <button
+          type="button"
+          className={`history-stat-card history-stat-clickable ${
+            activeStat === "weak"
+              ? "active"
+              : ""
+          }`}
+          onClick={() =>
+            handleStatClick("weak")
+          }
+        >
           <div className="history-stat-icon red">
             !
           </div>
 
           <div className="history-stat-content">
-            <span>ضعيف</span>
+            <span>
+              ضعيف
+            </span>
 
             <strong>
               {statistics.weak}
@@ -585,7 +1007,11 @@ export default function History() {
               يحتاج إلى تحسين
             </small>
           </div>
-        </div>
+
+          <div className="history-stat-card-arrow">
+            ←
+          </div>
+        </button>
 
       </div>
 
@@ -613,18 +1039,23 @@ export default function History() {
           {search && (
             <button
               className="history-clear-search"
-              onClick={() => setSearch("")}
+              onClick={() =>
+                setSearch("")
+              }
               type="button"
             >
               ×
             </button>
           )}
+
         </div>
 
         <select
           value={gradeFilter}
           onChange={(e) =>
-            setGradeFilter(e.target.value)
+            setGradeFilter(
+              e.target.value
+            )
           }
           className="history-select"
         >
@@ -656,7 +1087,9 @@ export default function History() {
         <select
           value={sortOrder}
           onChange={(e) =>
-            setSortOrder(e.target.value)
+            setSortOrder(
+              e.target.value
+            )
           }
           className="history-select"
         >
@@ -676,6 +1109,19 @@ export default function History() {
             أقل تقييم
           </option>
         </select>
+
+        {(search ||
+          gradeFilter !== "الكل" ||
+          sortOrder !== "newest" ||
+          activeStat !== "all") && (
+          <button
+            className="history-reset-btn"
+            onClick={resetFilters}
+            type="button"
+          >
+            ↻ إعادة ضبط
+          </button>
+        )}
 
       </div>
 
@@ -698,16 +1144,19 @@ export default function History() {
             تقييم
           </span>
 
-          {(search ||
-            gradeFilter !== "الكل" ||
-            sortOrder !== "newest") && (
-            <button
-              onClick={resetFilters}
-              type="button"
-            >
-              إعادة ضبط الفلاتر
-            </button>
-          )}
+          <span className="history-current-filter">
+            {activeStat === "all"
+              ? "جميع التقييمات"
+              : activeStat === "excellent"
+              ? "التقييمات الممتازة"
+              : activeStat === "veryGood"
+              ? "التقييمات الجيدة جدًا"
+              : activeStat === "good"
+              ? "التقييمات الجيدة"
+              : activeStat === "acceptable"
+              ? "التقييمات المقبولة"
+              : "التقييمات الضعيفة"}
+          </span>
 
         </div>
       )}
@@ -717,6 +1166,7 @@ export default function History() {
       ================================================= */}
 
       {data.length === 0 ? (
+
         <div className="history-empty">
 
           <div className="history-empty-icon">
@@ -733,7 +1183,9 @@ export default function History() {
           </p>
 
           <button
-            onClick={goToAddEvaluation}
+            onClick={
+              goToAddEvaluation
+            }
             type="button"
           >
             + إضافة أول تقييم
@@ -760,7 +1212,9 @@ export default function History() {
 
           <button
             className="secondary"
-            onClick={resetFilters}
+            onClick={
+              resetFilters
+            }
             type="button"
           >
             إعادة ضبط البحث
@@ -776,210 +1230,232 @@ export default function History() {
 
         <div className="history-grid">
 
-          {filteredData.map((evaluation) => {
+          {filteredData.map(
+            (evaluation) => {
 
-            const percentage = Number(
-              evaluation.percentage ??
-                evaluation.total ??
-                0
-            );
+              const percentage =
+                Number(
+                  evaluation.percentage ??
+                    evaluation.total ??
+                    0
+                );
 
-            const score = Math.min(
-              Math.max(percentage, 0),
-              100
-            );
+              const score = Math.min(
+                Math.max(
+                  percentage,
+                  0
+                ),
+                100
+              );
 
-            const employeeName =
-              evaluation.name ||
-              "موظف غير معروف";
+              const employeeName =
+                evaluation.name ||
+                "موظف غير معروف";
 
-            return (
-              <div
-                key={evaluation.evaluation_id}
-                className="history-card"
-              >
+              return (
+                <div
+                  key={
+                    evaluation.evaluation_id
+                  }
+                  className="history-card"
+                >
 
-                {/* CARD HEADER */}
+                  {/* CARD HEADER */}
 
-                <div className="history-card-header">
+                  <div className="history-card-header">
 
-                  <div className="history-employee">
+                    <div className="history-employee">
 
-                    <div className="history-avatar">
-                      {String(employeeName)
-                        .trim()
-                        .charAt(0)}
+                      <div className="history-avatar">
+                        {String(
+                          employeeName
+                        )
+                          .trim()
+                          .charAt(0)}
+                      </div>
+
+                      <div className="history-name-area">
+
+                        <h3>
+                          {employeeName}
+                        </h3>
+
+                        <span>
+                          تقييم #
+                          {
+                            evaluation.evaluation_id
+                          }
+                        </span>
+
+                      </div>
+
                     </div>
 
-                    <div className="history-name-area">
-
-                      <h3>
-                        {employeeName}
-                      </h3>
-
-                      <span>
-                        تقييم #
-                        {evaluation.evaluation_id}
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                  <span
-                    className="history-grade"
-                    style={gradeStyle(
-                      evaluation.grade
-                    )}
-                  >
-                    {evaluation.grade || "-"}
-                  </span>
-
-                </div>
-
-                <div className="history-divider"></div>
-
-                {/* SCORE */}
-
-                <div className="history-score">
-
-                  <div className="history-score-number">
-
-                    <span>
-                      النتيجة النهائية
-                    </span>
-
-                    <strong
-                      style={{
-                        color:
-                          scoreColor(score),
-                      }}
+                    <span
+                      className="history-grade"
+                      style={gradeStyle(
+                        evaluation.grade
+                      )}
                     >
-                      {score}
-                      <small>%</small>
-                    </strong>
-
-                  </div>
-
-                  <div className="history-progress-area">
-
-                    <div className="history-progress">
-
-                      <div
-                        style={{
-                          width: `${score}%`,
-                          background:
-                            scoreColor(score),
-                        }}
-                      />
-
-                    </div>
-
-                    <span>
-                      {score}%
+                      {evaluation.grade ||
+                        "-"}
                     </span>
 
                   </div>
 
-                </div>
+                  <div className="history-divider"></div>
 
-                {/* INFORMATION */}
+                  {/* SCORE */}
 
-                <div className="history-info">
+                  <div className="history-score">
 
-                  <div className="history-info-row">
-
-                    <div className="history-info-icon">
-                      📅
-                    </div>
-
-                    <div>
+                    <div className="history-score-number">
 
                       <span>
-                        فترة التقييم
+                        النتيجة النهائية
                       </span>
 
-                      <strong>
-                        {evaluation.from_date ||
-                          "-"}
-                        <b> ← </b>
-                        {evaluation.to_date ||
-                          "-"}
+                      <strong
+                        style={{
+                          color:
+                            scoreColor(
+                              score
+                            ),
+                        }}
+                      >
+                        {score}
+                        <small>
+                          %
+                        </small>
                       </strong>
+
+                    </div>
+
+                    <div className="history-progress-area">
+
+                      <div className="history-progress">
+
+                        <div
+                          style={{
+                            width: `${score}%`,
+                            background:
+                              scoreColor(
+                                score
+                              ),
+                          }}
+                        />
+
+                      </div>
+
+                      <span>
+                        {score}%
+                      </span>
 
                     </div>
 
                   </div>
 
-                  <div className="history-info-row">
+                  {/* INFORMATION */}
 
-                    <div className="history-info-icon">
-                      🕒
+                  <div className="history-info">
+
+                    <div className="history-info-row">
+
+                      <div className="history-info-icon">
+                        📅
+                      </div>
+
+                      <div>
+
+                        <span>
+                          فترة التقييم
+                        </span>
+
+                        <strong>
+                          {evaluation.from_date ||
+                            "-"}
+                          <b>
+                            {" "}
+                            ←{" "}
+                          </b>
+                          {evaluation.to_date ||
+                            "-"}
+                        </strong>
+
+                      </div>
+
                     </div>
 
-                    <div>
+                    <div className="history-info-row">
 
-                      <span>
-                        تاريخ الإنشاء
-                      </span>
+                      <div className="history-info-icon">
+                        🕒
+                      </div>
 
-                      <strong>
-                        {formatDate(
-                          evaluation.created_at
-                        )}
-                      </strong>
+                      <div>
+
+                        <span>
+                          تاريخ الإنشاء
+                        </span>
+
+                        <strong>
+                          {formatDate(
+                            evaluation.created_at
+                          )}
+                        </strong>
+
+                      </div>
 
                     </div>
 
                   </div>
 
+                  {/* ACTIONS */}
+
+                  <div className="history-actions">
+
+                    <button
+                      className="history-edit-btn"
+                      onClick={() =>
+                        editEvaluation(
+                          evaluation
+                        )
+                      }
+                      type="button"
+                    >
+                      ✏️ تعديل التقييم
+                    </button>
+
+                    <button
+                      className="history-view-btn"
+                      onClick={() =>
+                        viewReport(
+                          evaluation.evaluation_id
+                        )
+                      }
+                      type="button"
+                    >
+                      📄 عرض التقرير
+                    </button>
+
+                    <button
+                      className="history-delete-btn"
+                      onClick={() =>
+                        setDeleteId(
+                          evaluation.evaluation_id
+                        )
+                      }
+                      type="button"
+                    >
+                      🗑 حذف
+                    </button>
+
+                  </div>
+
                 </div>
-
-                {/* ACTIONS */}
-
-                <div className="history-actions">
-
-                  <button
-                    className="history-edit-btn"
-                    onClick={() =>
-                      editEvaluation(
-                        evaluation
-                      )
-                    }
-                    type="button"
-                  >
-                    ✏️ تعديل التقييم
-                  </button>
-
-                  <button
-                    className="history-view-btn"
-                    onClick={() =>
-                      viewReport(
-                        evaluation.evaluation_id
-                      )
-                    }
-                    type="button"
-                  >
-                    📄 عرض التقرير
-                  </button>
-
-                  <button
-                    className="history-delete-btn"
-                    onClick={() =>
-                      setDeleteId(
-                        evaluation.evaluation_id
-                      )
-                    }
-                    type="button"
-                  >
-                    🗑 حذف
-                  </button>
-
-                </div>
-
-              </div>
-            );
-          })}
+              );
+            }
+          )}
 
         </div>
       )}
@@ -993,31 +1469,31 @@ export default function History() {
         <div
           className="history-modal-overlay"
           onMouseDown={(e) => {
-
             if (
-              e.target === e.currentTarget &&
+              e.target ===
+                e.currentTarget &&
               !deleting
             ) {
               setDeleteId(null);
             }
-
           }}
         >
 
           <div className="history-modal">
 
             <div className="history-modal-icon">
-              ⚠️
+              🗑️
             </div>
 
             <h2>
-              حذف التقييم
+              نقل إلى سلة المهملات
             </h2>
 
             <p>
-              هل أنت متأكد من حذف هذا التقييم؟
+              هل أنت متأكد من نقل هذا
+              التقييم إلى سلة المهملات؟
               <br />
-              لا يمكن التراجع عن هذه العملية.
+              يمكنك استرجاعه لاحقًا.
             </p>
 
             <div className="history-modal-actions">
@@ -1042,8 +1518,8 @@ export default function History() {
                 type="button"
               >
                 {deleting
-                  ? "جاري الحذف..."
-                  : "نعم، حذف"}
+                  ? "جاري النقل..."
+                  : "نعم، نقل للسلة"}
               </button>
 
             </div>
@@ -1051,7 +1527,312 @@ export default function History() {
           </div>
 
         </div>
+      )}
 
+      {/* =================================================
+          TRASH MODAL
+      ================================================= */}
+
+      {showTrash && (
+
+        <div
+          className="history-modal-overlay history-trash-overlay"
+          onMouseDown={(e) => {
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
+              setShowTrash(false);
+            }
+          }}
+        >
+
+          <div className="history-trash-modal">
+
+            {/* HEADER */}
+
+            <div className="history-trash-header">
+
+              <div className="history-trash-title">
+
+                <div className="history-trash-title-icon">
+                  🗑️
+                </div>
+
+                <div>
+                  <h2>
+                    سلة مهملات التقييمات
+                  </h2>
+
+                  <p>
+                    التقييمات التي تم حذفها
+                  </p>
+                </div>
+
+              </div>
+
+              <div className="history-trash-header-actions">
+
+                <button
+                  className="history-trash-excel-btn"
+                  type="button"
+                  onClick={
+                    exportDeletedEvaluations
+                  }
+                  disabled={
+                    deletedData.length === 0
+                  }
+                >
+                  📥 تنزيل Excel
+                </button>
+
+                <button
+                  className="history-trash-close-btn"
+                  type="button"
+                  onClick={() =>
+                    setShowTrash(false)
+                  }
+                >
+                  ×
+                </button>
+
+              </div>
+
+            </div>
+
+            {/* BODY */}
+
+            <div className="history-trash-body">
+
+              {loadingTrash ? (
+
+                <div className="history-trash-loading">
+
+                  <div className="history-spinner"></div>
+
+                  <p>
+                    جاري تحميل سلة المهملات...
+                  </p>
+
+                </div>
+
+              ) : deletedData.length === 0 ? (
+
+                <div className="history-trash-empty">
+
+                  <div className="history-trash-empty-icon">
+                    🗑️
+                  </div>
+
+                  <h3>
+                    سلة المهملات فارغة
+                  </h3>
+
+                  <p>
+                    لا توجد تقييمات محذوفة
+                    حاليًا.
+                  </p>
+
+                </div>
+
+              ) : (
+
+                <div className="history-trash-list">
+
+                  {deletedData.map(
+                    (evaluation) => {
+
+                      const score = Math.min(
+                        Math.max(
+                          Number(
+                            evaluation.percentage ??
+                              evaluation.total ??
+                              0
+                          ),
+                          0
+                        ),
+                        100
+                      );
+
+                      return (
+                        <div
+                          className="history-trash-item"
+                          key={
+                            evaluation.evaluation_id
+                          }
+                        >
+
+                          <div className="history-trash-item-avatar">
+                            {String(
+                              evaluation.name ||
+                                "م"
+                            )
+                              .trim()
+                              .charAt(0)}
+                          </div>
+
+                          <div className="history-trash-item-info">
+
+                            <strong>
+                              {evaluation.name ||
+                                "موظف غير معروف"}
+                            </strong>
+
+                            <span>
+                              تقييم #
+                              {
+                                evaluation.evaluation_id
+                              }
+                            </span>
+
+                          </div>
+
+                          <div className="history-trash-item-score">
+
+                            <strong>
+                              {score}%
+                            </strong>
+
+                            <span>
+                              {evaluation.grade ||
+                                "-"}
+                            </span>
+
+                          </div>
+
+                          <div className="history-trash-item-date">
+
+                            <span>
+                              تاريخ الحذف
+                            </span>
+
+                            <strong>
+                              {formatDate(
+                                evaluation.deleted_at
+                              )}
+                            </strong>
+
+                          </div>
+
+                          <button
+                            className="history-restore-btn"
+                            type="button"
+                            onClick={() =>
+                              setRestoreId(
+                                evaluation.evaluation_id
+                              )
+                            }
+                          >
+                            ♻️ استرجاع
+                          </button>
+
+                        </div>
+                      );
+                    }
+                  )}
+
+                </div>
+
+              )}
+
+            </div>
+
+            {/* FOOTER */}
+
+            <div className="history-trash-footer">
+
+              <span>
+                إجمالي المحذوفات:
+                <strong>
+                  {" "}
+                  {deletedData.length}
+                </strong>
+              </span>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowTrash(false)
+                }
+              >
+                إغلاق
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* =================================================
+          RESTORE MODAL
+      ================================================= */}
+
+      {restoreId !== null && (
+
+        <div
+          className="history-modal-overlay"
+          onMouseDown={(e) => {
+            if (
+              e.target ===
+                e.currentTarget &&
+              !restoring
+            ) {
+              setRestoreId(null);
+            }
+          }}
+        >
+
+          <div className="history-modal history-restore-modal">
+
+            <div className="history-modal-icon history-restore-icon">
+              ♻️
+            </div>
+
+            <h2>
+              استرجاع التقييم
+            </h2>
+
+            <p>
+              هل تريد استرجاع هذا التقييم؟
+              <br />
+              سيعود مباشرة إلى سجل التقييمات.
+            </p>
+
+            <div className="history-modal-actions">
+
+              <button
+                className="history-cancel-btn"
+                onClick={() =>
+                  setRestoreId(null)
+                }
+                disabled={restoring}
+                type="button"
+              >
+                إلغاء
+              </button>
+
+              <button
+                className="history-restore-confirm-btn"
+                onClick={() =>
+                  restoreEvaluation(
+                    restoreId
+                  )
+                }
+                disabled={restoring}
+                type="button"
+              >
+                {restoring
+                  ? "جاري الاسترجاع..."
+                  : "نعم، استرجاع"}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
       )}
 
     </div>
