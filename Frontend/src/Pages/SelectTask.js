@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import API from "../api/api";
 
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 import {
   FaCalendarAlt,
   FaCheckCircle,
@@ -17,6 +20,9 @@ import {
   FaLayerGroup,
   FaChevronDown,
   FaChevronUp,
+  FaFileExcel,
+  FaFilter,
+  FaUndo,
 } from "react-icons/fa";
 
 import "./SelectTask.css";
@@ -33,7 +39,24 @@ export default function SelectTask() {
   const [saving, setSaving] = useState(false);
 
   const [search, setSearch] = useState("");
-  const [activeStat, setActiveStat] = useState("all");
+
+  // =========================================================
+  // TASK FILTER
+  // =========================================================
+
+  const [taskFilter, setTaskFilter] = useState("all");
+
+  // =========================================================
+  // TRASH
+  // =========================================================
+
+  const [deletedTasks, setDeletedTasks] = useState([]);
+  const [showTrash, setShowTrash] = useState(false);
+  const [trashLoading, setTrashLoading] = useState(false);
+
+  // =========================================================
+  // ADD / EDIT MODAL
+  // =========================================================
 
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
@@ -44,22 +67,6 @@ export default function SelectTask() {
 
   const [assigningTask, setAssigningTask] = useState(null);
 
-  /*
-    assignments structure:
-
-    [
-      {
-        employee_id: 1,
-        assignment_type: "task",
-        stage_ids: []
-      },
-      {
-        employee_id: 2,
-        assignment_type: "stage",
-        stage_ids: [10, 11]
-      }
-    ]
-  */
   const [employeeAssignments, setEmployeeAssignments] = useState([]);
 
   const [employeeSearch, setEmployeeSearch] = useState("");
@@ -286,7 +293,8 @@ export default function SelectTask() {
 
       const completed = stages.filter(isStageCompleted).length;
 
-      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+      const percentage =
+        total > 0 ? Math.round((completed / total) * 100) : 0;
 
       return {
         total,
@@ -431,7 +439,9 @@ export default function SelectTask() {
             : Array.isArray(found.stages)
               ? found.stages
                   .map((stage) => Number(getStageId(stage)))
-                  .filter((stageId) => Number.isInteger(stageId) && stageId > 0)
+                  .filter(
+                    (stageId) => Number.isInteger(stageId) && stageId > 0,
+                  )
               : [];
 
           return {
@@ -441,11 +451,6 @@ export default function SelectTask() {
           };
         }
       }
-
-      /*
-        بعض الـ APIs قد ترجع assignment
-        داخل employee نفسه.
-      */
 
       const employee = Array.isArray(task?.employees)
         ? task.employees.find((item) => Number(getEmployeeId(item)) === id)
@@ -471,11 +476,6 @@ export default function SelectTask() {
           stage_ids: type === "stage" ? stageIds : [],
         };
       }
-
-      /*
-        إذا لم يرسل الـ API تفاصيل التعيين،
-        نعتبر الموظف الحالي مكلفًا بالمهمة كاملة.
-      */
 
       return {
         employee_id: id,
@@ -553,13 +553,9 @@ export default function SelectTask() {
 
         return {
           ...task,
-
           employee_ids: employeeIds,
-
           employee_id: employeeIds.length > 0 ? employeeIds[0] : null,
-
           due_date: task.due_date || task.deadline || null,
-
           stages: Array.isArray(task.stages) ? task.stages : [],
         };
       });
@@ -577,6 +573,88 @@ export default function SelectTask() {
       setLoading(false);
     }
   }, [getEmployeeId]);
+
+  // =========================================================
+  // FETCH DELETED TASKS
+  // =========================================================
+
+  const fetchDeletedTasks = useCallback(async () => {
+    try {
+      setTrashLoading(true);
+
+      const res = await API.get("/tasks/trash");
+
+      const data = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.tasks)
+          ? res.data.tasks
+          : [];
+
+      const normalizedDeletedTasks = data.map((task) => ({
+        ...task,
+        due_date: task.due_date || task.deadline || null,
+        stages: Array.isArray(task.stages) ? task.stages : [],
+      }));
+
+      setDeletedTasks(normalizedDeletedTasks);
+    } catch (error) {
+      console.error("FETCH DELETED TASKS ERROR:", error);
+
+      showMessage(
+        "error",
+        "خطأ",
+        error?.response?.data?.message ||
+          "تعذر تحميل المهام المحذوفة.",
+      );
+    } finally {
+      setTrashLoading(false);
+    }
+  }, []);
+
+  // =========================================================
+  // RESTORE TASK
+  // =========================================================
+
+  const restoreTask = async (taskId) => {
+    if (!taskId || saving) return;
+
+    try {
+      setSaving(true);
+
+      await API.put(`/tasks/${taskId}/restore`);
+
+      setDeletedTasks((prev) =>
+        prev.filter(
+          (task) => Number(task.task_id) !== Number(taskId),
+        ),
+      );
+
+      /*
+        نعيد تحميل المهام من السيرفر
+        حتى تعود المهمة بكل بياناتها:
+        الموظفين + التعيينات + المراحل.
+      */
+
+      await fetchTasks();
+
+      showMessage(
+        "success",
+        "تم استرجاع المهمة",
+        "تم استرجاع المهمة بنجاح وإعادتها إلى قائمة المهام.",
+      );
+    } catch (error) {
+      console.error("RESTORE TASK ERROR:", error);
+
+      showMessage(
+        "error",
+        "تعذر استرجاع المهمة",
+        error?.response?.data?.message ||
+          "حدث خطأ أثناء استرجاع المهمة.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // =========================================================
   // FETCH EMPLOYEES
@@ -617,29 +695,11 @@ export default function SelectTask() {
   const filteredTasks = useMemo(() => {
     const value = search.trim().toLowerCase();
 
-    let result = tasks;
+    return tasks.filter((task) => {
+      // =====================================================
+      // SEARCH
+      // =====================================================
 
-    // Statistics filter
-    if (activeStat === "assigned") {
-      result = result.filter((task) => getTaskEmployeeIds(task).length > 0);
-    } else if (activeStat === "pending") {
-      result = result.filter(
-        (task) => getTaskOverallStatus(task).className === "pending",
-      );
-    } else if (activeStat === "completed") {
-      result = result.filter(
-        (task) => getTaskOverallStatus(task).className === "completed",
-      );
-    } else if (activeStat === "unassigned") {
-      result = result.filter((task) => getTaskEmployeeIds(task).length === 0);
-    }
-
-    // Search filter
-    if (!value) {
-      return result;
-    }
-
-    return result.filter((task) => {
       const title = String(task.title || "").toLowerCase();
 
       const description = String(task.description || "").toLowerCase();
@@ -647,7 +707,10 @@ export default function SelectTask() {
       const employeeNames = getTaskEmployees(task)
         .map(
           (employee) =>
-            employee.name || employee.full_name || employee.username || "",
+            employee.name ||
+            employee.full_name ||
+            employee.username ||
+            "",
         )
         .join(" ")
         .toLowerCase();
@@ -657,34 +720,64 @@ export default function SelectTask() {
         .join(" ")
         .toLowerCase();
 
-      return (
+      const matchesSearch =
+        !value ||
         title.includes(value) ||
         description.includes(value) ||
         employeeNames.includes(value) ||
-        stageNames.includes(value)
-      );
+        stageNames.includes(value);
+
+      if (!matchesSearch) {
+        return false;
+      }
+
+      // =====================================================
+      // FILTER
+      // =====================================================
+
+      const employeeCount = getTaskEmployeeIds(task).length;
+
+      const progress = getStageProgress(task);
+
+      const hasStages = progress.total > 0;
+
+      const overallStatus = getTaskOverallStatus(task);
+
+      switch (taskFilter) {
+        case "all":
+          return true;
+
+        case "assigned":
+          return employeeCount > 0;
+
+        case "available":
+          return employeeCount === 0;
+
+        case "pending":
+          return overallStatus.className === "pending";
+
+        case "completed":
+          return overallStatus.className === "completed";
+
+        case "with_stages":
+          return hasStages;
+
+        case "without_stages":
+          return !hasStages;
+
+        default:
+          return true;
+      }
     });
   }, [
     tasks,
     search,
-    activeStat,
-    getTaskEmployeeIds,
-    getTaskOverallStatus,
+    taskFilter,
     getTaskEmployees,
+    getTaskEmployeeIds,
     getTaskStages,
+    getStageProgress,
   ]);
-
-  const handleStatClick = (stat) => {
-    setActiveStat((prev) => (prev === stat ? "all" : stat));
-  };
-
-  const activeStatLabel = {
-    all: "كل المهام",
-    assigned: "المهام المعينة",
-    pending: "المهام قيد التنفيذ",
-    completed: "المهام المكتملة",
-    unassigned: "المهام المتاحة للجميع",
-  }[activeStat];
 
   // =========================================================
   // STATISTICS
@@ -745,7 +838,6 @@ export default function SelectTask() {
   const addStage = () => {
     setForm((prev) => ({
       ...prev,
-
       stages: [...prev.stages, emptyStage()],
     }));
   };
@@ -767,8 +859,9 @@ export default function SelectTask() {
 
     setForm((prev) => ({
       ...prev,
-
-      stages: prev.stages.filter((_, stageIndex) => stageIndex !== index),
+      stages: prev.stages.filter(
+        (_, stageIndex) => stageIndex !== index,
+      ),
     }));
   };
 
@@ -830,6 +923,7 @@ export default function SelectTask() {
     if (saving) return;
 
     setShowModal(false);
+
     setEditingTask(null);
 
     setForm({
@@ -848,7 +942,11 @@ export default function SelectTask() {
     const title = form.title.trim();
 
     if (!title) {
-      showMessage("warning", "عنوان المهمة مطلوب", "يرجى إدخال عنوان المهمة.");
+      showMessage(
+        "warning",
+        "عنوان المهمة مطلوب",
+        "يرجى إدخال عنوان المهمة.",
+      );
 
       return false;
     }
@@ -931,12 +1029,6 @@ export default function SelectTask() {
       due_date: form.due_date,
 
       stages: form.stages.map((stage, index) => ({
-        /*
-              نرسل stage_id إذا كانت
-              المرحلة موجودة مسبقًا.
-              الـ controller القديم
-              سيهملها أثناء الإنشاء.
-            */
         ...(stage.stage_id
           ? {
               stage_id: Number(stage.stage_id),
@@ -955,7 +1047,10 @@ export default function SelectTask() {
 
     console.log("=================================");
 
-    console.log("SAVE TASK PAYLOAD:", JSON.stringify(taskData, null, 2));
+    console.log(
+      "SAVE TASK PAYLOAD:",
+      JSON.stringify(taskData, null, 2),
+    );
 
     console.log("=================================");
 
@@ -963,13 +1058,19 @@ export default function SelectTask() {
       setSaving(true);
 
       if (editingTask) {
-        const res = await API.put(`/tasks/${editingTask.task_id}`, taskData);
+        const res = await API.put(
+          `/tasks/${editingTask.task_id}`,
+          taskData,
+        );
 
         const updatedTask = res.data?.task || res.data;
 
         setTasks((prev) =>
           prev.map((task) => {
-            if (Number(task.task_id) !== Number(editingTask.task_id)) {
+            if (
+              Number(task.task_id) !==
+              Number(editingTask.task_id)
+            ) {
               return task;
             }
 
@@ -978,11 +1079,17 @@ export default function SelectTask() {
 
               ...updatedTask,
 
-              task_id: updatedTask?.task_id ?? task.task_id,
+              task_id:
+                updatedTask?.task_id ?? task.task_id,
 
-              due_date: updatedTask?.due_date ?? taskData.due_date,
+              due_date:
+                updatedTask?.due_date ??
+                taskData.due_date,
 
-              stages: updatedTask?.stages ?? taskData.stages ?? [],
+              stages:
+                updatedTask?.stages ??
+                taskData.stages ??
+                [],
             };
           }),
         );
@@ -1008,7 +1115,9 @@ export default function SelectTask() {
 
               employee_id: null,
 
-              due_date: newTask.due_date ?? taskData.due_date,
+              due_date:
+                newTask.due_date ??
+                taskData.due_date,
 
               stages: Array.isArray(res.data?.stages)
                 ? res.data.stages
@@ -1032,14 +1141,21 @@ export default function SelectTask() {
     } catch (error) {
       console.error("SAVE TASK ERROR:", error);
 
-      console.error("STATUS:", error?.response?.status);
+      console.error(
+        "STATUS:",
+        error?.response?.status,
+      );
 
-      console.error("SERVER DATA:", error?.response?.data);
+      console.error(
+        "SERVER DATA:",
+        error?.response?.data,
+      );
 
       showMessage(
         "error",
         "تعذر حفظ المهمة",
-        error?.response?.data?.message || "حدث خطأ أثناء حفظ المهمة.",
+        error?.response?.data?.message ||
+          "حدث خطأ أثناء حفظ المهمة.",
       );
     } finally {
       setSaving(false);
@@ -1065,24 +1181,34 @@ export default function SelectTask() {
       await API.delete(`/tasks/${task.task_id}`);
 
       setTasks((prev) =>
-        prev.filter((item) => Number(item.task_id) !== Number(task.task_id)),
+        prev.filter(
+          (item) =>
+            Number(item.task_id) !==
+            Number(task.task_id),
+        ),
       );
 
       if (
         stageModal.task &&
-        Number(stageModal.task.task_id) === Number(task.task_id)
+        Number(stageModal.task.task_id) ===
+          Number(task.task_id)
       ) {
         closeStageModal();
       }
 
-      showMessage("success", "تم حذف المهمة", "تم حذف المهمة بنجاح.");
+      showMessage(
+        "success",
+        "تم حذف المهمة",
+        "تم حذف المهمة بنجاح.",
+      );
     } catch (error) {
       console.error("DELETE TASK ERROR:", error);
 
       showMessage(
         "error",
         "تعذر حذف المهمة",
-        error?.response?.data?.message || "حدث خطأ أثناء حذف المهمة.",
+        error?.response?.data?.message ||
+          "حدث خطأ أثناء حذف المهمة.",
       );
     } finally {
       setSaving(false);
@@ -1096,20 +1222,29 @@ export default function SelectTask() {
   const openAssignModal = (task) => {
     if (!task) return;
 
-    const currentEmployeeIds = getTaskEmployeeIds(task);
+    const currentEmployeeIds =
+      getTaskEmployeeIds(task);
 
-    const initialAssignments = currentEmployeeIds.map((employeeId) =>
-      getExistingEmployeeAssignment(task, employeeId),
-    );
+    const initialAssignments =
+      currentEmployeeIds.map((employeeId) =>
+        getExistingEmployeeAssignment(
+          task,
+          employeeId,
+        ),
+      );
 
     setAssigningTask(task);
 
-    setEmployeeAssignments(initialAssignments);
+    setEmployeeAssignments(
+      initialAssignments,
+    );
 
     setEmployeeSearch("");
 
     setExpandedEmployee(
-      initialAssignments.length > 0 ? initialAssignments[0].employee_id : null,
+      initialAssignments.length > 0
+        ? initialAssignments[0].employee_id
+        : null,
     );
   };
 
@@ -1135,7 +1270,9 @@ export default function SelectTask() {
 
   const isEmployeeSelected = (employeeId) => {
     return employeeAssignments.some(
-      (item) => Number(item.employee_id) === Number(employeeId),
+      (item) =>
+        Number(item.employee_id) ===
+        Number(employeeId),
     );
   };
 
@@ -1151,7 +1288,10 @@ export default function SelectTask() {
     }
 
     setEmployeeAssignments((prev) => {
-      const exists = prev.some((item) => Number(item.employee_id) === id);
+      const exists = prev.some(
+        (item) =>
+          Number(item.employee_id) === id,
+      );
 
       if (exists) {
         return prev;
@@ -1174,14 +1314,21 @@ export default function SelectTask() {
   // REMOVE EMPLOYEE
   // =========================================================
 
-  const removeEmployeeAssignment = (employeeId) => {
+  const removeEmployeeAssignment = (
+    employeeId,
+  ) => {
     const id = Number(employeeId);
 
     setEmployeeAssignments((prev) =>
-      prev.filter((item) => Number(item.employee_id) !== id),
+      prev.filter(
+        (item) =>
+          Number(item.employee_id) !== id,
+      ),
     );
 
-    setExpandedEmployee((prev) => (Number(prev) === id ? null : prev));
+    setExpandedEmployee((prev) =>
+      Number(prev) === id ? null : prev,
+    );
   };
 
   // =========================================================
@@ -1200,12 +1347,17 @@ export default function SelectTask() {
   // CHANGE ASSIGNMENT TYPE
   // =========================================================
 
-  const changeAssignmentType = (employeeId, type) => {
+  const changeAssignmentType = (
+    employeeId,
+    type,
+  ) => {
     const id = Number(employeeId);
 
     setEmployeeAssignments((prev) =>
       prev.map((item) => {
-        if (Number(item.employee_id) !== id) {
+        if (
+          Number(item.employee_id) !== id
+        ) {
           return item;
         }
 
@@ -1214,11 +1366,10 @@ export default function SelectTask() {
 
           assignment_type: type,
 
-          /*
-              المهمة كاملة لا تحتاج
-              stage_ids.
-            */
-          stage_ids: type === "task" ? [] : item.stage_ids || [],
+          stage_ids:
+            type === "task"
+              ? []
+              : item.stage_ids || [],
         };
       }),
     );
@@ -1228,30 +1379,49 @@ export default function SelectTask() {
   // TOGGLE EMPLOYEE STAGE
   // =========================================================
 
-  const toggleEmployeeStage = (employeeId, stageId) => {
-    const employeeIdNumber = Number(employeeId);
+  const toggleEmployeeStage = (
+    employeeId,
+    stageId,
+  ) => {
+    const employeeIdNumber =
+      Number(employeeId);
 
     const stageIdNumber = Number(stageId);
 
-    if (!Number.isInteger(stageIdNumber) || stageIdNumber <= 0) {
+    if (
+      !Number.isInteger(stageIdNumber) ||
+      stageIdNumber <= 0
+    ) {
       return;
     }
 
     setEmployeeAssignments((prev) =>
       prev.map((item) => {
-        if (Number(item.employee_id) !== employeeIdNumber) {
+        if (
+          Number(item.employee_id) !==
+          employeeIdNumber
+        ) {
           return item;
         }
 
-        const currentStageIds = Array.isArray(item.stage_ids)
-          ? item.stage_ids.map(Number)
-          : [];
+        const currentStageIds =
+          Array.isArray(item.stage_ids)
+            ? item.stage_ids.map(Number)
+            : [];
 
-        const exists = currentStageIds.includes(stageIdNumber);
+        const exists =
+          currentStageIds.includes(
+            stageIdNumber,
+          );
 
         const newStageIds = exists
-          ? currentStageIds.filter((id) => id !== stageIdNumber)
-          : [...currentStageIds, stageIdNumber];
+          ? currentStageIds.filter(
+              (id) => id !== stageIdNumber,
+            )
+          : [
+              ...currentStageIds,
+              stageIdNumber,
+            ];
 
         return {
           ...item,
@@ -1268,16 +1438,27 @@ export default function SelectTask() {
   // SELECT ALL STAGES FOR EMPLOYEE
   // =========================================================
 
-  const selectAllStagesForEmployee = (employeeId) => {
-    const stages = getTaskStages(assigningTask);
+  const selectAllStagesForEmployee = (
+    employeeId,
+  ) => {
+    const stages =
+      getTaskStages(assigningTask);
 
     const stageIds = stages
-      .map((stage) => Number(getStageId(stage)))
-      .filter((id) => Number.isInteger(id) && id > 0);
+      .map((stage) =>
+        Number(getStageId(stage)),
+      )
+      .filter(
+        (id) =>
+          Number.isInteger(id) && id > 0,
+      );
 
     setEmployeeAssignments((prev) =>
       prev.map((item) => {
-        if (Number(item.employee_id) !== Number(employeeId)) {
+        if (
+          Number(item.employee_id) !==
+          Number(employeeId)
+        ) {
           return item;
         }
 
@@ -1296,10 +1477,15 @@ export default function SelectTask() {
   // CLEAR ALL STAGES FOR EMPLOYEE
   // =========================================================
 
-  const clearStagesForEmployee = (employeeId) => {
+  const clearStagesForEmployee = (
+    employeeId,
+  ) => {
     setEmployeeAssignments((prev) =>
       prev.map((item) => {
-        if (Number(item.employee_id) !== Number(employeeId)) {
+        if (
+          Number(item.employee_id) !==
+          Number(employeeId)
+        ) {
           return item;
         }
 
@@ -1320,14 +1506,22 @@ export default function SelectTask() {
 
   const selectAllEmployees = () => {
     const allIds = employees
-      .map((employee) => Number(getEmployeeId(employee)))
-      .filter((id) => Number.isInteger(id) && id > 0);
+      .map((employee) =>
+        Number(getEmployeeId(employee)),
+      )
+      .filter(
+        (id) =>
+          Number.isInteger(id) && id > 0,
+      );
 
     setEmployeeAssignments(
       allIds.map((id) => {
-        const existing = employeeAssignments.find(
-          (item) => Number(item.employee_id) === id,
-        );
+        const existing =
+          employeeAssignments.find(
+            (item) =>
+              Number(item.employee_id) ===
+              id,
+          );
 
         return (
           existing || {
@@ -1355,37 +1549,58 @@ export default function SelectTask() {
   // =========================================================
 
   const filteredEmployees = useMemo(() => {
-    const value = employeeSearch.trim().toLowerCase();
+    const value =
+      employeeSearch.trim().toLowerCase();
 
     if (!value) {
       return employees;
     }
 
     return employees.filter((employee) => {
-      const id = String(getEmployeeId(employee) || "").toLowerCase();
-
-      const name = String(
-        employee.name || employee.full_name || employee.username || "",
+      const id = String(
+        getEmployeeId(employee) || "",
       ).toLowerCase();
 
-      const email = String(employee.email || "").toLowerCase();
+      const name = String(
+        employee.name ||
+          employee.full_name ||
+          employee.username ||
+          "",
+      ).toLowerCase();
+
+      const email = String(
+        employee.email || "",
+      ).toLowerCase();
 
       return (
-        name.includes(value) || email.includes(value) || id.includes(value)
+        name.includes(value) ||
+        email.includes(value) ||
+        id.includes(value)
       );
     });
-  }, [employees, employeeSearch, getEmployeeId]);
+  }, [
+    employees,
+    employeeSearch,
+    getEmployeeId,
+  ]);
 
   // =========================================================
   // GET ASSIGNMENT TEXT
   // =========================================================
 
-  const getAssignmentText = (assignment) => {
-    if (assignment?.assignment_type === "task") {
+  const getAssignmentText = (
+    assignment,
+  ) => {
+    if (
+      assignment?.assignment_type ===
+      "task"
+    ) {
       return "المهمة كاملة";
     }
 
-    const count = Array.isArray(assignment?.stage_ids)
+    const count = Array.isArray(
+      assignment?.stage_ids,
+    )
       ? assignment.stage_ids.length
       : 0;
 
@@ -1393,7 +1608,9 @@ export default function SelectTask() {
       return "لم يتم اختيار مراحل";
     }
 
-    return `${count} ${count === 1 ? "مرحلة" : "مراحل"} محددة`;
+    return `${count} ${
+      count === 1 ? "مرحلة" : "مراحل"
+    } محددة`;
   };
 
   // =========================================================
@@ -1401,7 +1618,9 @@ export default function SelectTask() {
   // =========================================================
 
   const validateAssignments = () => {
-    if (employeeAssignments.length === 0) {
+    if (
+      employeeAssignments.length === 0
+    ) {
       showMessage(
         "warning",
         "لم يتم اختيار موظفين",
@@ -1412,12 +1631,20 @@ export default function SelectTask() {
     }
 
     for (const assignment of employeeAssignments) {
-      if (assignment.assignment_type === "stage") {
+      if (
+        assignment.assignment_type ===
+        "stage"
+      ) {
         if (
-          !Array.isArray(assignment.stage_ids) ||
+          !Array.isArray(
+            assignment.stage_ids,
+          ) ||
           assignment.stage_ids.length === 0
         ) {
-          const name = getEmployeeName(assignment.employee_id);
+          const name =
+            getEmployeeName(
+              assignment.employee_id,
+            );
 
           showMessage(
             "warning",
@@ -1425,7 +1652,9 @@ export default function SelectTask() {
             `يرجى اختيار مرحلة واحدة على الأقل للموظف ${name}.`,
           );
 
-          setExpandedEmployee(assignment.employee_id);
+          setExpandedEmployee(
+            assignment.employee_id,
+          );
 
           return false;
         }
@@ -1444,9 +1673,14 @@ export default function SelectTask() {
 
     if (!assigningTask) return;
 
-    const taskId = Number(assigningTask.task_id);
+    const taskId = Number(
+      assigningTask.task_id,
+    );
 
-    if (!Number.isInteger(taskId) || taskId <= 0) {
+    if (
+      !Number.isInteger(taskId) ||
+      taskId <= 0
+    ) {
       return;
     }
 
@@ -1454,25 +1688,44 @@ export default function SelectTask() {
       return;
     }
 
-    const assignments = employeeAssignments.map((assignment) => ({
-      employee_id: Number(assignment.employee_id),
+    const assignments =
+      employeeAssignments.map(
+        (assignment) => ({
+          employee_id: Number(
+            assignment.employee_id,
+          ),
 
-      assignment_type:
-        assignment.assignment_type === "stage" ? "stage" : "task",
+          assignment_type:
+            assignment.assignment_type ===
+            "stage"
+              ? "stage"
+              : "task",
 
-      stage_ids:
-        assignment.assignment_type === "stage"
-          ? [
-              ...new Set(
-                (assignment.stage_ids || [])
-                  .map(Number)
-                  .filter((id) => Number.isInteger(id) && id > 0),
-              ),
-            ]
-          : [],
-    }));
+          stage_ids:
+            assignment.assignment_type ===
+            "stage"
+              ? [
+                  ...new Set(
+                    (
+                      assignment.stage_ids ||
+                      []
+                    )
+                      .map(Number)
+                      .filter(
+                        (id) =>
+                          Number.isInteger(
+                            id,
+                          ) && id > 0,
+                      ),
+                  ),
+                ]
+              : [],
+        }),
+      );
 
-    console.log("=================================");
+    console.log(
+      "=================================",
+    );
 
     console.log(
       "ASSIGN TASK PAYLOAD:",
@@ -1486,62 +1739,91 @@ export default function SelectTask() {
       ),
     );
 
-    console.log("=================================");
+    console.log(
+      "=================================",
+    );
 
     try {
       setSaving(true);
 
-      const res = await API.post("/tasks/assign", {
-        task_id: taskId,
-        assignments,
-      });
+      const res = await API.post(
+        "/tasks/assign",
+        {
+          task_id: taskId,
+          assignments,
+        },
+      );
 
-      const employeeIds = assignments.map((item) => item.employee_id);
-
-      /*
-        نحتفظ بتفاصيل التعيين
-        داخل الـ task حتى تظهر
-        مباشرة في الواجهة.
-      */
-
-      const returnedEmployees = Array.isArray(res.data?.employees)
-        ? res.data.employees
-        : employeeIds.map((id) => {
-            const employee = employees.find(
-              (item) => Number(getEmployeeId(item)) === Number(id),
-            );
-
-            return (
-              employee || {
-                employee_id: id,
-
-                name: `موظف #${id}`,
-
-                status: "pending",
-              }
-            );
-          });
-
-      const normalizedEmployees = returnedEmployees.map((employee) => {
-        const id = Number(getEmployeeId(employee));
-
-        const assignment = assignments.find(
-          (item) => Number(item.employee_id) === id,
+      const employeeIds =
+        assignments.map(
+          (item) => item.employee_id,
         );
 
-        return {
-          ...employee,
+      const returnedEmployees =
+        Array.isArray(
+          res.data?.employees,
+        )
+          ? res.data.employees
+          : employeeIds.map((id) => {
+              const employee =
+                employees.find(
+                  (item) =>
+                    Number(
+                      getEmployeeId(item),
+                    ) === Number(id),
+                );
 
-          status: employee.status || "pending",
+              return (
+                employee || {
+                  employee_id: id,
 
-          assignment_type: assignment?.assignment_type || "task",
+                  name: `موظف #${id}`,
 
-          stage_ids: assignment?.stage_ids || [],
-        };
-      });
+                  status: "pending",
+                }
+              );
+            });
 
-      const updateTaskState = (task) => {
-        if (Number(task.task_id) !== taskId) {
+      const normalizedEmployees =
+        returnedEmployees.map(
+          (employee) => {
+            const id = Number(
+              getEmployeeId(employee),
+            );
+
+            const assignment =
+              assignments.find(
+                (item) =>
+                  Number(
+                    item.employee_id,
+                  ) === id,
+              );
+
+            return {
+              ...employee,
+
+              status:
+                employee.status ||
+                "pending",
+
+              assignment_type:
+                assignment?.assignment_type ||
+                "task",
+
+              stage_ids:
+                assignment?.stage_ids ||
+                [],
+            };
+          },
+        );
+
+      const updateTaskState = (
+        task,
+      ) => {
+        if (
+          Number(task.task_id) !==
+          taskId
+        ) {
           return task;
         }
 
@@ -1550,54 +1832,87 @@ export default function SelectTask() {
 
           employee_ids: employeeIds,
 
-          employee_id: employeeIds.length > 0 ? employeeIds[0] : null,
+          employee_id:
+            employeeIds.length > 0
+              ? employeeIds[0]
+              : null,
 
-          employees: normalizedEmployees,
+          employees:
+            normalizedEmployees,
 
           assignments: assignments,
         };
       };
 
-      setTasks((prev) => prev.map(updateTaskState));
+      setTasks((prev) =>
+        prev.map(updateTaskState),
+      );
 
       setStageModal((prev) => {
-        if (!prev.open || !prev.task || Number(prev.task.task_id) !== taskId) {
+        if (
+          !prev.open ||
+          !prev.task ||
+          Number(
+            prev.task.task_id,
+          ) !== taskId
+        ) {
           return prev;
         }
 
         return {
           ...prev,
 
-          task: updateTaskState(prev.task),
+          task: updateTaskState(
+            prev.task,
+          ),
         };
       });
 
       closeAssignModal();
 
-      const fullTaskCount = assignments.filter(
-        (item) => item.assignment_type === "task",
-      ).length;
+      const fullTaskCount =
+        assignments.filter(
+          (item) =>
+            item.assignment_type ===
+            "task",
+        ).length;
 
-      const stageCount = assignments.filter(
-        (item) => item.assignment_type === "stage",
-      ).length;
+      const stageCount =
+        assignments.filter(
+          (item) =>
+            item.assignment_type ===
+            "stage",
+        ).length;
 
       showMessage(
         "success",
         "تم تحديث التعيين",
         `تم تعيين ${employeeIds.length} موظف بنجاح${
-          fullTaskCount > 0 ? `، منهم ${fullTaskCount} للمهمة كاملة` : ""
-        }${stageCount > 0 ? ` و${stageCount} لمراحل محددة` : ""}.`,
+          fullTaskCount > 0
+            ? `، منهم ${fullTaskCount} للمهمة كاملة`
+            : ""
+        }${
+          stageCount > 0
+            ? ` و${stageCount} لمراحل محددة`
+            : ""
+        }.`,
       );
     } catch (error) {
-      console.error("ASSIGN TASK ERROR:", error);
+      console.error(
+        "ASSIGN TASK ERROR:",
+        error,
+      );
 
-      console.error("SERVER DATA:", error?.response?.data);
+      console.error(
+        "SERVER DATA:",
+        error?.response?.data,
+      );
 
       showMessage(
         "error",
         "تعذر تعيين الموظفين",
-        error?.response?.data?.message || "حدث خطأ أثناء تعيين الموظفين.",
+        error?.response?.data?.message ||
+          "حدث خطأ أثناء تعيين الموظفين.",
       );
     } finally {
       setSaving(false);
@@ -1608,16 +1923,24 @@ export default function SelectTask() {
   // STAGE ASSIGNED EMPLOYEES
   // =========================================================
 
-  const getStageAssignedEmployees = (task, stageId) => {
+  const getStageAssignedEmployees = (
+    task,
+    stageId,
+  ) => {
     if (!task) return [];
 
-    const assignments = Array.isArray(task.assignments)
-      ? task.assignments
-      : Array.isArray(task.employee_assignments)
-        ? task.employee_assignments
-        : Array.isArray(task.employeeAssignments)
-          ? task.employeeAssignments
-          : [];
+    const assignments =
+      Array.isArray(task.assignments)
+        ? task.assignments
+        : Array.isArray(
+              task.employee_assignments,
+            )
+          ? task.employee_assignments
+          : Array.isArray(
+                task.employeeAssignments,
+              )
+            ? task.employeeAssignments
+            : [];
 
     if (assignments.length === 0) {
       return [];
@@ -1625,31 +1948,212 @@ export default function SelectTask() {
 
     const ids = [];
 
-    assignments.forEach((assignment) => {
-      const employeeId = Number(assignment.employee_id ?? assignment.id);
+    assignments.forEach(
+      (assignment) => {
+        const employeeId = Number(
+          assignment.employee_id ??
+            assignment.id,
+        );
 
-      if (!Number.isInteger(employeeId)) {
-        return;
-      }
+        if (!Number.isInteger(employeeId)) {
+          return;
+        }
 
-      const type = assignment.assignment_type || assignment.type || "task";
+        const type =
+          assignment.assignment_type ||
+          assignment.type ||
+          "task";
 
-      if (type === "task") {
-        ids.push(employeeId);
+        if (type === "task") {
+          ids.push(employeeId);
 
-        return;
-      }
+          return;
+        }
 
-      const stageIds = Array.isArray(assignment.stage_ids)
-        ? assignment.stage_ids.map(Number)
-        : [];
+        const stageIds = Array.isArray(
+          assignment.stage_ids,
+        )
+          ? assignment.stage_ids.map(Number)
+          : [];
 
-      if (stageIds.includes(Number(stageId))) {
-        ids.push(employeeId);
-      }
-    });
+        if (
+          stageIds.includes(
+            Number(stageId),
+          )
+        ) {
+          ids.push(employeeId);
+        }
+      },
+    );
 
     return [...new Set(ids)];
+  };
+
+  // =========================================================
+  // EXPORT TASKS TO EXCEL
+  // =========================================================
+
+  const exportTasksToExcel = () => {
+    if (filteredTasks.length === 0) {
+      showMessage(
+        "warning",
+        "لا توجد مهام",
+        "لا توجد مهام مطابقة للبحث أو الفلترة لتصديرها.",
+      );
+
+      return;
+    }
+
+    const excelData = filteredTasks.map(
+      (task, index) => {
+        const employeeIds =
+          getTaskEmployeeIds(task);
+
+        const taskEmployees =
+          getTaskEmployees(task);
+
+        const stages =
+          getTaskStages(task);
+
+        const progress =
+          getStageProgress(task);
+
+        const overallStatus =
+          getTaskOverallStatus(task);
+
+        const employeeNames =
+          taskEmployees.length > 0
+            ? taskEmployees
+                .map(
+                  (employee) =>
+                    employee.name ||
+                    employee.full_name ||
+                    employee.username ||
+                    `موظف #${getEmployeeId(
+                      employee,
+                    )}`,
+                )
+                .join("، ")
+            : "متاحة لجميع الموظفين";
+
+        const stageNames =
+          stages.length > 0
+            ? stages
+                .map(
+                  (
+                    stage,
+                    stageIndex,
+                  ) =>
+                    `${stageIndex + 1}. ${
+                      stage.title ||
+                      stage.name ||
+                      `المرحلة ${
+                        stageIndex + 1
+                      }`
+                    }`,
+                )
+                .join(" | ")
+            : "لا توجد مراحل";
+
+        return {
+          "م": index + 1,
+
+          "رقم المهمة":
+            task.task_id || "",
+
+          "عنوان المهمة":
+            task.title || "",
+
+          "وصف المهمة":
+            task.description || "",
+
+          "تاريخ الاستحقاق":
+            formatDate(task.due_date),
+
+          "حالة المهمة":
+            overallStatus.text,
+
+          "عدد الموظفين":
+            employeeIds.length,
+
+          الموظفون: employeeNames,
+
+          "عدد المراحل":
+            progress.total,
+
+          "المراحل المكتملة":
+            progress.completed,
+
+          "نسبة الإنجاز":
+            `${progress.percentage}%`,
+
+          المراحل: stageNames,
+        };
+      },
+    );
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(
+        excelData,
+      );
+
+    worksheet["!cols"] = [
+      { wch: 6 },
+      { wch: 14 },
+      { wch: 30 },
+      { wch: 45 },
+      { wch: 22 },
+      { wch: 20 },
+      { wch: 16 },
+      { wch: 45 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 60 },
+    ];
+
+    const workbook =
+      XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "المهام",
+    );
+
+    const filterName =
+      taskFilter === "all"
+        ? "كل_المهام"
+        : taskFilter === "assigned"
+          ? "المهام_المعينة"
+          : taskFilter === "available"
+            ? "المهام_المتاحة_للجميع"
+            : taskFilter === "pending"
+              ? "المهام_قيد_التنفيذ"
+              : taskFilter === "completed"
+                ? "المهام_المكتملة"
+                : taskFilter ===
+                    "with_stages"
+                  ? "المهام_ذات_المراحل"
+                  : "المهام_بدون_مراحل";
+
+    const fileName = `تقرير_المهام_${filterName}.xlsx`;
+
+    const excelBuffer =
+      XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+
+    const blob = new Blob(
+      [excelBuffer],
+      {
+        type:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+    );
+
+    saveAs(blob, fileName);
   };
 
   // =========================================================
@@ -1657,7 +2161,10 @@ export default function SelectTask() {
   // =========================================================
 
   return (
-    <div className="select-task-page" dir="rtl">
+    <div
+      className="select-task-page"
+      dir="rtl"
+    >
       {/* =====================================================
           HEADER
       ====================================================== */}
@@ -1666,17 +2173,49 @@ export default function SelectTask() {
         <div>
           <h1>إدارة المهام</h1>
 
-          <p>إنشاء المهام وإضافة مراحلها وتعيينها للموظفين</p>
+          <p>
+            إنشاء المهام وإضافة مراحلها
+            وتعيينها للموظفين
+          </p>
         </div>
 
-        <button
-          className="add-task-btn"
-          onClick={openAddModal}
-          disabled={saving}
-        >
-          <span>＋</span>
-          إضافة مهمة
-        </button>
+        <div className="page-header-actions">
+          {/* TRASH BUTTON */}
+
+          <button
+            type="button"
+            className="trash-btn"
+            onClick={async () => {
+              setShowTrash(true);
+
+              await fetchDeletedTasks();
+            }}
+            disabled={saving}
+            title="سلة المهملات"
+          >
+            <FaTrash />
+
+            <span>سلة المهملات</span>
+
+            {deletedTasks.length > 0 && (
+              <strong>
+                {deletedTasks.length}
+              </strong>
+            )}
+          </button>
+
+          {/* ADD TASK */}
+
+          <button
+            type="button"
+            className="add-task-btn"
+            onClick={openAddModal}
+            disabled={saving}
+          >
+            <span>＋</span>
+            إضافة مهمة
+          </button>
+        </div>
       </div>
 
       {/* =====================================================
@@ -1684,22 +2223,10 @@ export default function SelectTask() {
       ====================================================== */}
 
       <div className="task-stats">
-        <div
-          className={`stat-card ${
-            activeStat === "all" ? "stat-card-active" : ""
-          }`}
-          role="button"
-          tabIndex={0}
-          onClick={() => handleStatClick("all")}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleStatClick("all");
-            }
-          }}
-          title="عرض جميع المهام"
-        >
-          <div className="stat-icon">📋</div>
+        <div className="stat-card">
+          <div className="stat-icon">
+            📋
+          </div>
 
           <div>
             <span>إجمالي المهام</span>
@@ -1708,126 +2235,70 @@ export default function SelectTask() {
           </div>
         </div>
 
-        <div
-          className={`stat-card ${
-            activeStat === "assigned" ? "stat-card-active" : ""
-          }`}
-          role="button"
-          tabIndex={0}
-          onClick={() => handleStatClick("assigned")}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleStatClick("assigned");
-            }
-          }}
-          title="عرض المهام المعينة"
-        >
-          <div className="stat-icon">👥</div>
+        <div className="stat-card">
+          <div className="stat-icon">
+            👥
+          </div>
 
           <div>
             <span>المهام المعينة</span>
 
-            <strong>{assignedTasks}</strong>
+            <strong>
+              {assignedTasks}
+            </strong>
           </div>
         </div>
 
-        <div
-          className={`stat-card ${
-            activeStat === "pending" ? "stat-card-active" : ""
-          }`}
-          role="button"
-          tabIndex={0}
-          onClick={() => handleStatClick("pending")}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleStatClick("pending");
-            }
-          }}
-          title="عرض المهام قيد التنفيذ"
-        >
-          <div className="stat-icon">⏳</div>
+        <div className="stat-card">
+          <div className="stat-icon">
+            ⏳
+          </div>
 
           <div>
             <span>قيد التنفيذ</span>
 
-            <strong>{pendingTasks}</strong>
+            <strong>
+              {pendingTasks}
+            </strong>
           </div>
         </div>
 
-        <div
-          className={`stat-card ${
-            activeStat === "completed" ? "stat-card-active" : ""
-          }`}
-          role="button"
-          tabIndex={0}
-          onClick={() => handleStatClick("completed")}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleStatClick("completed");
-            }
-          }}
-          title="عرض المهام المكتملة"
-        >
-          <div className="stat-icon">✅</div>
+        <div className="stat-card">
+          <div className="stat-icon">
+            ✅
+          </div>
 
           <div>
             <span>المهام المكتملة</span>
 
-            <strong>{completedTasks}</strong>
+            <strong>
+              {completedTasks}
+            </strong>
           </div>
         </div>
 
-        <div
-          className={`stat-card ${
-            activeStat === "unassigned" ? "stat-card-active" : ""
-          }`}
-          role="button"
-          tabIndex={0}
-          onClick={() => handleStatClick("unassigned")}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleStatClick("unassigned");
-            }
-          }}
-          title="عرض المهام المتاحة لجميع الموظفين"
-        >
-          <div className="stat-icon">🌐</div>
+        <div className="stat-card">
+          <div className="stat-icon">
+            🌐
+          </div>
 
           <div>
             <span>متاحة للجميع</span>
 
-            <strong>{unassignedTasks}</strong>
+            <strong>
+              {unassignedTasks}
+            </strong>
           </div>
         </div>
       </div>
 
-      {activeStat !== "all" && (
-        <div className="active-stat-filter">
-          <div>
-            <span>الفئة الحالية:</span>
-            <strong>{activeStatLabel}</strong>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setActiveStat("all")}
-            aria-label="إظهار جميع المهام"
-          >
-            عرض جميع المهام
-            <FaTimes />
-          </button>
-        </div>
-      )}
-
       {/* =====================================================
-          SEARCH
+          SEARCH + FILTER + EXCEL
       ====================================================== */}
 
       <div className="task-toolbar">
+        {/* SEARCH */}
+
         <div className="task-search">
           <span>🔎</span>
 
@@ -1835,13 +2306,17 @@ export default function SelectTask() {
             type="text"
             placeholder="ابحث عن مهمة أو موظف أو مرحلة..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
           />
 
           {search && (
             <button
               type="button"
-              onClick={() => setSearch("")}
+              onClick={() =>
+                setSearch("")
+              }
               className="clear-search"
             >
               ×
@@ -1849,8 +2324,78 @@ export default function SelectTask() {
           )}
         </div>
 
+        {/* FILTER */}
+
+        <div className="task-filter-wrapper">
+          <FaFilter className="task-filter-icon" />
+
+          <select
+            className="task-filter-select"
+            value={taskFilter}
+            onChange={(e) =>
+              setTaskFilter(
+                e.target.value,
+              )
+            }
+          >
+            <option value="all">
+              كل المهام
+            </option>
+
+            <option value="assigned">
+              المهام المعينة
+            </option>
+
+            <option value="available">
+              متاحة للجميع
+            </option>
+
+            <option value="pending">
+              قيد التنفيذ
+            </option>
+
+            <option value="completed">
+              مكتملة
+            </option>
+
+            <option value="with_stages">
+              تحتوي على مراحل
+            </option>
+
+            <option value="without_stages">
+              بدون مراحل
+            </option>
+          </select>
+
+          <FaChevronDown className="task-filter-arrow" />
+        </div>
+
+        {/* EXCEL */}
+
+        <button
+          type="button"
+          className="excel-btn"
+          onClick={
+            exportTasksToExcel
+          }
+          disabled={
+            filteredTasks.length === 0
+          }
+          title="تصدير المهام إلى Excel"
+        >
+          <FaFileExcel />
+
+          <span>Excel</span>
+        </button>
+
+        {/* RESULTS */}
+
         <div className="results-count">
-          عرض <strong>{filteredTasks.length}</strong> من {tasks.length} مهمة
+          عرض{" "}
+          <strong>
+            {filteredTasks.length}
+          </strong>{" "}
+          من {tasks.length} مهمة
         </div>
       </div>
 
@@ -1862,303 +2407,633 @@ export default function SelectTask() {
         <div className="loading-state">
           <div className="loader"></div>
 
-          <p>جاري تحميل المهام...</p>
+          <p>
+            جاري تحميل المهام...
+          </p>
         </div>
-      ) : filteredTasks.length === 0 ? (
+      ) : filteredTasks.length ===
+        0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📋</div>
+          <div className="empty-icon">
+            📋
+          </div>
 
           <h3>
-            {search
+            {search ||
+            taskFilter !== "all"
               ? "لا توجد نتائج"
-              : activeStat !== "all"
-                ? `لا توجد ${activeStatLabel}`
-                : "لا توجد مهام"}
+              : "لا توجد مهام"}
           </h3>
 
           <p>
-            {search
-              ? "جرّب البحث باستخدام كلمة أخرى"
-              : activeStat !== "all"
-                ? "جرّبي اختيار إحصائية أخرى لعرض المهام"
-                : "قم بإضافة أول مهمة من زر إضافة مهمة"}
+            {search ||
+            taskFilter !== "all"
+              ? "جرّب تغيير البحث أو الفلترة"
+              : "قم بإضافة أول مهمة من زر إضافة مهمة"}
           </p>
 
-          {activeStat !== "all" ? (
-            <button
-              type="button"
-              className="add-task-btn"
-              onClick={() => setActiveStat("all")}
-            >
-              عرض جميع المهام
-            </button>
-          ) : (
-            !search && (
-              <button className="add-task-btn" onClick={openAddModal}>
+          {!search &&
+            taskFilter === "all" && (
+              <button
+                type="button"
+                className="add-task-btn"
+                onClick={
+                  openAddModal
+                }
+              >
                 ＋ إضافة مهمة
               </button>
-            )
-          )}
+            )}
         </div>
       ) : (
         <div className="tasks-grid">
-          {filteredTasks.map((task) => {
-            const taskEmployees = getTaskEmployees(task);
+          {filteredTasks.map(
+            (task) => {
+              const taskEmployees =
+                getTaskEmployees(task);
 
-            const employeeCount = getTaskEmployeeIds(task).length;
+              const employeeCount =
+                getTaskEmployeeIds(
+                  task,
+                ).length;
 
-            const isAssigned = employeeCount > 0;
+              const isAssigned =
+                employeeCount > 0;
 
-            const overallStatus = getTaskOverallStatus(task);
+              const overallStatus =
+                getTaskOverallStatus(
+                  task,
+                );
 
-            const stageProgress = getStageProgress(task);
+              const stageProgress =
+                getStageProgress(task);
 
-            const hasStages = stageProgress.total > 0;
+              const hasStages =
+                stageProgress.total > 0;
 
-            return (
-              <div
-                className={`task-card ${
-                  hasStages ? "task-card-clickable" : ""
-                }`}
-                key={task.task_id}
-                role={hasStages ? "button" : undefined}
-                tabIndex={hasStages ? 0 : undefined}
-                onClick={() => {
-                  if (hasStages) {
-                    openStageModal(task);
+              return (
+                <div
+                  className={`task-card ${
+                    hasStages
+                      ? "task-card-clickable"
+                      : ""
+                  }`}
+                  key={
+                    task.task_id
                   }
-                }}
-                onKeyDown={(e) => {
-                  if (hasStages && (e.key === "Enter" || e.key === " ")) {
-                    e.preventDefault();
-
-                    openStageModal(task);
+                  role={
+                    hasStages
+                      ? "button"
+                      : undefined
                   }
-                }}
-              >
-                {/* CLICK HINT */}
+                  tabIndex={
+                    hasStages
+                      ? 0
+                      : undefined
+                  }
+                  onClick={() => {
+                    if (hasStages) {
+                      openStageModal(
+                        task,
+                      );
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (
+                      hasStages &&
+                      (e.key ===
+                        "Enter" ||
+                        e.key ===
+                          " ")
+                    ) {
+                      e.preventDefault();
 
-                {hasStages && (
-                  <div className="task-card-click-hint">
-                    <FaListOl />
-
-                    <span>اضغط لعرض المراحل</span>
-                  </div>
-                )}
-
-                {/* HEADER */}
-
-                <div className="task-card-header">
-                  <div className="task-number">#{task.task_id}</div>
-
-                  <div className="task-actions">
-                    <button
-                      type="button"
-                      title="تعديل"
-                      onClick={(e) => {
-                        e.stopPropagation();
-
-                        openEditModal(task);
-                      }}
-                    >
-                      ✏️
-                    </button>
-
-                    <button
-                      type="button"
-                      title="حذف"
-                      onClick={(e) => {
-                        e.stopPropagation();
-
-                        deleteTask(task);
-                      }}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-
-                {/* BODY */}
-
-                <div className="task-card-body">
-                  <h3>{task.title}</h3>
-
-                  {task.description ? (
-                    <p className="task-description">{task.description}</p>
-                  ) : (
-                    <p className="task-description muted">لا يوجد وصف للمهمة</p>
-                  )}
-
-                  {/* STAGES SUMMARY */}
+                      openStageModal(
+                        task,
+                      );
+                    }
+                  }}
+                >
+                  {/* CLICK HINT */}
 
                   {hasStages && (
-                    <div className="task-stages-summary">
-                      <div className="stages-summary-header">
-                        <div className="stages-summary-title">
-                          <FaTasks />
+                    <div className="task-card-click-hint">
+                      <FaListOl />
 
-                          <span>مراحل المهمة</span>
-                        </div>
-
-                        <strong>
-                          {stageProgress.completed} / {stageProgress.total}
-                        </strong>
-                      </div>
-
-                      <div className="stage-progress-track">
-                        <div
-                          className="stage-progress-fill"
-                          style={{
-                            width: `${stageProgress.percentage}%`,
-                          }}
-                        />
-                      </div>
-
-                      <div className="stage-progress-footer">
-                        <span>{stageProgress.percentage}% مكتمل</span>
-
-                        {stageProgress.completed === stageProgress.total && (
-                          <span className="all-stages-done">
-                            ✓ جميع المراحل مكتملة
-                          </span>
-                        )}
-                      </div>
+                      <span>
+                        اضغط لعرض المراحل
+                      </span>
                     </div>
                   )}
 
-                  {/* DATE + STATUS */}
+                  {/* HEADER */}
 
-                  <div className="task-meta">
-                    <div className="task-due-date">
-                      <FaCalendarAlt />
-
-                      <div>
-                        <span>تاريخ الاستحقاق</span>
-
-                        <strong>{formatDate(task.due_date)}</strong>
-                      </div>
+                  <div className="task-card-header">
+                    <div className="task-number">
+                      #{task.task_id}
                     </div>
 
-                    <div
-                      className={`task-overall-status ${overallStatus.className}`}
-                    >
-                      {overallStatus.icon}
+                    <div className="task-actions">
+                      <button
+                        type="button"
+                        title="تعديل"
+                        onClick={(e) => {
+                          e.stopPropagation();
 
-                      <span>{overallStatus.text}</span>
+                          openEditModal(
+                            task,
+                          );
+                        }}
+                      >
+                        ✏️
+                      </button>
+
+                      <button
+                        type="button"
+                        title="حذف"
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          deleteTask(
+                            task,
+                          );
+                        }}
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
 
-                  {/* EMPLOYEES */}
+                  {/* BODY */}
 
-                  <div className="task-employees-section">
-                    <div className="section-title">
-                      <span>👥</span>
+                  <div className="task-card-body">
+                    <h3>
+                      {task.title}
+                    </h3>
 
-                      <span>الموظفون</span>
-
-                      <span
-                        className={
-                          isAssigned
-                            ? "employee-count assigned"
-                            : "employee-count"
+                    {task.description ? (
+                      <p className="task-description">
+                        {
+                          task.description
                         }
-                      >
-                        {employeeCount}
-                      </span>
-                    </div>
-
-                    {!isAssigned ? (
-                      <div className="no-employees">
-                        <span>🌐</span>
-
-                        <span>المهمة متاحة لجميع الموظفين</span>
-                      </div>
+                      </p>
                     ) : (
-                      <div className="assigned-employees">
-                        {taskEmployees.map((employee, index) => {
-                          const employeeId = getEmployeeId(employee);
+                      <p className="task-description muted">
+                        لا يوجد وصف للمهمة
+                      </p>
+                    )}
 
-                          const name =
-                            employee.name ||
-                            employee.full_name ||
-                            employee.username ||
-                            `موظف #${employeeId}`;
+                    {/* STAGES SUMMARY */}
 
-                          const employeeStatus =
-                            getEmployeeTaskStatus(employee);
+                    {hasStages && (
+                      <div className="task-stages-summary">
+                        <div className="stages-summary-header">
+                          <div className="stages-summary-title">
+                            <FaTasks />
 
-                          const assignmentType =
-                            employee.assignment_type || "task";
+                            <span>
+                              مراحل المهمة
+                            </span>
+                          </div>
 
-                          return (
-                            <div
-                              className="employee-chip"
-                              key={`${employeeId}-${index}`}
-                            >
-                              <span className="employee-avatar">
-                                {name.charAt(0).toUpperCase()}
-                              </span>
+                          <strong>
+                            {
+                              stageProgress.completed
+                            }{" "}
+                            /{" "}
+                            {
+                              stageProgress.total
+                            }
+                          </strong>
+                        </div>
 
-                              <span className="employee-name">{name}</span>
+                        <div className="stage-progress-track">
+                          <div
+                            className="stage-progress-fill"
+                            style={{
+                              width: `${stageProgress.percentage}%`,
+                            }}
+                          />
+                        </div>
 
-                              <span
-                                className={`employee-assignment-badge ${
-                                  assignmentType === "stage"
-                                    ? "stage-assignment"
-                                    : "task-assignment"
-                                }`}
-                              >
-                                {assignmentType === "stage"
-                                  ? "مراحل محددة"
-                                  : "كاملة"}
-                              </span>
+                        <div className="stage-progress-footer">
+                          <span>
+                            {
+                              stageProgress.percentage
+                            }
+                            % مكتمل
+                          </span>
 
-                              <span
-                                className={`employee-task-status ${employeeStatus.className}`}
-                                title={employeeStatus.text}
-                              >
-                                {employeeStatus.icon}
-                              </span>
-                            </div>
-                          );
-                        })}
+                          {stageProgress.completed ===
+                            stageProgress.total && (
+                            <span className="all-stages-done">
+                              ✓ جميع المراحل مكتملة
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
+
+                    {/* DATE + STATUS */}
+
+                    <div className="task-meta">
+                      <div className="task-due-date">
+                        <FaCalendarAlt />
+
+                        <div>
+                          <span>
+                            تاريخ الاستحقاق
+                          </span>
+
+                          <strong>
+                            {formatDate(
+                              task.due_date,
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`task-overall-status ${overallStatus.className}`}
+                      >
+                        {
+                          overallStatus.icon
+                        }
+
+                        <span>
+                          {
+                            overallStatus.text
+                          }
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* EMPLOYEES */}
+
+                    <div className="task-employees-section">
+                      <div className="section-title">
+                        <span>👥</span>
+
+                        <span>
+                          الموظفون
+                        </span>
+
+                        <span
+                          className={
+                            isAssigned
+                              ? "employee-count assigned"
+                              : "employee-count"
+                          }
+                        >
+                          {
+                            employeeCount
+                          }
+                        </span>
+                      </div>
+
+                      {!isAssigned ? (
+                        <div className="no-employees">
+                          <span>🌐</span>
+
+                          <span>
+                            المهمة متاحة لجميع
+                            الموظفين
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="assigned-employees">
+                          {taskEmployees.map(
+                            (
+                              employee,
+                              index,
+                            ) => {
+                              const employeeId =
+                                getEmployeeId(
+                                  employee,
+                                );
+
+                              const name =
+                                employee.name ||
+                                employee.full_name ||
+                                employee.username ||
+                                `موظف #${employeeId}`;
+
+                              const employeeStatus =
+                                getEmployeeTaskStatus(
+                                  employee,
+                                );
+
+                              const assignmentType =
+                                employee.assignment_type ||
+                                "task";
+
+                              return (
+                                <div
+                                  className="employee-chip"
+                                  key={`${employeeId}-${index}`}
+                                >
+                                  <span className="employee-avatar">
+                                    {name
+                                      .charAt(
+                                        0,
+                                      )
+                                      .toUpperCase()}
+                                  </span>
+
+                                  <span className="employee-name">
+                                    {name}
+                                  </span>
+
+                                  <span
+                                    className={`employee-assignment-badge ${
+                                      assignmentType ===
+                                      "stage"
+                                        ? "stage-assignment"
+                                        : "task-assignment"
+                                    }`}
+                                  >
+                                    {assignmentType ===
+                                    "stage"
+                                      ? "مراحل محددة"
+                                      : "كاملة"}
+                                  </span>
+
+                                  <span
+                                    className={`employee-task-status ${employeeStatus.className}`}
+                                    title={
+                                      employeeStatus.text
+                                    }
+                                  >
+                                    {
+                                      employeeStatus.icon
+                                    }
+                                  </span>
+                                </div>
+                              );
+                            },
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* FOOTER */}
+
+                  <div className="task-card-footer">
+                    <div
+                      className={
+                        isAssigned
+                          ? "assignment-status assigned"
+                          : "assignment-status"
+                      }
+                    >
+                      <span>
+                        {isAssigned
+                          ? "✓"
+                          : "🌐"}
+                      </span>
+
+                      {isAssigned
+                        ? `${employeeCount} موظف معين`
+                        : "متاحة لجميع الموظفين"}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="assign-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+
+                        openAssignModal(
+                          task,
+                        );
+                      }}
+                    >
+                      👥{" "}
+                      {isAssigned
+                        ? "تعديل التعيين"
+                        : "تعيين موظفين"}
+                    </button>
                   </div>
                 </div>
+              );
+            },
+          )}
+        </div>
+      )}
 
-                {/* FOOTER */}
+      {/* =====================================================
+          TRASH MODAL
+      ====================================================== */}
 
-                <div className="task-card-footer">
-                  <div
-                    className={
-                      isAssigned
-                        ? "assignment-status assigned"
-                        : "assignment-status"
-                    }
-                  >
-                    <span>{isAssigned ? "✓" : "🌐"}</span>
+      {showTrash && (
+        <div
+          className="modal-overlay trash-overlay"
+          onMouseDown={(e) => {
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
+              setShowTrash(false);
+            }
+          }}
+        >
+          <div
+            className="trash-modal"
+            onMouseDown={(e) =>
+              e.stopPropagation()
+            }
+          >
+            {/* HEADER */}
 
-                    {isAssigned
-                      ? `${employeeCount} موظف معين`
-                      : "متاحة لجميع الموظفين"}
-                  </div>
+            <div className="trash-modal-header">
+              <div className="trash-modal-title">
+                <div className="trash-modal-icon">
+                  <FaTrash />
+                </div>
 
-                  <button
-                    type="button"
-                    className="assign-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
+                <div>
+                  <span>
+                    إدارة المهام المحذوفة
+                  </span>
 
-                      openAssignModal(task);
-                    }}
-                  >
-                    👥 {isAssigned ? "تعديل التعيين" : "تعيين موظفين"}
-                  </button>
+                  <h2>
+                    سلة المهملات
+                  </h2>
+
+                  <p>
+                    يمكنك استرجاع المهام المحذوفة
+                    وإعادتها إلى القائمة الرئيسية.
+                  </p>
                 </div>
               </div>
-            );
-          })}
+
+              <button
+                type="button"
+                className="trash-modal-close"
+                onClick={() =>
+                  setShowTrash(false)
+                }
+                disabled={saving}
+                aria-label="إغلاق"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* BODY */}
+
+            <div className="trash-modal-body">
+              {trashLoading ? (
+                <div className="trash-loading">
+                  <div className="loader"></div>
+
+                  <p>
+                    جاري تحميل المهام المحذوفة...
+                  </p>
+                </div>
+              ) : deletedTasks.length ===
+                0 ? (
+                <div className="trash-empty">
+                  <div className="trash-empty-icon">
+                    <FaTrash />
+                  </div>
+
+                  <h3>
+                    سلة المهملات فارغة
+                  </h3>
+
+                  <p>
+                    لا توجد مهام محذوفة حاليًا.
+                  </p>
+                </div>
+              ) : (
+                <div className="deleted-tasks-list">
+                  {deletedTasks.map(
+                    (task) => {
+                      return (
+                        <div
+                          className="deleted-task-card"
+                          key={
+                            task.task_id
+                          }
+                        >
+                          <div className="deleted-task-main">
+                            <div className="deleted-task-number">
+                              #
+                              {
+                                task.task_id
+                              }
+                            </div>
+
+                            <div className="deleted-task-info">
+                              <h3>
+                                {task.title ||
+                                  "بدون عنوان"}
+                              </h3>
+
+                              <p>
+                                {task.description ||
+                                  "لا يوجد وصف للمهمة"}
+                              </p>
+
+                              <div className="deleted-task-meta">
+                                <span>
+                                  <FaCalendarAlt />
+                                  الاستحقاق:{" "}
+                                  <strong>
+                                    {formatDate(
+                                      task.due_date,
+                                    )}
+                                  </strong>
+                                </span>
+
+                                {Array.isArray(
+                                  task.stages,
+                                ) &&
+                                  task.stages.length >
+                                    0 && (
+                                    <span>
+                                      <FaListOl />
+                                      {
+                                        task.stages
+                                          .length
+                                      }{" "}
+                                      مراحل
+                                    </span>
+                                  )}
+
+                                {task.deleted_at && (
+                                  <span>
+                                    <FaTrash />
+                                    تاريخ الحذف:{" "}
+                                    <strong>
+                                      {formatDate(
+                                        task.deleted_at,
+                                      )}
+                                    </strong>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="restore-task-btn"
+                            onClick={() =>
+                              restoreTask(
+                                task.task_id,
+                              )
+                            }
+                            disabled={
+                              saving
+                            }
+                            title="استرجاع المهمة"
+                          >
+                            <FaUndo />
+
+                            <span>
+                              {saving
+                                ? "جاري الاسترجاع..."
+                                : "استرجاع"}
+                            </span>
+                          </button>
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* FOOTER */}
+
+            <div className="trash-modal-footer">
+              <div className="trash-count">
+                <FaTrash />
+
+                <span>
+                  عدد المهام المحذوفة:
+                </span>
+
+                <strong>
+                  {deletedTasks.length}
+                </strong>
+              </div>
+
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={() =>
+                  setShowTrash(false)
+                }
+                disabled={saving}
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -2166,382 +3041,527 @@ export default function SelectTask() {
           STAGES POPUP
       ====================================================== */}
 
-      {/* =========================================================
-    STAGES POPUP
-========================================================= */}
+      {stageModal.open &&
+        stageModal.task && (
+          <div
+            className="modal-overlay stage-modal-overlay"
+            onMouseDown={(e) => {
+              if (
+                e.target ===
+                e.currentTarget
+              ) {
+                closeStageModal();
+              }
+            }}
+          >
+            <div
+              className="stage-modal"
+              onMouseDown={(e) =>
+                e.stopPropagation()
+              }
+            >
+              {(() => {
+                const task =
+                  stageModal.task;
 
-      {stageModal.open && stageModal.task && (
-        <div
-          className="modal-overlay stage-modal-overlay"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
-              closeStageModal();
-            }
-          }}
-        >
-          <div className="stage-modal" onMouseDown={(e) => e.stopPropagation()}>
-            {(() => {
-              const task = stageModal.task;
+                const stages =
+                  getTaskStages(task);
 
-              const stages = getTaskStages(task);
-              const progress = getStageProgress(task);
-              const taskEmployees = getTaskEmployees(task);
+                const progress =
+                  getStageProgress(
+                    task,
+                  );
 
-              return (
-                <>
-                  {/* =================================================
-                HEADER
-            ================================================= */}
+                const taskEmployees =
+                  getTaskEmployees(
+                    task,
+                  );
 
-                  <div className="stage-modal-header">
-                    <div className="stage-modal-title-area">
-                      <div className="stage-modal-main-icon">
-                        <FaTasks />
-                      </div>
+                return (
+                  <>
+                    {/* HEADER */}
 
-                      <div className="stage-modal-title-content">
-                        <div className="stage-modal-number">
-                          المهمة #{task.task_id}
+                    <div className="stage-modal-header">
+                      <div className="stage-modal-title-area">
+                        <div className="stage-modal-main-icon">
+                          <FaTasks />
                         </div>
 
-                        <h2>{task.title}</h2>
+                        <div className="stage-modal-title-content">
+                          <div className="stage-modal-number">
+                            المهمة #
+                            {
+                              task.task_id
+                            }
+                          </div>
 
-                        {task.description && <p>{task.description}</p>}
+                          <h2>
+                            {task.title}
+                          </h2>
+
+                          {task.description && (
+                            <p>
+                              {
+                                task.description
+                              }
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="stage-modal-close"
+                        onClick={
+                          closeStageModal
+                        }
+                        aria-label="إغلاق"
+                      >
+                        <FaTimes />
+                      </button>
+                    </div>
+
+                    {/* SUMMARY */}
+
+                    <div className="stage-summary-grid">
+                      <div className="stage-summary-card">
+                        <div className="stage-summary-icon blue">
+                          <FaListOl />
+                        </div>
+
+                        <div>
+                          <span>
+                            إجمالي المراحل
+                          </span>
+
+                          <strong>
+                            {
+                              progress.total
+                            }
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="stage-summary-card">
+                        <div className="stage-summary-icon green">
+                          <FaCheckCircle />
+                        </div>
+
+                        <div>
+                          <span>
+                            المراحل المكتملة
+                          </span>
+
+                          <strong>
+                            {
+                              progress.completed
+                            }
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="stage-summary-card">
+                        <div className="stage-summary-icon orange">
+                          <FaHourglassHalf />
+                        </div>
+
+                        <div>
+                          <span>
+                            المراحل المتبقية
+                          </span>
+
+                          <strong>
+                            {Math.max(
+                              progress.total -
+                                progress.completed,
+                              0,
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="stage-summary-card">
+                        <div className="stage-summary-icon purple">
+                          <FaUserFriends />
+                        </div>
+
+                        <div>
+                          <span>
+                            الموظفون
+                          </span>
+
+                          <strong>
+                            {
+                              taskEmployees.length
+                            }
+                          </strong>
+                        </div>
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      className="stage-modal-close"
-                      onClick={closeStageModal}
-                      aria-label="إغلاق"
-                    >
-                      <FaTimes />
-                    </button>
-                  </div>
+                    {/* TASK INFORMATION */}
 
-                  {/* =================================================
-                SUMMARY CARDS
-            ================================================= */}
+                    <div className="stage-task-info">
+                      <div className="stage-task-info-item">
+                        <div className="stage-task-info-icon">
+                          <FaCalendarAlt />
+                        </div>
 
-                  <div className="stage-summary-grid">
-                    <div className="stage-summary-card">
-                      <div className="stage-summary-icon blue">
-                        <FaListOl />
+                        <div>
+                          <span>
+                            تاريخ استحقاق المهمة
+                          </span>
+
+                          <strong>
+                            {formatDate(
+                              task.due_date,
+                            )}
+                          </strong>
+                        </div>
                       </div>
 
-                      <div>
-                        <span>إجمالي المراحل</span>
+                      <div className="stage-task-info-divider" />
 
-                        <strong>{progress.total}</strong>
-                      </div>
-                    </div>
+                      <div className="stage-task-info-item">
+                        <div className="stage-task-info-icon">
+                          <FaUserFriends />
+                        </div>
 
-                    <div className="stage-summary-card">
-                      <div className="stage-summary-icon green">
-                        <FaCheckCircle />
-                      </div>
+                        <div>
+                          <span>
+                            حالة التعيين
+                          </span>
 
-                      <div>
-                        <span>المراحل المكتملة</span>
-
-                        <strong>{progress.completed}</strong>
-                      </div>
-                    </div>
-
-                    <div className="stage-summary-card">
-                      <div className="stage-summary-icon orange">
-                        <FaHourglassHalf />
-                      </div>
-
-                      <div>
-                        <span>المراحل المتبقية</span>
-
-                        <strong>
-                          {Math.max(progress.total - progress.completed, 0)}
-                        </strong>
+                          <strong>
+                            {taskEmployees.length >
+                            0
+                              ? `${taskEmployees.length} موظف معين`
+                              : "متاحة لجميع الموظفين"}
+                          </strong>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="stage-summary-card">
-                      <div className="stage-summary-icon purple">
-                        <FaUserFriends />
+                    {/* PROGRESS */}
+
+                    <div className="stage-progress-box">
+                      <div className="stage-progress-top">
+                        <div>
+                          <h3>
+                            تقدم المهمة
+                          </h3>
+
+                          <p>
+                            {
+                              progress.completed
+                            }{" "}
+                            من{" "}
+                            {
+                              progress.total
+                            }{" "}
+                            مراحل مكتملة
+                          </p>
+                        </div>
+
+                        <div className="stage-progress-percent">
+                          {
+                            progress.percentage
+                          }
+                          %
+                        </div>
                       </div>
 
-                      <div>
-                        <span>الموظفون</span>
+                      <div className="stage-progress-track-large">
+                        <div
+                          className="stage-progress-fill-large"
+                          style={{
+                            width: `${progress.percentage}%`,
+                          }}
+                        />
+                      </div>
 
-                        <strong>{taskEmployees.length}</strong>
+                      <div className="stage-progress-status">
+                        {progress.total >
+                          0 &&
+                        progress.completed ===
+                          progress.total ? (
+                          <span className="progress-complete">
+                            <FaCheckCircle />
+                            تم إنجاز جميع المراحل
+                          </span>
+                        ) : (
+                          <span className="progress-pending">
+                            <FaClock />
+                            جاري تنفيذ مراحل المهمة
+                          </span>
+                        )}
+
+                        <span>
+                          {
+                            progress.percentage
+                          }
+                          % مكتمل
+                        </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* =================================================
-                TASK INFORMATION
-            ================================================= */}
+                    {/* STAGES TITLE */}
 
-                  <div className="stage-task-info">
-                    <div className="stage-task-info-item">
-                      <div className="stage-task-info-icon">
-                        <FaCalendarAlt />
+                    <div className="stages-section-header">
+                      <div className="stages-section-title">
+                        <div className="stages-section-icon">
+                          <FaListOl />
+                        </div>
+
+                        <div>
+                          <h3>
+                            مراحل المهمة
+                          </h3>
+
+                          <p>
+                            تفاصيل المراحل وحالة إنجاز
+                            كل مرحلة
+                          </p>
+                        </div>
                       </div>
 
-                      <div>
-                        <span>تاريخ استحقاق المهمة</span>
-
-                        <strong>{formatDate(task.due_date)}</strong>
-                      </div>
-                    </div>
-
-                    <div className="stage-task-info-divider" />
-
-                    <div className="stage-task-info-item">
-                      <div className="stage-task-info-icon">
-                        <FaUserFriends />
-                      </div>
-
-                      <div>
-                        <span>حالة التعيين</span>
-
-                        <strong>
-                          {taskEmployees.length > 0
-                            ? `${taskEmployees.length} موظف معين`
-                            : "متاحة لجميع الموظفين"}
-                        </strong>
+                      <div className="stages-count-badge">
+                        {
+                          progress.total
+                        }{" "}
+                        مراحل
                       </div>
                     </div>
-                  </div>
 
-                  {/* =================================================
-                PROGRESS
-            ================================================= */}
+                    {/* STAGES LIST */}
 
-                  <div className="stage-progress-box">
-                    <div className="stage-progress-top">
-                      <div>
-                        <h3>تقدم المهمة</h3>
+                    {stages.length ===
+                    0 ? (
+                      <div className="no-stages-modern">
+                        <div className="no-stages-modern-icon">
+                          <FaListOl />
+                        </div>
+
+                        <h4>
+                          لا توجد مراحل
+                        </h4>
 
                         <p>
-                          {progress.completed} من {progress.total} مراحل مكتملة
+                          لم تتم إضافة مراحل لهذه
+                          المهمة حتى الآن.
                         </p>
                       </div>
+                    ) : (
+                      <div className="modern-stages-list">
+                        {stages.map(
+                          (
+                            stage,
+                            index,
+                          ) => {
+                            const completed =
+                              isStageCompleted(
+                                stage,
+                              );
 
-                      <div className="stage-progress-percent">
-                        {progress.percentage}%
-                      </div>
-                    </div>
+                            const stageTitle =
+                              stage.title ||
+                              stage.name ||
+                              `المرحلة ${
+                                index +
+                                1
+                              }`;
 
-                    <div className="stage-progress-track-large">
-                      <div
-                        className="stage-progress-fill-large"
-                        style={{
-                          width: `${progress.percentage}%`,
-                        }}
-                      />
-                    </div>
-
-                    <div className="stage-progress-status">
-                      {progress.total > 0 &&
-                      progress.completed === progress.total ? (
-                        <span className="progress-complete">
-                          <FaCheckCircle />
-                          تم إنجاز جميع المراحل
-                        </span>
-                      ) : (
-                        <span className="progress-pending">
-                          <FaClock />
-                          جاري تنفيذ مراحل المهمة
-                        </span>
-                      )}
-
-                      <span>{progress.percentage}% مكتمل</span>
-                    </div>
-                  </div>
-
-                  {/* =================================================
-                STAGES TITLE
-            ================================================= */}
-
-                  <div className="stages-section-header">
-                    <div className="stages-section-title">
-                      <div className="stages-section-icon">
-                        <FaListOl />
-                      </div>
-
-                      <div>
-                        <h3>مراحل المهمة</h3>
-
-                        <p>تفاصيل المراحل وحالة إنجاز كل مرحلة</p>
-                      </div>
-                    </div>
-
-                    <div className="stages-count-badge">
-                      {progress.total} مراحل
-                    </div>
-                  </div>
-
-                  {/* =================================================
-                STAGES LIST
-            ================================================= */}
-
-                  {stages.length === 0 ? (
-                    <div className="no-stages-modern">
-                      <div className="no-stages-modern-icon">
-                        <FaListOl />
-                      </div>
-
-                      <h4>لا توجد مراحل</h4>
-
-                      <p>لم تتم إضافة مراحل لهذه المهمة حتى الآن.</p>
-                    </div>
-                  ) : (
-                    <div className="modern-stages-list">
-                      {stages.map((stage, index) => {
-                        const completed = isStageCompleted(stage);
-
-                        const stageTitle =
-                          stage.title || stage.name || `المرحلة ${index + 1}`;
-
-                        return (
-                          <div
-                            key={stage.stage_id || stage.id || index}
-                            className={`modern-stage-card ${
-                              completed ? "stage-completed" : "stage-pending"
-                            }`}
-                          >
-                            {/* TIMELINE */}
-
-                            <div className="stage-timeline">
+                            return (
                               <div
-                                className={`stage-timeline-dot ${
-                                  completed ? "completed" : ""
+                                key={
+                                  stage.stage_id ||
+                                  stage.id ||
+                                  index
+                                }
+                                className={`modern-stage-card ${
+                                  completed
+                                    ? "stage-completed"
+                                    : "stage-pending"
                                 }`}
                               >
-                                {completed ? <FaCheckCircle /> : index + 1}
-                              </div>
+                                {/* TIMELINE */}
 
-                              {index !== stages.length - 1 && (
-                                <div
-                                  className={`stage-timeline-line ${
-                                    completed ? "completed" : ""
-                                  }`}
-                                />
-                              )}
-                            </div>
-
-                            {/* CONTENT */}
-
-                            <div className="modern-stage-content">
-                              <div className="modern-stage-top">
-                                <div>
-                                  <span className="modern-stage-number">
-                                    المرحلة {index + 1}
-                                  </span>
-
-                                  <h4>{stageTitle}</h4>
-                                </div>
-
-                                <span
-                                  className={`modern-stage-status ${
-                                    completed ? "completed" : "pending"
-                                  }`}
-                                >
-                                  {completed ? (
-                                    <>
+                                <div className="stage-timeline">
+                                  <div
+                                    className={`stage-timeline-dot ${
+                                      completed
+                                        ? "completed"
+                                        : ""
+                                    }`}
+                                  >
+                                    {completed ? (
                                       <FaCheckCircle />
-                                      مكتملة
-                                    </>
-                                  ) : (
-                                    <>
-                                      <FaClock />
-                                      قيد التنفيذ
-                                    </>
-                                  )}
-                                </span>
-                              </div>
-
-                              {stage.description && (
-                                <div className="modern-stage-description">
-                                  {stage.description}
-                                </div>
-                              )}
-
-                              <div className="modern-stage-footer">
-                                {stage.due_date && (
-                                  <div className="modern-stage-date">
-                                    <FaCalendarAlt />
-
-                                    <span>الاستحقاق</span>
-
-                                    <strong>
-                                      {formatDate(stage.due_date)}
-                                    </strong>
+                                    ) : (
+                                      index +
+                                      1
+                                    )}
                                   </div>
-                                )}
 
-                                <div className="modern-stage-order">
-                                  المرحلة {index + 1} من {stages.length}
+                                  {index !==
+                                    stages.length -
+                                      1 && (
+                                    <div
+                                      className={`stage-timeline-line ${
+                                        completed
+                                          ? "completed"
+                                          : ""
+                                      }`}
+                                    />
+                                  )}
+                                </div>
+
+                                {/* CONTENT */}
+
+                                <div className="modern-stage-content">
+                                  <div className="modern-stage-top">
+                                    <div>
+                                      <span className="modern-stage-number">
+                                        المرحلة{" "}
+                                        {index +
+                                          1}
+                                      </span>
+
+                                      <h4>
+                                        {
+                                          stageTitle
+                                        }
+                                      </h4>
+                                    </div>
+
+                                    <span
+                                      className={`modern-stage-status ${
+                                        completed
+                                          ? "completed"
+                                          : "pending"
+                                      }`}
+                                    >
+                                      {completed ? (
+                                        <>
+                                          <FaCheckCircle />
+                                          مكتملة
+                                        </>
+                                      ) : (
+                                        <>
+                                          <FaClock />
+                                          قيد التنفيذ
+                                        </>
+                                      )}
+                                    </span>
+                                  </div>
+
+                                  {stage.description && (
+                                    <div className="modern-stage-description">
+                                      {
+                                        stage.description
+                                      }
+                                    </div>
+                                  )}
+
+                                  <div className="modern-stage-footer">
+                                    {stage.due_date && (
+                                      <div className="modern-stage-date">
+                                        <FaCalendarAlt />
+
+                                        <span>
+                                          الاستحقاق
+                                        </span>
+
+                                        <strong>
+                                          {formatDate(
+                                            stage.due_date,
+                                          )}
+                                        </strong>
+                                      </div>
+                                    )}
+
+                                    <div className="modern-stage-order">
+                                      المرحلة{" "}
+                                      {index +
+                                        1}{" "}
+                                      من{" "}
+                                      {
+                                        stages.length
+                                      }
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
+                            );
+                          },
+                        )}
+                      </div>
+                    )}
+
+                    {/* FOOTER */}
+
+                    <div className="stage-modal-footer-modern">
+                      <div className="stage-footer-status">
+                        {progress.total >
+                          0 &&
+                        progress.completed ===
+                          progress.total ? (
+                          <>
+                            <div className="footer-status-icon completed">
+                              <FaCheckCircle />
                             </div>
-                          </div>
-                        );
-                      })}
+
+                            <div>
+                              <strong>
+                                المهمة مكتملة
+                              </strong>
+
+                              <span>
+                                تم إنجاز جميع مراحل المهمة
+                                بنجاح
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="footer-status-icon pending">
+                              <FaHourglassHalf />
+                            </div>
+
+                            <div>
+                              <strong>
+                                المهمة قيد التنفيذ
+                              </strong>
+
+                              <span>
+                                متبقي{" "}
+                                {Math.max(
+                                  progress.total -
+                                    progress.completed,
+                                  0,
+                                )}{" "}
+                                مرحلة
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        className="stage-modal-close-modern"
+                        onClick={
+                          closeStageModal
+                        }
+                      >
+                        إغلاق
+                      </button>
                     </div>
-                  )}
-
-                  {/* =================================================
-                FOOTER
-            ================================================= */}
-
-                  <div className="stage-modal-footer-modern">
-                    <div className="stage-footer-status">
-                      {progress.total > 0 &&
-                      progress.completed === progress.total ? (
-                        <>
-                          <div className="footer-status-icon completed">
-                            <FaCheckCircle />
-                          </div>
-
-                          <div>
-                            <strong>المهمة مكتملة</strong>
-
-                            <span>تم إنجاز جميع مراحل المهمة بنجاح</span>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="footer-status-icon pending">
-                            <FaHourglassHalf />
-                          </div>
-
-                          <div>
-                            <strong>المهمة قيد التنفيذ</strong>
-
-                            <span>
-                              متبقي{" "}
-                              {Math.max(progress.total - progress.completed, 0)}{" "}
-                              مرحلة
-                            </span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      className="stage-modal-close-modern"
-                      onClick={closeStageModal}
-                    >
-                      إغلاق
-                    </button>
-                  </div>
-                </>
-              );
-            })()}
+                  </>
+                );
+              })()}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* =====================================================
           ADD / EDIT TASK MODAL
@@ -2551,43 +3571,62 @@ export default function SelectTask() {
         <div
           className="modal-overlay"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
               closeModal();
             }
           }}
         >
           <div
             className="task-modal task-modal-large"
-            onMouseDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) =>
+              e.stopPropagation()
+            }
           >
             <div className="modal-header">
               <div>
-                <h2>{editingTask ? "تعديل المهمة" : "إضافة مهمة جديدة"}</h2>
+                <h2>
+                  {editingTask
+                    ? "تعديل المهمة"
+                    : "إضافة مهمة جديدة"}
+                </h2>
 
-                <p>أدخل بيانات المهمة وأضف مراحلها</p>
+                <p>
+                  أدخل بيانات المهمة وأضف مراحلها
+                </p>
               </div>
 
               <button
                 type="button"
                 className="modal-close"
-                onClick={closeModal}
+                onClick={
+                  closeModal
+                }
                 disabled={saving}
               >
                 ×
               </button>
             </div>
 
-            <form onSubmit={saveTask}>
+            <form
+              onSubmit={saveTask}
+            >
               {/* TITLE */}
 
               <div className="form-group">
-                <label>عنوان المهمة</label>
+                <label>
+                  عنوان المهمة
+                </label>
 
                 <input
                   type="text"
                   name="title"
                   value={form.title}
-                  onChange={handleFormChange}
+                  onChange={
+                    handleFormChange
+                  }
                   placeholder="مثال: إعداد التقرير الشهري"
                   disabled={saving}
                   autoFocus
@@ -2597,12 +3636,18 @@ export default function SelectTask() {
               {/* DESCRIPTION */}
 
               <div className="form-group">
-                <label>وصف المهمة</label>
+                <label>
+                  وصف المهمة
+                </label>
 
                 <textarea
                   name="description"
-                  value={form.description}
-                  onChange={handleFormChange}
+                  value={
+                    form.description
+                  }
+                  onChange={
+                    handleFormChange
+                  }
                   placeholder="اكتب وصف المهمة هنا..."
                   rows={4}
                   disabled={saving}
@@ -2612,7 +3657,9 @@ export default function SelectTask() {
               {/* TASK DATE */}
 
               <div className="form-group">
-                <label>تاريخ استحقاق المهمة</label>
+                <label>
+                  تاريخ استحقاق المهمة
+                </label>
 
                 <div className="date-input-wrapper">
                   <FaCalendarAlt />
@@ -2620,14 +3667,19 @@ export default function SelectTask() {
                   <input
                     type="date"
                     name="due_date"
-                    value={form.due_date}
-                    onChange={handleFormChange}
+                    value={
+                      form.due_date
+                    }
+                    onChange={
+                      handleFormChange
+                    }
                     disabled={saving}
                   />
                 </div>
 
                 <small className="form-help-text">
-                  التاريخ النهائي الذي يجب إنجاز المهمة قبله.
+                  التاريخ النهائي الذي يجب إنجاز المهمة
+                  قبله.
                 </small>
               </div>
 
@@ -2641,13 +3693,18 @@ export default function SelectTask() {
                       مراحل المهمة
                     </h3>
 
-                    <p>أضف المراحل التي يجب إنجازها لإكمال المهمة.</p>
+                    <p>
+                      أضف المراحل التي يجب إنجازها
+                      لإكمال المهمة.
+                    </p>
                   </div>
 
                   <button
                     type="button"
                     className="add-stage-btn"
-                    onClick={addStage}
+                    onClick={
+                      addStage
+                    }
                     disabled={saving}
                   >
                     <FaPlus />
@@ -2656,88 +3713,152 @@ export default function SelectTask() {
                 </div>
 
                 <div className="stages-form-list">
-                  {form.stages.map((stage, index) => (
-                    <div
-                      className="stage-form-card"
-                      key={stage.stage_id || index}
-                    >
-                      <div className="stage-form-card-header">
-                        <div className="stage-form-number">{index + 1}</div>
+                  {form.stages.map(
+                    (
+                      stage,
+                      index,
+                    ) => (
+                      <div
+                        className="stage-form-card"
+                        key={
+                          stage.stage_id ||
+                          index
+                        }
+                      >
+                        <div className="stage-form-card-header">
+                          <div className="stage-form-number">
+                            {index +
+                              1}
+                          </div>
 
-                        <div>
-                          <strong>المرحلة {index + 1}</strong>
+                          <div>
+                            <strong>
+                              المرحلة{" "}
+                              {index +
+                                1}
+                            </strong>
 
-                          <span>بيانات المرحلة</span>
-                        </div>
+                            <span>
+                              بيانات المرحلة
+                            </span>
+                          </div>
 
-                        <button
-                          type="button"
-                          className="remove-stage-btn"
-                          onClick={() => removeStage(index)}
-                          disabled={saving || form.stages.length === 1}
-                          title="حذف المرحلة"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-
-                      <div className="stage-form-grid">
-                        <div className="form-group">
-                          <label>اسم المرحلة</label>
-
-                          <input
-                            type="text"
-                            value={stage.title}
-                            onChange={(e) =>
-                              handleStageChange(index, "title", e.target.value)
+                          <button
+                            type="button"
+                            className="remove-stage-btn"
+                            onClick={() =>
+                              removeStage(
+                                index,
+                              )
                             }
-                            placeholder="مثال: جمع البيانات"
-                            disabled={saving}
-                          />
+                            disabled={
+                              saving ||
+                              form
+                                .stages
+                                .length ===
+                                1
+                            }
+                            title="حذف المرحلة"
+                          >
+                            <FaTrash />
+                          </button>
                         </div>
 
-                        <div className="form-group">
-                          <label>تاريخ استحقاق المرحلة</label>
-
-                          <div className="date-input-wrapper">
-                            <FaCalendarAlt />
+                        <div className="stage-form-grid">
+                          <div className="form-group">
+                            <label>
+                              اسم المرحلة
+                            </label>
 
                             <input
-                              type="date"
-                              value={stage.due_date}
-                              max={form.due_date || undefined}
-                              onChange={(e) =>
+                              type="text"
+                              value={
+                                stage.title
+                              }
+                              onChange={(
+                                e,
+                              ) =>
                                 handleStageChange(
                                   index,
-                                  "due_date",
-                                  e.target.value,
+                                  "title",
+                                  e
+                                    .target
+                                    .value,
                                 )
                               }
-                              disabled={saving}
+                              placeholder="مثال: جمع البيانات"
+                              disabled={
+                                saving
+                              }
                             />
                           </div>
+
+                          <div className="form-group">
+                            <label>
+                              تاريخ استحقاق المرحلة
+                            </label>
+
+                            <div className="date-input-wrapper">
+                              <FaCalendarAlt />
+
+                              <input
+                                type="date"
+                                value={
+                                  stage.due_date
+                                }
+                                max={
+                                  form.due_date ||
+                                  undefined
+                                }
+                                onChange={(
+                                  e,
+                                ) =>
+                                  handleStageChange(
+                                    index,
+                                    "due_date",
+                                    e
+                                      .target
+                                      .value,
+                                  )
+                                }
+                                disabled={
+                                  saving
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="form-group stage-description-group">
+                          <label>
+                            وصف المرحلة
+                          </label>
+
+                          <textarea
+                            value={
+                              stage.description
+                            }
+                            onChange={(
+                              e,
+                            ) =>
+                              handleStageChange(
+                                index,
+                                "description",
+                                e
+                                  .target
+                                  .value,
+                              )
+                            }
+                            placeholder="اكتب وصف المرحلة هنا..."
+                            rows={3}
+                            disabled={
+                              saving
+                            }
+                          />
                         </div>
                       </div>
-
-                      <div className="form-group stage-description-group">
-                        <label>وصف المرحلة</label>
-
-                        <textarea
-                          value={stage.description}
-                          onChange={(e) =>
-                            handleStageChange(
-                              index,
-                              "description",
-                              e.target.value,
-                            )
-                          }
-                          placeholder="اكتب وصف المرحلة هنا..."
-                          rows={3}
-                          disabled={saving}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               </div>
 
@@ -2745,10 +3866,14 @@ export default function SelectTask() {
 
               <div className="form-note">
                 💡 بعد إنشاء المهمة يمكنك استخدام زر{" "}
-                <strong>"تعيين موظفين"</strong> لتحديد ما إذا كان الموظف مسؤولًا
-                عن المهمة كاملة أو عن مراحل محددة فقط.
+                <strong>
+                  "تعيين موظفين"
+                </strong>{" "}
+                لتحديد ما إذا كان الموظف مسؤولًا عن
+                المهمة كاملة أو عن مراحل محددة فقط.
                 <br />
-                🌐 إذا لم يتم تعيين أي موظف، تبقى المهمة متاحة لجميع الموظفين.
+                🌐 إذا لم يتم تعيين أي موظف، تبقى
+                المهمة متاحة لجميع الموظفين.
               </div>
 
               {/* ACTIONS */}
@@ -2757,7 +3882,9 @@ export default function SelectTask() {
                 <button
                   type="button"
                   className="cancel-btn"
-                  onClick={closeModal}
+                  onClick={
+                    closeModal
+                  }
                   disabled={saving}
                 >
                   إلغاء
@@ -2766,7 +3893,11 @@ export default function SelectTask() {
                 <button
                   type="submit"
                   className="save-btn"
-                  disabled={saving || !form.title.trim() || !form.due_date}
+                  disabled={
+                    saving ||
+                    !form.title.trim() ||
+                    !form.due_date
+                  }
                 >
                   {saving
                     ? "جاري الحفظ..."
@@ -2788,18 +3919,21 @@ export default function SelectTask() {
         <div
           className="modal-overlay assign-overlay"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
               closeAssignModal();
             }
           }}
         >
           <div
             className="assign-modal assign-modal-large"
-            onMouseDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) =>
+              e.stopPropagation()
+            }
           >
-            {/* =================================================
-          HEADER
-      ================================================= */}
+            {/* HEADER */}
 
             <div className="assign-modal-header">
               <div className="assign-modal-header-main">
@@ -2808,27 +3942,35 @@ export default function SelectTask() {
                 </div>
 
                 <div>
-                  <span className="assign-modal-label">تعيين الموظفين</span>
+                  <span className="assign-modal-label">
+                    تعيين الموظفين
+                  </span>
 
-                  <h2>{assigningTask.title}</h2>
+                  <h2>
+                    {
+                      assigningTask.title
+                    }
+                  </h2>
 
-                  <p>حدد الموظفين ونطاق مسؤولية كل موظف</p>
+                  <p>
+                    حدد الموظفين ونطاق مسؤولية كل موظف
+                  </p>
                 </div>
               </div>
 
               <button
                 type="button"
                 className="assign-modal-close"
-                onClick={closeAssignModal}
+                onClick={
+                  closeAssignModal
+                }
                 disabled={saving}
               >
                 <FaTimes />
               </button>
             </div>
 
-            {/* =================================================
-          SCROLLABLE BODY
-      ================================================= */}
+            {/* BODY */}
 
             <div className="assign-modal-body">
               {/* TASK INFORMATION */}
@@ -2840,8 +3982,15 @@ export default function SelectTask() {
                   </div>
 
                   <div>
-                    <span>تاريخ الاستحقاق</span>
-                    <strong>{formatDate(assigningTask.due_date)}</strong>
+                    <span>
+                      تاريخ الاستحقاق
+                    </span>
+
+                    <strong>
+                      {formatDate(
+                        assigningTask.due_date,
+                      )}
+                    </strong>
                   </div>
                 </div>
 
@@ -2853,8 +4002,18 @@ export default function SelectTask() {
                   </div>
 
                   <div>
-                    <span>مراحل المهمة</span>
-                    <strong>{getTaskStages(assigningTask).length} مراحل</strong>
+                    <span>
+                      مراحل المهمة
+                    </span>
+
+                    <strong>
+                      {
+                        getTaskStages(
+                          assigningTask,
+                        ).length
+                      }{" "}
+                      مراحل
+                    </strong>
                   </div>
                 </div>
 
@@ -2866,8 +4025,16 @@ export default function SelectTask() {
                   </div>
 
                   <div>
-                    <span>المختارون</span>
-                    <strong>{employeeAssignments.length} موظف</strong>
+                    <span>
+                      المختارون
+                    </span>
+
+                    <strong>
+                      {
+                        employeeAssignments.length
+                      }{" "}
+                      موظف
+                    </strong>
                   </div>
                 </div>
               </div>
@@ -2880,11 +4047,14 @@ export default function SelectTask() {
                 </div>
 
                 <div className="assignment-help-content">
-                  <strong>حدد مسؤولية كل موظف</strong>
+                  <strong>
+                    حدد مسؤولية كل موظف
+                  </strong>
 
                   <p>
-                    يمكنك تعيين الموظف على المهمة كاملة، أو تحديد مراحل معينة
-                    فقط ليكون مسؤولًا عنها.
+                    يمكنك تعيين الموظف على المهمة
+                    كاملة، أو تحديد مراحل معينة فقط ليكون
+                    مسؤولًا عنها.
                   </p>
                 </div>
               </div>
@@ -2893,12 +4063,20 @@ export default function SelectTask() {
 
               <div className="assign-controls">
                 <div className="employee-search-box">
-                  <span className="search-icon">⌕</span>
+                  <span className="search-icon">
+                    ⌕
+                  </span>
 
                   <input
                     type="text"
-                    value={employeeSearch}
-                    onChange={(e) => setEmployeeSearch(e.target.value)}
+                    value={
+                      employeeSearch
+                    }
+                    onChange={(e) =>
+                      setEmployeeSearch(
+                        e.target.value,
+                      )
+                    }
                     placeholder="ابحث عن اسم الموظف أو البريد الإلكتروني..."
                     disabled={saving}
                   />
@@ -2906,7 +4084,11 @@ export default function SelectTask() {
                   {employeeSearch && (
                     <button
                       type="button"
-                      onClick={() => setEmployeeSearch("")}
+                      onClick={() =>
+                        setEmployeeSearch(
+                          "",
+                        )
+                      }
                       disabled={saving}
                     >
                       <FaTimes />
@@ -2918,8 +4100,14 @@ export default function SelectTask() {
                   <button
                     type="button"
                     className="select-all-btn"
-                    onClick={selectAllEmployees}
-                    disabled={saving || employees.length === 0}
+                    onClick={
+                      selectAllEmployees
+                    }
+                    disabled={
+                      saving ||
+                      employees.length ===
+                        0
+                    }
                   >
                     <FaCheckCircle />
                     تحديد الكل
@@ -2928,8 +4116,14 @@ export default function SelectTask() {
                   <button
                     type="button"
                     className="clear-all-btn"
-                    onClick={clearSelectedEmployees}
-                    disabled={saving || employeeAssignments.length === 0}
+                    onClick={
+                      clearSelectedEmployees
+                    }
+                    disabled={
+                      saving ||
+                      employeeAssignments.length ===
+                        0
+                    }
                   >
                     <FaTimes />
                     إلغاء الكل
@@ -2941,350 +4135,538 @@ export default function SelectTask() {
 
               <div className="assignment-list-header">
                 <div>
-                  <h3>قائمة الموظفين</h3>
-                  <span>{filteredEmployees.length} موظف</span>
+                  <h3>
+                    قائمة الموظفين
+                  </h3>
+
+                  <span>
+                    {
+                      filteredEmployees.length
+                    }{" "}
+                    موظف
+                  </span>
                 </div>
 
                 <div className="assignment-selected-badge">
                   <FaUserCheck />
-                  {employeeAssignments.length} مختار
+
+                  {
+                    employeeAssignments.length
+                  }{" "}
+                  مختار
                 </div>
               </div>
 
               {/* EMPLOYEES LIST */}
 
               <div className="employees-check-list assignment-employees-list">
-                {filteredEmployees.length === 0 ? (
+                {filteredEmployees.length ===
+                0 ? (
                   <div className="no-employees-found">
-                    <div className="no-employees-icon">🔍</div>
+                    <div className="no-employees-icon">
+                      🔍
+                    </div>
 
-                    <strong>لا يوجد موظفون</strong>
+                    <strong>
+                      لا يوجد موظفون
+                    </strong>
 
-                    <p>لا توجد نتائج مطابقة لبحثك</p>
+                    <p>
+                      لا توجد نتائج مطابقة لبحثك
+                    </p>
                   </div>
                 ) : (
-                  filteredEmployees.map((employee) => {
-                    const employeeId = getEmployeeId(employee);
+                  filteredEmployees.map(
+                    (employee) => {
+                      const employeeId =
+                        getEmployeeId(
+                          employee,
+                        );
 
-                    if (employeeId === null || employeeId === undefined) {
-                      return null;
-                    }
+                      if (
+                        employeeId ===
+                          null ||
+                        employeeId ===
+                          undefined
+                      ) {
+                        return null;
+                      }
 
-                    const selected = isEmployeeSelected(employeeId);
+                      const selected =
+                        isEmployeeSelected(
+                          employeeId,
+                        );
 
-                    const assignment = employeeAssignments.find(
-                      (item) => Number(item.employee_id) === Number(employeeId),
-                    );
+                      const assignment =
+                        employeeAssignments.find(
+                          (item) =>
+                            Number(
+                              item.employee_id,
+                            ) ===
+                            Number(
+                              employeeId,
+                            ),
+                        );
 
-                    const expanded =
-                      Number(expandedEmployee) === Number(employeeId);
+                      const expanded =
+                        Number(
+                          expandedEmployee,
+                        ) ===
+                        Number(
+                          employeeId,
+                        );
 
-                    const name =
-                      employee.name ||
-                      employee.full_name ||
-                      employee.username ||
-                      `موظف #${employeeId}`;
+                      const name =
+                        employee.name ||
+                        employee.full_name ||
+                        employee.username ||
+                        `موظف #${employeeId}`;
 
-                    const email = employee.email || "";
+                      const email =
+                        employee.email ||
+                        "";
 
-                    const stages = getTaskStages(assigningTask);
+                      const stages =
+                        getTaskStages(
+                          assigningTask,
+                        );
 
-                    const selectedStageIds = Array.isArray(
-                      assignment?.stage_ids,
-                    )
-                      ? assignment.stage_ids.map(Number)
-                      : [];
+                      const selectedStageIds =
+                        Array.isArray(
+                          assignment?.stage_ids,
+                        )
+                          ? assignment.stage_ids.map(
+                              Number,
+                            )
+                          : [];
 
-                    return (
-                      <div
-                        key={employeeId}
-                        className={`assignment-employee-card ${
-                          selected ? "selected" : ""
-                        } ${expanded ? "expanded" : ""}`}
-                      >
-                        {/* EMPLOYEE HEADER */}
-
+                      return (
                         <div
-                          className="assignment-employee-header"
-                          onClick={() => {
-                            if (selected) {
-                              setExpandedEmployee((prev) =>
-                                Number(prev) === Number(employeeId)
-                                  ? null
-                                  : Number(employeeId),
-                              );
-                            } else {
-                              addEmployeeAssignment(employeeId);
-                            }
-                          }}
+                          key={
+                            employeeId
+                          }
+                          className={`assignment-employee-card ${
+                            selected
+                              ? "selected"
+                              : ""
+                          } ${
+                            expanded
+                              ? "expanded"
+                              : ""
+                          }`}
                         >
-                          <div className="assignment-employee-main">
-                            <button
-                              type="button"
-                              className={`employee-select-checkbox ${
-                                selected ? "checked" : ""
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleEmployee(employeeId);
-                              }}
-                              disabled={saving}
-                            >
-                              {selected && "✓"}
-                            </button>
+                          {/* EMPLOYEE HEADER */}
 
-                            <div className="employee-check-avatar">
-                              {name.charAt(0).toUpperCase()}
-                            </div>
-
-                            <div className="employee-check-info">
-                              <span className="employee-check-name">
-                                {name}
-                              </span>
-
-                              {email && (
-                                <span className="employee-check-email">
-                                  {email}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {selected && (
-                            <div className="assignment-employee-right">
-                              <span
-                                className={`assignment-type-summary ${
-                                  assignment?.assignment_type === "stage"
-                                    ? "stage-type"
-                                    : "task-type"
-                                }`}
-                              >
-                                {assignment?.assignment_type === "stage"
-                                  ? getAssignmentText(assignment)
-                                  : "المهمة كاملة"}
-                              </span>
-
+                          <div
+                            className="assignment-employee-header"
+                            onClick={() => {
+                              if (
+                                selected
+                              ) {
+                                setExpandedEmployee(
+                                  (prev) =>
+                                    Number(
+                                      prev,
+                                    ) ===
+                                    Number(
+                                      employeeId,
+                                    )
+                                      ? null
+                                      : Number(
+                                          employeeId,
+                                        ),
+                                );
+                              } else {
+                                addEmployeeAssignment(
+                                  employeeId,
+                                );
+                              }
+                            }}
+                          >
+                            <div className="assignment-employee-main">
                               <button
                                 type="button"
-                                className="expand-assignment-btn"
-                                onClick={(e) => {
+                                className={`employee-select-checkbox ${
+                                  selected
+                                    ? "checked"
+                                    : ""
+                                }`}
+                                onClick={(
+                                  e,
+                                ) => {
                                   e.stopPropagation();
 
-                                  setExpandedEmployee((prev) =>
-                                    Number(prev) === Number(employeeId)
-                                      ? null
-                                      : Number(employeeId),
+                                  toggleEmployee(
+                                    employeeId,
                                   );
                                 }}
+                                disabled={
+                                  saving
+                                }
                               >
-                                {expanded ? <FaChevronUp /> : <FaChevronDown />}
+                                {selected &&
+                                  "✓"}
                               </button>
-                            </div>
-                          )}
-                        </div>
 
-                        {/* ASSIGNMENT OPTIONS */}
-
-                        {selected && expanded && (
-                          <div className="employee-assignment-options">
-                            {/* TYPE HEADER */}
-
-                            <div className="assignment-type-title">
-                              <div className="assignment-type-title-icon">
-                                <FaUserCheck />
+                              <div className="employee-check-avatar">
+                                {name
+                                  .charAt(
+                                    0,
+                                  )
+                                  .toUpperCase()}
                               </div>
 
-                              <div>
-                                <strong>نوع التعيين</strong>
-                                <span>حدد نطاق مسؤولية الموظف</span>
-                              </div>
-                            </div>
-
-                            {/* FULL TASK */}
-
-                            <button
-                              type="button"
-                              className={`assignment-type-option ${
-                                assignment?.assignment_type === "task"
-                                  ? "active"
-                                  : ""
-                              }`}
-                              onClick={() =>
-                                changeAssignmentType(employeeId, "task")
-                              }
-                              disabled={saving}
-                            >
-                              <div className="assignment-option-radio">
-                                {assignment?.assignment_type === "task" && "✓"}
-                              </div>
-
-                              <div className="assignment-option-icon full">
-                                <FaTasks />
-                              </div>
-
-                              <div className="assignment-option-content">
-                                <strong>المهمة كاملة</strong>
-
-                                <span>الموظف مسؤول عن جميع مراحل المهمة</span>
-                              </div>
-                            </button>
-
-                            {/* SELECTED STAGES */}
-
-                            <button
-                              type="button"
-                              className={`assignment-type-option ${
-                                assignment?.assignment_type === "stage"
-                                  ? "active"
-                                  : ""
-                              }`}
-                              onClick={() =>
-                                changeAssignmentType(employeeId, "stage")
-                              }
-                              disabled={saving}
-                            >
-                              <div className="assignment-option-radio">
-                                {assignment?.assignment_type === "stage" && "✓"}
-                              </div>
-
-                              <div className="assignment-option-icon stages">
-                                <FaListOl />
-                              </div>
-
-                              <div className="assignment-option-content">
-                                <strong>مراحل محددة</strong>
-
-                                <span>
-                                  اختر فقط المراحل التي سيعمل عليها الموظف
+                              <div className="employee-check-info">
+                                <span className="employee-check-name">
+                                  {name}
                                 </span>
+
+                                {email && (
+                                  <span className="employee-check-email">
+                                    {email}
+                                  </span>
+                                )}
                               </div>
-                            </button>
+                            </div>
 
-                            {/* STAGE SELECTOR */}
+                            {selected && (
+                              <div className="assignment-employee-right">
+                                <span
+                                  className={`assignment-type-summary ${
+                                    assignment?.assignment_type ===
+                                    "stage"
+                                      ? "stage-type"
+                                      : "task-type"
+                                  }`}
+                                >
+                                  {assignment?.assignment_type ===
+                                  "stage"
+                                    ? getAssignmentText(
+                                        assignment,
+                                      )
+                                    : "المهمة كاملة"}
+                                </span>
 
-                            {assignment?.assignment_type === "stage" && (
-                              <div className="stage-selection-box">
-                                <div className="stage-selection-header">
-                                  <div>
-                                    <strong>اختر المراحل</strong>
+                                <button
+                                  type="button"
+                                  className="expand-assignment-btn"
+                                  onClick={(
+                                    e,
+                                  ) => {
+                                    e.stopPropagation();
 
-                                    <span>
-                                      تم اختيار <b>{selectedStageIds.length}</b>{" "}
-                                      من {stages.length}
-                                    </span>
-                                  </div>
-
-                                  <div className="stage-selection-actions">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        selectAllStagesForEmployee(employeeId)
-                                      }
-                                      disabled={saving}
-                                    >
-                                      تحديد الكل
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        clearStagesForEmployee(employeeId)
-                                      }
-                                      disabled={saving}
-                                    >
-                                      إلغاء الكل
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div className="stage-selection-list">
-                                  {stages.map((stage, index) => {
-                                    const stageId = getStageId(stage);
-
-                                    if (
-                                      stageId === null ||
-                                      stageId === undefined
-                                    ) {
-                                      return null;
-                                    }
-
-                                    const checked = selectedStageIds.includes(
-                                      Number(stageId),
-                                    );
-
-                                    return (
-                                      <label
-                                        key={stageId}
-                                        className={`stage-selection-item ${
-                                          checked ? "selected" : ""
-                                        }`}
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          checked={checked}
-                                          onChange={() =>
-                                            toggleEmployeeStage(
+                                    setExpandedEmployee(
+                                      (
+                                        prev,
+                                      ) =>
+                                        Number(
+                                          prev,
+                                        ) ===
+                                        Number(
+                                          employeeId,
+                                        )
+                                          ? null
+                                          : Number(
                                               employeeId,
-                                              stageId,
-                                            )
-                                          }
-                                          disabled={saving}
-                                        />
-
-                                        <span className="stage-selection-checkbox">
-                                          {checked && "✓"}
-                                        </span>
-
-                                        <span className="stage-selection-number">
-                                          {index + 1}
-                                        </span>
-
-                                        <span className="stage-selection-content">
-                                          <strong>
-                                            {stage.title ||
-                                              stage.name ||
-                                              `المرحلة ${index + 1}`}
-                                          </strong>
-
-                                          {stage.due_date && (
-                                            <small>
-                                              <FaCalendarAlt />
-                                              {formatDate(stage.due_date)}
-                                            </small>
-                                          )}
-                                        </span>
-                                      </label>
+                                            ),
                                     );
-                                  })}
-                                </div>
+                                  }}
+                                >
+                                  {expanded ? (
+                                    <FaChevronUp />
+                                  ) : (
+                                    <FaChevronDown />
+                                  )}
+                                </button>
                               </div>
                             )}
-
-                            {/* REMOVE */}
-
-                            <button
-                              type="button"
-                              className="remove-assignment-btn"
-                              onClick={() =>
-                                removeEmployeeAssignment(employeeId)
-                              }
-                              disabled={saving}
-                            >
-                              <FaTimes />
-                              إزالة الموظف من التعيين
-                            </button>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })
+
+                          {/* ASSIGNMENT OPTIONS */}
+
+                          {selected &&
+                            expanded && (
+                              <div className="employee-assignment-options">
+                                <div className="assignment-type-title">
+                                  <div className="assignment-type-title-icon">
+                                    <FaUserCheck />
+                                  </div>
+
+                                  <div>
+                                    <strong>
+                                      نوع التعيين
+                                    </strong>
+
+                                    <span>
+                                      حدد نطاق مسؤولية الموظف
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* FULL TASK */}
+
+                                <button
+                                  type="button"
+                                  className={`assignment-type-option ${
+                                    assignment?.assignment_type ===
+                                    "task"
+                                      ? "active"
+                                      : ""
+                                  }`}
+                                  onClick={() =>
+                                    changeAssignmentType(
+                                      employeeId,
+                                      "task",
+                                    )
+                                  }
+                                  disabled={
+                                    saving
+                                  }
+                                >
+                                  <div className="assignment-option-radio">
+                                    {assignment?.assignment_type ===
+                                      "task" &&
+                                      "✓"}
+                                  </div>
+
+                                  <div className="assignment-option-icon full">
+                                    <FaTasks />
+                                  </div>
+
+                                  <div className="assignment-option-content">
+                                    <strong>
+                                      المهمة كاملة
+                                    </strong>
+
+                                    <span>
+                                      الموظف مسؤول عن جميع مراحل
+                                      المهمة
+                                    </span>
+                                  </div>
+                                </button>
+
+                                {/* SELECTED STAGES */}
+
+                                <button
+                                  type="button"
+                                  className={`assignment-type-option ${
+                                    assignment?.assignment_type ===
+                                    "stage"
+                                      ? "active"
+                                      : ""
+                                  }`}
+                                  onClick={() =>
+                                    changeAssignmentType(
+                                      employeeId,
+                                      "stage",
+                                    )
+                                  }
+                                  disabled={
+                                    saving
+                                  }
+                                >
+                                  <div className="assignment-option-radio">
+                                    {assignment?.assignment_type ===
+                                      "stage" &&
+                                      "✓"}
+                                  </div>
+
+                                  <div className="assignment-option-icon stages">
+                                    <FaListOl />
+                                  </div>
+
+                                  <div className="assignment-option-content">
+                                    <strong>
+                                      مراحل محددة
+                                    </strong>
+
+                                    <span>
+                                      اختر فقط المراحل التي سيعمل
+                                      عليها الموظف
+                                    </span>
+                                  </div>
+                                </button>
+
+                                {/* STAGE SELECTOR */}
+
+                                {assignment?.assignment_type ===
+                                  "stage" && (
+                                  <div className="stage-selection-box">
+                                    <div className="stage-selection-header">
+                                      <div>
+                                        <strong>
+                                          اختر المراحل
+                                        </strong>
+
+                                        <span>
+                                          تم اختيار{" "}
+                                          <b>
+                                            {
+                                              selectedStageIds.length
+                                            }
+                                          </b>{" "}
+                                          من{" "}
+                                          {
+                                            stages.length
+                                          }
+                                        </span>
+                                      </div>
+
+                                      <div className="stage-selection-actions">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            selectAllStagesForEmployee(
+                                              employeeId,
+                                            )
+                                          }
+                                          disabled={
+                                            saving
+                                          }
+                                        >
+                                          تحديد الكل
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            clearStagesForEmployee(
+                                              employeeId,
+                                            )
+                                          }
+                                          disabled={
+                                            saving
+                                          }
+                                        >
+                                          إلغاء الكل
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    <div className="stage-selection-list">
+                                      {stages.map(
+                                        (
+                                          stage,
+                                          index,
+                                        ) => {
+                                          const stageId =
+                                            getStageId(
+                                              stage,
+                                            );
+
+                                          if (
+                                            stageId ===
+                                              null ||
+                                            stageId ===
+                                              undefined
+                                          ) {
+                                            return null;
+                                          }
+
+                                          const checked =
+                                            selectedStageIds.includes(
+                                              Number(
+                                                stageId,
+                                              ),
+                                            );
+
+                                          return (
+                                            <label
+                                              key={
+                                                stageId
+                                              }
+                                              className={`stage-selection-item ${
+                                                checked
+                                                  ? "selected"
+                                                  : ""
+                                              }`}
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={
+                                                  checked
+                                                }
+                                                onChange={() =>
+                                                  toggleEmployeeStage(
+                                                    employeeId,
+                                                    stageId,
+                                                  )
+                                                }
+                                                disabled={
+                                                  saving
+                                                }
+                                              />
+
+                                              <span className="stage-selection-checkbox">
+                                                {checked &&
+                                                  "✓"}
+                                              </span>
+
+                                              <span className="stage-selection-number">
+                                                {
+                                                  index +
+                                                    1
+                                                }
+                                              </span>
+
+                                              <span className="stage-selection-content">
+                                                <strong>
+                                                  {stage.title ||
+                                                    stage.name ||
+                                                    `المرحلة ${
+                                                      index +
+                                                      1
+                                                    }`}
+                                                </strong>
+
+                                                {stage.due_date && (
+                                                  <small>
+                                                    <FaCalendarAlt />
+
+                                                    {formatDate(
+                                                      stage.due_date,
+                                                    )}
+                                                  </small>
+                                                )}
+                                              </span>
+                                            </label>
+                                          );
+                                        },
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* REMOVE */}
+
+                                <button
+                                  type="button"
+                                  className="remove-assignment-btn"
+                                  onClick={() =>
+                                    removeEmployeeAssignment(
+                                      employeeId,
+                                    )
+                                  }
+                                  disabled={
+                                    saving
+                                  }
+                                >
+                                  <FaTimes />
+
+                                  إزالة الموظف من
+                                  التعيين
+                                </button>
+                              </div>
+                            )}
+                        </div>
+                      );
+                    },
+                  )
                 )}
               </div>
             </div>
 
-            {/* =================================================
-          FIXED FOOTER
-      ================================================= */}
+            {/* FOOTER */}
 
             <div className="assign-modal-footer">
               <div className="selected-footer-info">
@@ -3293,9 +4675,15 @@ export default function SelectTask() {
                 </div>
 
                 <div>
-                  <span>الموظفون المختارون</span>
+                  <span>
+                    الموظفون المختارون
+                  </span>
 
-                  <strong>{employeeAssignments.length}</strong>
+                  <strong>
+                    {
+                      employeeAssignments.length
+                    }
+                  </strong>
                 </div>
               </div>
 
@@ -3303,7 +4691,9 @@ export default function SelectTask() {
                 <button
                   type="button"
                   className="cancel-btn"
-                  onClick={closeAssignModal}
+                  onClick={
+                    closeAssignModal
+                  }
                   disabled={saving}
                 >
                   إلغاء
@@ -3312,8 +4702,14 @@ export default function SelectTask() {
                 <button
                   type="button"
                   className="save-btn assign-save-btn"
-                  onClick={assignTask}
-                  disabled={saving || employeeAssignments.length === 0}
+                  onClick={
+                    assignTask
+                  }
+                  disabled={
+                    saving ||
+                    employeeAssignments.length ===
+                      0
+                  }
                 >
                   {saving ? (
                     <>
@@ -3341,28 +4737,47 @@ export default function SelectTask() {
         <div
           className="modal-overlay"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
               closeMessage();
             }
           }}
         >
           <div
             className="message-modal"
-            onMouseDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) =>
+              e.stopPropagation()
+            }
           >
-            <div className={`message-modal-icon ${messageModal.type}`}>
-              {messageModal.type === "success"
+            <div
+              className={`message-modal-icon ${messageModal.type}`}
+            >
+              {messageModal.type ===
+              "success"
                 ? "✓"
-                : messageModal.type === "error"
+                : messageModal.type ===
+                    "error"
                   ? "!"
                   : "⚠"}
             </div>
 
-            <h3>{messageModal.title}</h3>
+            <h3>
+              {messageModal.title}
+            </h3>
 
-            <p>{messageModal.message}</p>
+            <p>
+              {messageModal.message}
+            </p>
 
-            <button type="button" className="save-btn" onClick={closeMessage}>
+            <button
+              type="button"
+              className="save-btn"
+              onClick={
+                closeMessage
+              }
+            >
               حسناً
             </button>
           </div>

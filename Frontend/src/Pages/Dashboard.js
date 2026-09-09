@@ -36,17 +36,7 @@ export default function Dashboard() {
         API.get("/tasks"),
       ]);
 
-      const [
-        empRes,
-        deptRes,
-        evalRes,
-        leaveRes,
-        taskRes,
-      ] = results;
-
-      // ================================
-      // EMPLOYEES
-      // ================================
+      const [empRes, deptRes, evalRes, leaveRes, taskRes] = results;
 
       const employees =
         empRes.status === "fulfilled"
@@ -55,20 +45,12 @@ export default function Dashboard() {
             : empRes.value.data?.employees || []
           : [];
 
-      // ================================
-      // DEPARTMENTS
-      // ================================
-
       const departments =
         deptRes.status === "fulfilled"
           ? Array.isArray(deptRes.value.data)
             ? deptRes.value.data
             : deptRes.value.data?.departments || []
           : [];
-
-      // ================================
-      // EVALUATIONS
-      // ================================
 
       const evaluations =
         evalRes.status === "fulfilled"
@@ -77,10 +59,6 @@ export default function Dashboard() {
             : evalRes.value.data?.evaluations || []
           : [];
 
-      // ================================
-      // LEAVES
-      // ================================
-
       const allLeaves =
         leaveRes.status === "fulfilled"
           ? Array.isArray(leaveRes.value.data)
@@ -88,20 +66,12 @@ export default function Dashboard() {
             : leaveRes.value.data?.leaves || []
           : [];
 
-      // ================================
-      // TASKS
-      // ================================
-
       const allTasks =
         taskRes.status === "fulfilled"
           ? Array.isArray(taskRes.value.data)
             ? taskRes.value.data
             : taskRes.value.data?.tasks || []
           : [];
-
-      // ================================
-      // LOG ERRORS
-      // ================================
 
       if (empRes.status === "rejected") {
         console.error(
@@ -138,10 +108,6 @@ export default function Dashboard() {
         );
       }
 
-      // ================================
-      // STATS
-      // ================================
-
       setStats({
         employees: employees.length,
         departments: departments.length,
@@ -150,29 +116,9 @@ export default function Dashboard() {
         tasks: allTasks.length,
       });
 
-      // ================================
-      // LAST 5 LEAVES
-      // ================================
+      setLeaves([...allLeaves].reverse().slice(0, 5));
 
-      setLeaves(
-        [...allLeaves]
-          .reverse()
-          .slice(0, 5)
-      );
-
-      // ================================
-      // LAST 5 EVALUATIONS
-      // ================================
-
-      setEvaluations(
-        [...evaluations]
-          .reverse()
-          .slice(0, 5)
-      );
-
-      // ================================
-      // PENDING TASKS
-      // ================================
+      setEvaluations([...evaluations].reverse().slice(0, 5));
 
       const pendingTasks = allTasks.filter(
         (task) =>
@@ -180,9 +126,7 @@ export default function Dashboard() {
           task.status !== "مكتملة"
       );
 
-      setTasks(
-        pendingTasks.slice(0, 5)
-      );
+      setTasks(pendingTasks.slice(0, 5));
     } catch (error) {
       console.error("Dashboard Error:", error);
     } finally {
@@ -190,13 +134,10 @@ export default function Dashboard() {
     }
   };
 
-  // ================================
-  // STAT CARDS
-  // ================================
-
   const statCards = [
     {
       title: "الموظفين",
+      subtitle: "إجمالي الموظفين",
       value: stats.employees,
       icon: "👨‍💼",
       color: "blue",
@@ -204,6 +145,7 @@ export default function Dashboard() {
     },
     {
       title: "الأقسام",
+      subtitle: "الأقسام النشطة",
       value: stats.departments,
       icon: "🏢",
       color: "cyan",
@@ -211,6 +153,7 @@ export default function Dashboard() {
     },
     {
       title: "التقييمات",
+      subtitle: "إجمالي التقييمات",
       value: stats.evaluations,
       icon: "📊",
       color: "orange",
@@ -218,6 +161,7 @@ export default function Dashboard() {
     },
     {
       title: "الإجازات",
+      subtitle: "طلبات الإجازات",
       value: stats.leaves,
       icon: "🏖️",
       color: "green",
@@ -225,6 +169,7 @@ export default function Dashboard() {
     },
     {
       title: "المهام",
+      subtitle: "إجمالي المهام",
       value: stats.tasks,
       icon: "📝",
       color: "purple",
@@ -233,40 +178,64 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="dashboard">
+    <div className="dashboard" dir="rtl">
 
-      {/* ================= HEADER ================= */}
+      {/* =====================================================
+          TOP HEADER
+      ===================================================== */}
 
       <header className="top-header">
+
         <div className="header-title">
-          <span className="header-label">
-            لوحة الإدارة
-          </span>
+
+          <div className="header-title-top">
+            <span className="header-label">
+              لوحة الإدارة
+            </span>
+
+            <span className="online-indicator">
+              <span></span>
+              النظام يعمل
+            </span>
+          </div>
 
           <h1>
             لوحة التحكم
           </h1>
 
           <p>
-            أهلاً بك 👋 إليك ملخص نظام إدارة الموظفين
+            أهلاً بك 👋 إليك نظرة شاملة على نظام إدارة الموظفين
           </p>
+
         </div>
 
         <div className="header-actions">
+
           <button
             className="notification-button"
             onClick={() => nav("/leaves-list")}
             title="الإجازات"
           >
-            🔔
+            <span className="notification-icon">
+              🔔
+            </span>
+
+            {stats.leaves > 0 && (
+              <span className="notification-badge">
+                {stats.leaves > 99 ? "99+" : stats.leaves}
+              </span>
+            )}
           </button>
 
+          <div className="header-divider"></div>
+
           <div className="admin-profile">
+
             <div className="avatar">
               A
             </div>
 
-            <div>
+            <div className="profile-info">
               <strong>
                 Admin
               </strong>
@@ -275,60 +244,155 @@ export default function Dashboard() {
                 مدير النظام
               </span>
             </div>
-          </div>
-        </div>
-      </header>
 
-      {/* ================= CONTENT ================= */}
-
-      <div className="content">
-
-        {/* ================= WELCOME ================= */}
-
-        <section className="welcome-card">
-          <div className="welcome-content">
-            <span className="welcome-label">
-              مرحباً بك
+            <span className="profile-arrow">
+             ⌄
             </span>
 
+          </div>
+
+        </div>
+
+      </header>
+
+
+      {/* =====================================================
+          CONTENT
+      ===================================================== */}
+
+      <main className="content">
+
+        {/* =====================================================
+            WELCOME
+        ===================================================== */}
+
+        <section className="welcome-card">
+
+          <div className="welcome-decoration decoration-one"></div>
+          <div className="welcome-decoration decoration-two"></div>
+
+          <div className="welcome-content">
+
+            <div className="welcome-label">
+              <span className="welcome-label-icon">
+                ✨
+              </span>
+
+              مرحباً بك في لوحة الإدارة
+            </div>
+
             <h2>
-              نظام إدارة الموظفين 👋
+              نظام إدارة الموظفين
             </h2>
 
             <p>
-              يمكنك من هنا متابعة الموظفين والأقسام
-              والإجازات والتقييمات والمهام بسهولة.
+              تابع أداء فريقك، وأدر الإجازات والتقييمات والمهام
+              من مكان واحد وبكل سهولة.
             </p>
+
+            <div className="welcome-actions">
+
+              <button
+                className="primary-welcome-button"
+                onClick={() => nav("/employees")}
+              >
+                <span>👨‍💼</span>
+                إدارة الموظفين
+                <b>←</b>
+              </button>
+
+              <button
+                className="secondary-welcome-button"
+                onClick={() => nav("/tasks")}
+              >
+                متابعة المهام
+              </button>
+
+            </div>
+
           </div>
 
-          <div className="welcome-icon">
-            📈
+          <div className="welcome-visual">
+
+            <div className="visual-glow"></div>
+
+            <div className="visual-circle circle-large">
+              <span>📊</span>
+            </div>
+
+            <div className="floating-card floating-card-one">
+              <span>👥</span>
+              <div>
+                <small>الموظفين</small>
+                <strong>
+                  {loading ? "..." : stats.employees}
+                </strong>
+              </div>
+            </div>
+
+            <div className="floating-card floating-card-two">
+              <span>✓</span>
+              <div>
+                <small>المهام</small>
+                <strong>
+                  {loading ? "..." : stats.tasks}
+                </strong>
+              </div>
+            </div>
+
           </div>
+
         </section>
 
-        {/* ================= STATS ================= */}
+
+        {/* =====================================================
+            STATS
+        ===================================================== */}
 
         <section className="stats-section">
-          <div className="section-header">
-            <div>
-              <h2>
-                نظرة عامة
-              </h2>
 
-              <p>
-                إحصائيات النظام
-              </p>
+          <div className="section-header">
+
+            <div className="section-heading">
+
+              <div className="section-icon">
+                ◈
+              </div>
+
+              <div>
+                <h2>
+                  نظرة عامة
+                </h2>
+
+                <p>
+                  ملخص سريع لأهم بيانات النظام
+                </p>
+              </div>
+
             </div>
+
+            <span className="section-count">
+              5 مؤشرات رئيسية
+            </span>
+
           </div>
 
+
           <div className="stats-grid">
+
             {statCards.map((card) => (
-              <div
+
+              <button
                 key={card.title}
+                type="button"
                 className={`stat-card ${card.color}`}
                 onClick={() => nav(card.path)}
               >
+
+                <div className="stat-card-glow"></div>
+
                 <div className="stat-top">
+
                   <div className="stat-icon">
                     {card.icon}
                   </div>
@@ -336,60 +400,112 @@ export default function Dashboard() {
                   <span className="stat-arrow">
                     ←
                   </span>
+
                 </div>
 
-                <div className="stat-number">
-                  {loading
-                    ? "..."
-                    : card.value}
+                <div className="stat-content">
+
+                  <span className="stat-subtitle">
+                    {card.subtitle}
+                  </span>
+
+                  <div className="stat-number">
+                    {loading ? "..." : card.value}
+                  </div>
+
+                  <div className="stat-title">
+                    {card.title}
+                  </div>
+
                 </div>
 
-                <div className="stat-title">
-                  {card.title}
+                <div className="stat-footer">
+
+                  <span>
+                    عرض التفاصيل
+                  </span>
+
+                  <span className="footer-arrow">
+                    ←
+                  </span>
+
                 </div>
 
-                <div className="stat-link">
-                  عرض التفاصيل
-                </div>
-              </div>
+              </button>
+
             ))}
+
           </div>
+
         </section>
 
-        {/* ================= THREE COLUMNS ================= */}
+
+        {/* =====================================================
+            THREE DASHBOARD CARDS
+        ===================================================== */}
 
         <div className="dashboard-grid">
 
-          {/* ================= LEAVES ================= */}
+
+          {/* =================================================
+              LEAVES
+          ================================================= */}
 
           <section className="dashboard-card">
-            <div className="card-header">
-              <div>
-                <h2>
-                  آخر الإجازات
-                </h2>
 
-                <span>
-                  أحدث طلبات الإجازات
-                </span>
+            <div className="card-header">
+
+              <div className="card-heading">
+
+                <div className="card-icon leaves-icon">
+                  🏖️
+                </div>
+
+                <div>
+                  <h2>
+                    آخر الإجازات
+                  </h2>
+
+                  <span>
+                    أحدث طلبات الإجازات
+                  </span>
+                </div>
+
               </div>
 
               <button
-                onClick={() =>
-                  nav("/leaves-list")
-                }
+                className="view-all-button"
+                onClick={() => nav("/leaves-list")}
               >
                 عرض الكل
+                <span>←</span>
               </button>
+
             </div>
 
+
             <div className="list">
+
               {leaves.length === 0 ? (
+
                 <div className="empty">
-                  لا توجد إجازات حالياً
+                  <div className="empty-icon">
+                    🏖️
+                  </div>
+
+                  <strong>
+                    لا توجد إجازات حالياً
+                  </strong>
+
+                  <span>
+                    ستظهر طلبات الإجازات هنا
+                  </span>
                 </div>
+
               ) : (
+
                 leaves.map((leave, index) => {
+
                   const status = leave.status;
 
                   const isApproved =
@@ -401,6 +517,7 @@ export default function Dashboard() {
                     status === "مرفوضة";
 
                   return (
+
                     <div
                       className="list-item"
                       key={
@@ -409,11 +526,13 @@ export default function Dashboard() {
                         index
                       }
                     >
+
                       <div className="item-avatar leave-avatar">
                         🏖️
                       </div>
 
                       <div className="item-info">
+
                         <strong>
                           {leave.employeeName ||
                             leave.employee?.name ||
@@ -422,10 +541,15 @@ export default function Dashboard() {
                         </strong>
 
                         <span>
+                          <span className="mini-calendar">
+                            📅
+                          </span>
+
                           {leave.startDate ||
                             leave.from ||
                             "تاريخ غير محدد"}
                         </span>
+
                       </div>
 
                       <span
@@ -437,120 +561,205 @@ export default function Dashboard() {
                             : "pending"
                         }`}
                       >
+                        <span className="status-dot"></span>
+
                         {isApproved
                           ? "مقبولة"
                           : isRejected
                           ? "مرفوضة"
                           : "قيد الانتظار"}
                       </span>
+
                     </div>
+
                   );
                 })
+
               )}
+
             </div>
+
           </section>
 
-          {/* ================= EVALUATIONS ================= */}
+
+          {/* =================================================
+              EVALUATIONS
+          ================================================= */}
 
           <section className="dashboard-card">
-            <div className="card-header">
-              <div>
-                <h2>
-                  آخر التقييمات
-                </h2>
 
-                <span>
-                  أحدث تقييمات الموظفين
-                </span>
+            <div className="card-header">
+
+              <div className="card-heading">
+
+                <div className="card-icon evaluations-icon">
+                  📊
+                </div>
+
+                <div>
+                  <h2>
+                    آخر التقييمات
+                  </h2>
+
+                  <span>
+                    أحدث تقييمات الموظفين
+                  </span>
+                </div>
+
               </div>
 
               <button
-                onClick={() =>
-                  nav("/history")
-                }
+                className="view-all-button"
+                onClick={() => nav("/history")}
               >
                 عرض الكل
+                <span>←</span>
               </button>
+
             </div>
 
+
             <div className="list">
+
               {evaluations.length === 0 ? (
+
                 <div className="empty">
-                  لا توجد تقييمات حالياً
+
+                  <div className="empty-icon">
+                    📊
+                  </div>
+
+                  <strong>
+                    لا توجد تقييمات حالياً
+                  </strong>
+
+                  <span>
+                    ستظهر التقييمات الجديدة هنا
+                  </span>
+
                 </div>
+
               ) : (
-                evaluations.map(
-                  (evaluation, index) => (
-                    <div
-                      className="list-item"
-                      key={
-                        evaluation.id ||
-                        evaluation.evaluation_id ||
-                        index
-                      }
-                    >
-                      <div className="item-avatar evaluation-avatar">
-                        📊
-                      </div>
 
-                      <div className="item-info">
-                        <strong>
-                          {evaluation.employeeName ||
-                            evaluation.employee?.name ||
-                            evaluation.name ||
-                            "موظف"}
-                        </strong>
+                evaluations.map((evaluation, index) => (
 
-                        <span>
-                          {evaluation.date ||
-                            evaluation.createdAt ||
-                            "تقييم حديث"}
-                        </span>
-                      </div>
+                  <div
+                    className="list-item"
+                    key={
+                      evaluation.id ||
+                      evaluation.evaluation_id ||
+                      index
+                    }
+                  >
 
-                      <div className="rating">
-                        ⭐{" "}
+                    <div className="item-avatar evaluation-avatar">
+                      📊
+                    </div>
+
+                    <div className="item-info">
+
+                      <strong>
+                        {evaluation.employeeName ||
+                          evaluation.employee?.name ||
+                          evaluation.name ||
+                          "موظف"}
+                      </strong>
+
+                      <span>
+                        📅{" "}
+                        {evaluation.date ||
+                          evaluation.createdAt ||
+                          "تقييم حديث"}
+                      </span>
+
+                    </div>
+
+                    <div className="rating">
+
+                      <span className="rating-star">
+                        ★
+                      </span>
+
+                      <strong>
                         {evaluation.rating ||
                           evaluation.score ||
                           "-"}
-                      </div>
+                      </strong>
+
                     </div>
-                  )
-                )
+
+                  </div>
+
+                ))
+
               )}
+
             </div>
+
           </section>
 
-          {/* ================= TASKS ================= */}
+
+          {/* =================================================
+              TASKS
+          ================================================= */}
 
           <section className="dashboard-card">
-            <div className="card-header">
-              <div>
-                <h2>
-                  المهام المعلقة
-                </h2>
 
-                <span>
-                  المهام التي تحتاج متابعة
-                </span>
+            <div className="card-header">
+
+              <div className="card-heading">
+
+                <div className="card-icon tasks-icon">
+                  📝
+                </div>
+
+                <div>
+                  <h2>
+                    المهام المعلقة
+                  </h2>
+
+                  <span>
+                    المهام التي تحتاج متابعة
+                  </span>
+                </div>
+
               </div>
 
               <button
-                onClick={() =>
-                  nav("/tasks")
-                }
+                className="view-all-button"
+                onClick={() => nav("/tasks")}
               >
                 عرض الكل
+                <span>←</span>
               </button>
+
             </div>
 
+
             <div className="list">
+
               {tasks.length === 0 ? (
+
                 <div className="empty success">
-                  🎉 لا توجد مهام معلقة
+
+                  <div className="empty-icon success-icon">
+                    ✓
+                  </div>
+
+                  <strong>
+                    لا توجد مهام معلقة
+                  </strong>
+
+                  <span>
+                    جميع المهام محدثة حالياً 🎉
+                  </span>
+
                 </div>
+
               ) : (
+
                 tasks.map((task, index) => (
+
                   <div
                     className="task-item"
                     key={
@@ -559,11 +768,13 @@ export default function Dashboard() {
                       index
                     }
                   >
+
                     <div className="task-check">
                       ○
                     </div>
 
                     <div className="item-info">
+
                       <strong>
                         {task.title ||
                           task.name ||
@@ -571,27 +782,48 @@ export default function Dashboard() {
                       </strong>
 
                       <span>
+                        👤{" "}
                         {task.employeeName ||
                           task.employee?.name ||
                           "غير محدد"}
                       </span>
+
                     </div>
 
-                    <span className="task-priority">
+                    <span
+                      className={`task-priority ${
+                        task.priority === "high"
+                          ? "priority-high"
+                          : task.priority === "low"
+                          ? "priority-low"
+                          : "priority-medium"
+                      }`}
+                    >
+
+                      <span className="priority-dot"></span>
+
                       {task.priority === "high"
                         ? "عالية"
                         : task.priority === "low"
                         ? "منخفضة"
                         : "متوسطة"}
+
                     </span>
+
                   </div>
+
                 ))
+
               )}
+
             </div>
+
           </section>
 
         </div>
-      </div>
+
+      </main>
+
     </div>
   );
 }

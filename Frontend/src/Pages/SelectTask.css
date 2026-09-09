@@ -3748,6 +3748,528 @@
 }
 
 /* =========================================================
+   PAGE HEADER ACTIONS
+========================================================= */
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================
+   TRASH BUTTON
+========================================================= */
+
+.trash-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid rgba(220, 38, 38, 0.15);
+  border-radius: 12px;
+  background: #fff;
+  color: #dc2626;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.trash-btn:hover {
+  background: #fef2f2;
+  border-color: rgba(220, 38, 38, 0.3);
+  transform: translateY(-1px);
+}
+
+.trash-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.trash-btn strong {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+}
+
+/* =========================================================
+   TOOLBAR
+========================================================= */
+
+.task-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================
+   FILTER
+========================================================= */
+
+.task-filter-wrapper {
+  position: relative;
+  min-width: 210px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+}
+
+.task-filter-icon {
+  position: absolute;
+  right: 14px;
+  z-index: 2;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.task-filter-arrow {
+  position: absolute;
+  left: 14px;
+  z-index: 2;
+  color: #64748b;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.task-filter-select {
+  width: 100%;
+  height: 46px;
+  padding: 0 42px 0 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  color: #334155;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  transition: 0.2s ease;
+}
+
+.task-filter-select:hover {
+  border-color: #cbd5e1;
+}
+
+.task-filter-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+/* =========================================================
+   EXCEL BUTTON
+========================================================= */
+
+.excel-btn {
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 17px;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  border-radius: 12px;
+  background: #fff;
+  color: #15803d;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.excel-btn:hover {
+  background: #f0fdf4;
+  border-color: rgba(22, 163, 74, 0.35);
+  transform: translateY(-1px);
+}
+
+.excel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.excel-btn svg {
+  font-size: 17px;
+}
+
+/* =========================================================
+   TRASH MODAL
+========================================================= */
+
+.trash-overlay {
+  z-index: 1200;
+}
+
+.trash-modal {
+  width: min(950px, calc(100vw - 32px));
+  max-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 25px 80px rgba(15, 23, 42, 0.22);
+}
+
+.trash-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 26px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.trash-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.trash-modal-icon {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 15px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 21px;
+}
+
+.trash-modal-title span {
+  display: block;
+  margin-bottom: 3px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.trash-modal-title h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 22px;
+}
+
+.trash-modal-title p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.trash-modal-close {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.trash-modal-close:hover {
+  background: #f1f5f9;
+  color: #dc2626;
+}
+
+/* =========================================================
+   TRASH BODY
+========================================================= */
+
+.trash-modal-body {
+  flex: 1;
+  min-height: 250px;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.trash-loading,
+.trash-empty {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.trash-loading p,
+.trash-empty p {
+  margin: 12px 0 0;
+  color: #64748b;
+}
+
+.trash-empty-icon {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: #f8fafc;
+  color: #94a3b8;
+  font-size: 28px;
+}
+
+.trash-empty h3 {
+  margin: 18px 0 0;
+  color: #334155;
+  font-size: 18px;
+}
+
+/* =========================================================
+   DELETED TASKS
+========================================================= */
+
+.deleted-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.deleted-task-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 17px;
+  border: 1px solid #e2e8f0;
+  border-radius: 15px;
+  background: #fff;
+  transition: 0.2s ease;
+}
+
+.deleted-task-card:hover {
+  border-color: #cbd5e1;
+  background: #fafafa;
+}
+
+.deleted-task-main {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.deleted-task-number {
+  min-width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.deleted-task-info {
+  min-width: 0;
+}
+
+.deleted-task-info h3 {
+  margin: 0 0 5px;
+  color: #1e293b;
+  font-size: 15px;
+}
+
+.deleted-task-info p {
+  max-width: 650px;
+  margin: 0 0 10px;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deleted-task-meta {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.deleted-task-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.deleted-task-meta svg {
+  color: #94a3b8;
+}
+
+.deleted-task-meta strong {
+  color: #475569;
+}
+
+.restore-task-btn {
+  flex: 0 0 auto;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.restore-task-btn:hover {
+  background: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.restore-task-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* =========================================================
+   TRASH FOOTER
+========================================================= */
+
+.trash-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 16px 24px;
+  border-top: 1px solid #eef2f7;
+  background: #fafafa;
+}
+
+.trash-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.trash-count svg {
+  color: #dc2626;
+}
+
+.trash-count strong {
+  color: #1e293b;
+  font-size: 15px;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+  .task-toolbar {
+    align-items: stretch;
+  }
+
+  .task-search {
+    flex: 1 1 100%;
+  }
+
+  .task-filter-wrapper {
+    flex: 1;
+  }
+
+  .excel-btn {
+    flex: 0 0 auto;
+  }
+
+  .results-count {
+    width: 100%;
+  }
+
+  .page-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 650px) {
+  .page-header-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .page-header-actions button {
+    width: 100%;
+  }
+
+  .task-filter-wrapper {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .excel-btn {
+    flex: 1;
+  }
+
+  .deleted-task-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .deleted-task-main {
+    width: 100%;
+  }
+
+  .restore-task-btn {
+    width: 100%;
+  }
+
+  .trash-modal-header {
+    padding: 18px;
+  }
+
+  .trash-modal-body {
+    padding: 15px;
+  }
+
+  .trash-modal-footer {
+    padding: 14px 15px;
+  }
+}
+/* =========================================================
    MESSAGE MODAL
 ========================================================= */
 
