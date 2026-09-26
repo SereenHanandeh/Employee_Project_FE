@@ -256,7 +256,6 @@ export default function JobDescriptions() {
       "المسمى الوظيفي",
       "#",
       "نقطة الوصف الوظيفي",
-      "عدد المهام",
     ];
 
     rows.push(headers);
@@ -273,7 +272,7 @@ export default function JobDescriptions() {
           emp.position || "",
           "",
           "لا يوجد وصف وظيفي",
-          emp.tasks?.length || 0,
+         
         ]);
       } else {
         points.forEach((point, index) => {
@@ -284,7 +283,6 @@ export default function JobDescriptions() {
             index === 0 ? emp.position || "" : "",
             index + 1,
             point,
-            index === 0 ? emp.tasks?.length || 0 : "",
           ]);
         });
       }
