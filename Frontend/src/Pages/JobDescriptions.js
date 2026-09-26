@@ -17,6 +17,12 @@ export default function JobDescriptions() {
   const [trashItems, setTrashItems] = useState([]);
   const [trashLoading, setTrashLoading] = useState(false);
 
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -53,9 +59,7 @@ export default function JobDescriptions() {
   };
 
   const updatePoint = (index, value) => {
-    setDraftPoints((prev) =>
-      prev.map((p, i) => (i === index ? value : p))
-    );
+    setDraftPoints((prev) => prev.map((p, i) => (i === index ? value : p)));
   };
 
   const addPoint = () => {
@@ -72,21 +76,19 @@ export default function JobDescriptions() {
         .map((p) => p.trim())
         .filter((p) => p.length > 0);
 
-      const res = await API.put(
-        `/employees/${employeeId}/job-description`,
-        { points: cleanPoints }
-      );
+      const res = await API.put(`/employees/${employeeId}/job-description`, {
+        points: cleanPoints,
+      });
 
       setEmployees((prev) =>
         prev.map((e) =>
           e.employee_id === employeeId
             ? {
                 ...e,
-                job_description_points:
-                  res.data.job_description_points,
+                job_description_points: res.data.job_description_points,
               }
-            : e
-        )
+            : e,
+        ),
       );
 
       setEditingId(null);
@@ -108,7 +110,7 @@ export default function JobDescriptions() {
     }
 
     const confirmed = window.confirm(
-      `هل تريدين نقل الوصف الوظيفي لـ "${emp.name}" إلى سلة المهملات؟`
+      `هل تريدين نقل الوصف الوظيفي لـ "${emp.name}" إلى سلة المهملات؟`,
     );
 
     if (!confirmed) return;
@@ -120,8 +122,8 @@ export default function JobDescriptions() {
         prev.map((e) =>
           e.employee_id === emp.employee_id
             ? { ...e, job_description_points: [] }
-            : e
-        )
+            : e,
+        ),
       );
     } catch (err) {
       console.error("Delete Job Description Error:", err);
@@ -154,11 +156,11 @@ export default function JobDescriptions() {
   const restoreFromTrash = async (trashItem) => {
     try {
       await API.put(
-        `/employees/job-descriptions/trash/${trashItem.trash_id}/restore`
+        `/employees/job-descriptions/trash/${trashItem.trash_id}/restore`,
       );
 
       setTrashItems((prev) =>
-        prev.filter((t) => t.trash_id !== trashItem.trash_id)
+        prev.filter((t) => t.trash_id !== trashItem.trash_id),
       );
 
       setEmployees((prev) =>
@@ -166,11 +168,10 @@ export default function JobDescriptions() {
           e.employee_id === trashItem.employee_id
             ? {
                 ...e,
-                job_description_points:
-                  trashItem.job_description_points,
+                job_description_points: trashItem.job_description_points,
               }
-            : e
-        )
+            : e,
+        ),
       );
     } catch (err) {
       console.error("Restore Error:", err);
@@ -180,24 +181,139 @@ export default function JobDescriptions() {
 
   const permanentlyDelete = async (trashItem) => {
     const confirmed = window.confirm(
-      "هل أنتِ متأكدة؟ هذا الإجراء لا يمكن التراجع عنه."
+      "هل أنتِ متأكدة؟ هذا الإجراء لا يمكن التراجع عنه.",
     );
 
     if (!confirmed) return;
 
     try {
       await API.delete(
-        `/employees/job-descriptions/trash/${trashItem.trash_id}`
+        `/employees/job-descriptions/trash/${trashItem.trash_id}`,
       );
 
       setTrashItems((prev) =>
-        prev.filter((t) => t.trash_id !== trashItem.trash_id)
+        prev.filter((t) => t.trash_id !== trashItem.trash_id),
       );
     } catch (err) {
       console.error("Permanent Delete Error:", err);
     }
   };
 
+  // =====================================================
+  // IMPORT FROM WORD
+  // =====================================================
+
+  const openImportModal = () => {
+    setShowImportModal(true);
+    setImportFile(null);
+    setImportPreview(null);
+  };
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportPreview(null);
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    const isDocx = file.name.toLowerCase().endsWith(".docx");
+
+    if (!isDocx) {
+      alert("الرجاء اختيار ملف Word بصيغة .docx فقط");
+      return;
+    }
+
+    setImportFile(file);
+    setImportPreview(null);
+  };
+
+  const uploadForPreview = async () => {
+    if (!importFile) {
+      alert("الرجاء اختيار ملف أولاً");
+      return;
+    }
+
+    setImportLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", importFile);
+
+      const res = await API.post(
+        "/employees/job-descriptions/import/preview",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+
+      setImportPreview(res.data);
+    } catch (err) {
+      console.error("Import Preview Error:", err);
+      alert(err.response?.data?.message || "حدث خطأ أثناء قراءة الملف");
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const updateMatchedEmployee = (index, employeeId) => {
+    setImportPreview((prev) => {
+      const rows = [...prev.rows];
+
+      const emp = prev.available_employees.find(
+        (e) => e.employee_id === Number(employeeId),
+      );
+
+      rows[index] = {
+        ...rows[index],
+        matched_employee_id: emp ? emp.employee_id : null,
+        matched_employee_name: emp ? emp.name : null,
+        match_type: emp ? "manual" : "none",
+      };
+
+      return { ...prev, rows };
+    });
+  };
+
+  const confirmImport = async () => {
+    const items = importPreview.rows
+      .filter((r) => r.matched_employee_id)
+      .map((r) => ({
+        employee_id: r.matched_employee_id,
+        points: r.points,
+      }));
+
+    if (items.length === 0) {
+      alert("لا يوجد صفوف مطابقة لموظفين لاستيرادها");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `سيتم تحديث الوصف الوظيفي لـ ${items.length} موظف. هل تريد المتابعة؟`,
+    );
+
+    if (!confirmed) return;
+
+    setConfirmLoading(true);
+
+    try {
+      const res = await API.put("/employees/job-descriptions/import/confirm", {
+        items,
+      });
+
+      alert(res.data.message);
+
+      await fetchData();
+      closeImportModal();
+    } catch (err) {
+      console.error("Confirm Import Error:", err);
+      alert("حدث خطأ أثناء تطبيق الاستيراد");
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
   // =====================================================
   // SELECTION (للتصدير)
   // =====================================================
@@ -206,7 +322,7 @@ export default function JobDescriptions() {
     setSelectedIds((prev) =>
       prev.includes(employeeId)
         ? prev.filter((id) => id !== employeeId)
-        : [...prev, employeeId]
+        : [...prev, employeeId],
     );
   };
 
@@ -222,7 +338,7 @@ export default function JobDescriptions() {
   // EXPORT TO EXCEL
   // =====================================================
 
-    // =====================================================
+  // =====================================================
   // EXPORT TO EXCEL (كل نقطة بصف منفصل)
   // =====================================================
 
@@ -297,7 +413,7 @@ export default function JobDescriptions() {
       { wch: 28 }, // البريد
       { wch: 18 }, // القسم
       { wch: 20 }, // المسمى
-      { wch: 5 },  // #
+      { wch: 5 }, // #
       { wch: 50 }, // النقطة
       { wch: 12 }, // عدد المهام
     ];
@@ -313,7 +429,7 @@ export default function JobDescriptions() {
 
   const exportSelected = () => {
     const selected = employees.filter((e) =>
-      selectedIds.includes(e.employee_id)
+      selectedIds.includes(e.employee_id),
     );
 
     if (selected.length === 0) {
@@ -348,7 +464,9 @@ export default function JobDescriptions() {
   // =====================================================
 
   const normalizeStatusClass = (status) => {
-    const s = String(status || "").trim().toLowerCase();
+    const s = String(status || "")
+      .trim()
+      .toLowerCase();
 
     if (["completed", "complete", "done", "finished"].includes(s)) {
       return "completed";
@@ -418,6 +536,9 @@ export default function JobDescriptions() {
         </div>
 
         <div className="jd-toolbar-right">
+          <button className="jd-import-btn" onClick={openImportModal}>
+            📤 استيراد من Word
+          </button>
           <button className="jd-export-btn" onClick={exportAll}>
             📥 تنزيل الكل (Excel)
           </button>
@@ -460,9 +581,7 @@ export default function JobDescriptions() {
               </label>
 
               <div className="jd-card-top">
-                <div className="jd-avatar">
-                  {emp.name?.charAt(0) || "؟"}
-                </div>
+                <div className="jd-avatar">{emp.name?.charAt(0) || "؟"}</div>
 
                 <div>
                   <strong>{emp.name}</strong>
@@ -486,9 +605,7 @@ export default function JobDescriptions() {
                           <input
                             type="text"
                             value={point}
-                            onChange={(e) =>
-                              updatePoint(index, e.target.value)
-                            }
+                            onChange={(e) => updatePoint(index, e.target.value)}
                             placeholder={`نقطة رقم ${index + 1}`}
                           />
 
@@ -565,7 +682,7 @@ export default function JobDescriptions() {
 
                         <span
                           className={`jd-status ${normalizeStatusClass(
-                            t.status
+                            t.status,
                           )}`}
                         >
                           {statusLabel(t.status)}
@@ -588,10 +705,7 @@ export default function JobDescriptions() {
 
       {showTrash && (
         <div className="jd-modal-overlay" onClick={closeTrash}>
-          <div
-            className="jd-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="jd-modal" onClick={(e) => e.stopPropagation()}>
             <div className="jd-modal-header">
               <h3>🗑 سلة المهملات</h3>
               <button className="jd-modal-close" onClick={closeTrash}>
@@ -641,6 +755,147 @@ export default function JobDescriptions() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+            {/* ===================================================
+          IMPORT MODAL
+      =================================================== */}
+
+      {showImportModal && (
+        <div className="jd-modal-overlay" onClick={closeImportModal}>
+          <div
+            className="jd-modal jd-import-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="jd-modal-header">
+              <h3>📤 استيراد من ملف Word</h3>
+              <button className="jd-modal-close" onClick={closeImportModal}>
+                ×
+              </button>
+            </div>
+
+            <div className="jd-modal-body">
+              {!importPreview ? (
+                <div className="jd-import-upload">
+                                   <div className="jd-import-instructions">
+                    <strong>تعليمات الملف:</strong>
+                    <p>
+                      يجب أن يحتوي الملف على جدول بنفس أعمدة ملف الإكسل
+                      المصدَّر بالضبط، وبنفس الترتيب:
+                    </p>
+                    <p style={{ marginTop: 8, fontWeight: 700 }}>
+                      الاسم | البريد الإلكتروني | القسم | المسمى الوظيفي | # |
+                      نقطة الوصف الوظيفي | عدد المهام
+                    </p>
+                    <p style={{ marginTop: 8 }}>
+                      أسهل طريقة: نزّلي ملف الإكسل الحالي، عدّلي عليه، ثم
+                      انسخي الجدول إلى Word مع دمج الخلايا (Merge) لبيانات
+                      نفس الموظف عبر عدة نقاط.
+                    </p>
+                  </div>
+
+                  <label className="jd-file-input-label">
+                    <input
+                      type="file"
+                      accept=".docx"
+                      onChange={handleFileSelect}
+                      hidden
+                    />
+                    <span className="jd-file-input-icon">📄</span>
+                    <span>
+                      {importFile
+                        ? importFile.name
+                        : "اضغط لاختيار ملف Word (.docx)"}
+                    </span>
+                  </label>
+
+                  <button
+                    className="jd-import-analyze-btn"
+                    onClick={uploadForPreview}
+                    disabled={!importFile || importLoading}
+                  >
+                    {importLoading ? "جاري التحليل..." : "تحليل الملف"}
+                  </button>
+                </div>
+              ) : (
+                <div className="jd-import-preview">
+                  <div className="jd-import-summary">
+                    <span className="jd-import-stat total">
+                      {importPreview.total_rows} صف
+                    </span>
+                    <span className="jd-import-stat matched">
+                      {importPreview.matched_count} مطابق
+                    </span>
+                    <span className="jd-import-stat unmatched">
+                      {importPreview.unmatched_count} غير مطابق
+                    </span>
+                  </div>
+
+                  <div className="jd-import-rows">
+                    {importPreview.rows.map((row, index) => (
+                      <div
+                        className={`jd-import-row ${
+                          row.matched_employee_id ? "matched" : "unmatched"
+                        }`}
+                        key={index}
+                      >
+                        <div className="jd-import-row-header">
+                          <div className="jd-import-raw-name">
+                            <span className="jd-import-label">
+                              الاسم بالملف:
+                            </span>
+                            <strong>{row.raw_name}</strong>
+                          </div>
+
+                          <select
+                            value={row.matched_employee_id || ""}
+                            onChange={(e) =>
+                              updateMatchedEmployee(index, e.target.value)
+                            }
+                          >
+                            <option value="">— غير مطابق —</option>
+                            {importPreview.available_employees.map((emp) => (
+                              <option
+                                key={emp.employee_id}
+                                value={emp.employee_id}
+                              >
+                                {emp.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <ul className="jd-import-points">
+                          {row.points.map((p, i) => (
+                            <li key={i}>{p}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="jd-import-actions">
+                    <button
+                      className="jd-import-back-btn"
+                      onClick={() => setImportPreview(null)}
+                    >
+                      رجوع
+                    </button>
+
+                    <button
+                      className="jd-import-confirm-btn"
+                      onClick={confirmImport}
+                      disabled={confirmLoading}
+                    >
+                      {confirmLoading
+                        ? "جاري الحفظ..."
+                        : `✓ تأكيد الاستيراد (${importPreview.matched_count})`}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
