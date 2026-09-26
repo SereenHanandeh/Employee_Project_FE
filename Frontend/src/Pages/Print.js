@@ -54,9 +54,16 @@ export default function Print() {
   const downloadPDF = () => {
     html2pdf()
       .set({
-        margin: 10,
+        margin: 5,
         filename: "evaluation.pdf",
-        jsPDF: { unit: "mm", format: "a4" },
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: {
+          unit: "mm",
+          format: "a4",
+          orientation: "portrait",
+        },
+        pagebreak: { mode: "avoid-all" },
       })
       .from(printRef.current)
       .save();
@@ -85,7 +92,70 @@ export default function Print() {
 
   return (
     <div style={{ padding: 15 }}>
-      <div ref={printRef} style={styles.paper}>
+      {/* =====================================================
+          PRINT STYLES
+      ===================================================== */}
+      <style>
+        {`
+          @media print {
+            @page {
+              size: A4;
+              margin: 5mm;
+            }
+
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              height: auto !important;
+            }
+
+            .no-print {
+              display: none !important;
+            }
+
+            .print-paper {
+              width: 100% !important;
+              min-height: 0 !important;
+              max-height: 287mm !important;
+              margin: 0 !important;
+              padding: 5mm !important;
+              border: none !important;
+              box-shadow: none !important;
+              page-break-after: avoid !important;
+              page-break-inside: avoid !important;
+              overflow: hidden !important;
+              transform: scale(0.94);
+              transform-origin: top center;
+            }
+
+            .print-paper table {
+              margin-bottom: 4px !important;
+            }
+
+            .print-paper h2 {
+              font-size: 16px !important;
+              margin: 4px 0 !important;
+            }
+
+            .print-paper h3 {
+              font-size: 13px !important;
+              margin: 6px 0 4px !important;
+            }
+
+            .print-paper p {
+              margin: 2px 0 !important;
+            }
+
+            .print-paper td,
+            .print-paper th {
+              padding: 3px !important;
+              font-size: 11px !important;
+            }
+          }
+        `}
+      </style>
+
+      <div ref={printRef} className="print-paper" style={styles.paper}>
         <h3 style={{ textAlign: "center" }}>
           بسم الله الرحمن الرحيم
         </h3>
@@ -184,8 +254,8 @@ export default function Print() {
           <p>التاريخ: ____________</p>
         </div>
 
-        {/* أزرار */}
-        <div style={styles.buttonsContainer}>
+        {/* أزرار - تختفي عند الطباعة */}
+        <div className="no-print" style={styles.buttonsContainer}>
           <button onClick={downloadPDF} style={styles.pdfButton}>
             📄 تحميل PDF
           </button>
