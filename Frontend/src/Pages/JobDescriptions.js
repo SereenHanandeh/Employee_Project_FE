@@ -332,7 +332,7 @@ export default function JobDescriptions() {
       "نقطة الوصف الوظيفي",
     ];
 
-    rows.push(headers);
+    (headers);
 
     list.forEach((emp) => {
       const points = emp.job_description_points || [];
@@ -362,14 +362,14 @@ export default function JobDescriptions() {
 
       const endRow = rows.length - 1;
 
-      if (endRow > startRow) {
-        [0, 1, 2, 3, 6].forEach((col) => {
-          merges.push({
-            s: { r: startRow, c: col },
-            e: { r: endRow, c: col },
-          });
-        });
-      }
+   if (endRow > startRow) {
+  [0, 1, 2, 3].forEach((col) => {
+    merges.push({
+      s: { r: startRow, c: col },
+      e: { r: endRow, c: col },
+    });
+  });
+}
     });
 
     const worksheet = XLSX.utils.aoa_to_sheet(rows);
@@ -506,10 +506,6 @@ export default function JobDescriptions() {
                 width: colWidths[5],
                 isAltRow: isAlt,
               }),
-              makeCell(emp.tasks?.length || 0, {
-                width: colWidths[6],
-                isAltRow: isAlt,
-              }),
             ],
           }),
         );
@@ -559,11 +555,7 @@ export default function JobDescriptions() {
                   width: colWidths[5],
                   isAltRow: isAlt,
                 }),
-                makeCell(emp.tasks?.length || 0, {
-                  width: colWidths[6],
-                  isAltRow: isAlt,
-                  merge: mergeType,
-                }),
+               
               ],
             }),
           );
