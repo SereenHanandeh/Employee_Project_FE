@@ -108,10 +108,10 @@ export default function Result() {
      الحدود القصوى
   ========================================================= */
 
-  const maxPerformance = 76;
-  const maxPersonality = 19;
-  const maxRelations = 9;
-  const maxTotal = 104;
+  const maxPerformance = 72;
+const maxPersonality = 19;
+const maxRelations = 9;
+const maxTotal = 100;
 
   const percentage = Math.round((totalScore / maxTotal) * 100);
 
