@@ -30,6 +30,7 @@ import CreateEmployee from "./Pages/CreateEmployee";
 import History from "./Pages/History";
 import AddTask from "./Pages/AddTask";
 import SelectTask from "./Pages/SelectTask";
+import JobDescriptions from './Pages/JobDescriptions';
 
 // ================= EMPLOYEE =================
 
@@ -142,6 +143,8 @@ function App() {
             {/* ================= ADD Department ================= */}
 
             <Route path="/add-department" element={<AddDepartment />} />
+
+            <Route path="/job-descriptions" element={<JobDescriptions />} />
           </Route>
         </Route>
 
