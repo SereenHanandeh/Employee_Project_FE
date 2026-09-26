@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import API from "../api/api";
-import "./JobDescriptions.css";
+import "./JobDescription.css";
 
 export default function JobDescriptions() {
   const [employees, setEmployees] = useState([]);
