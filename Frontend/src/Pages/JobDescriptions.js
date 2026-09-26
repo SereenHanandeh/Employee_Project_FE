@@ -146,6 +146,82 @@ export default function JobDescriptions() {
   };
 
   // =====================================================
+  // FILE ATTACHMENT (رفع / عرض / تنزيل / حذف)
+  // =====================================================
+
+  const handleUploadFile = async (employeeId, file) => {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      await API.post(
+        `/employees/${employeeId}/job-description/file`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+
+      alert("تم رفع الملف بنجاح");
+      fetchData();
+    } catch (err) {
+      console.error("Upload File Error:", err);
+      alert(err?.response?.data?.message || "حدث خطأ أثناء رفع الملف");
+    }
+  };
+
+  const handleViewFile = async (employeeId) => {
+    try {
+      const res = await API.get(
+        `/employees/${employeeId}/job-description/file`,
+        { responseType: "blob" },
+      );
+
+      const url = window.URL.createObjectURL(res.data);
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error("View File Error:", err);
+      alert("تعذر فتح الملف");
+    }
+  };
+
+  const handleDownloadFile = async (employeeId, fileName) => {
+    try {
+      const res = await API.get(
+        `/employees/${employeeId}/job-description/file?download=true`,
+        { responseType: "blob" },
+      );
+
+      const url = window.URL.createObjectURL(res.data);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = fileName || "job-description-file";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download File Error:", err);
+      alert("تعذر تحميل الملف");
+    }
+  };
+
+  const handleDeleteFile = async (employeeId) => {
+    const confirmed = window.confirm("هل تريد حذف الملف المرفق؟");
+    if (!confirmed) return;
+
+    try {
+      await API.delete(`/employees/${employeeId}/job-description/file`);
+      fetchData();
+    } catch (err) {
+      console.error("Delete File Error:", err);
+      alert("حدث خطأ أثناء حذف الملف");
+    }
+  };
+
+  // =====================================================
   // TRASH
   // =====================================================
 
@@ -750,7 +826,65 @@ export default function JobDescriptions() {
                 <span>🏢 {emp.department_name || "بدون قسم"}</span>
                 <span>✉️ {emp.email}</span>
               </div>
+              <div className="jd-file-section">
+                {emp.has_job_description_file ? (
+                  <>
+                    <div className="jd-file-info">
+                      <span>📎 {emp.job_description_file_name}</span>
+                      {emp.job_description_file_uploaded_at && (
+                        <small>
+                          {new Date(
+                            emp.job_description_file_uploaded_at,
+                          ).toLocaleDateString("ar-SA")}
+                        </small>
+                      )}
+                    </div>
 
+                    <div className="jd-file-actions">
+                      <button onClick={() => handleViewFile(emp.employee_id)}>
+                        👁 عرض
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          handleDownloadFile(
+                            emp.employee_id,
+                            emp.job_description_file_name,
+                          )
+                        }
+                      >
+                        ⬇️ تنزيل
+                      </button>
+
+                      <label className="jd-replace-file-btn">
+                        🔄 استبدال
+                        <input
+                          type="file"
+                          style={{ display: "none" }}
+                          onChange={(e) =>
+                            handleUploadFile(emp.employee_id, e.target.files[0])
+                          }
+                        />
+                      </label>
+
+                      <button onClick={() => handleDeleteFile(emp.employee_id)}>
+                        🗑 حذف الملف
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <label className="jd-upload-file-btn">
+                    📤 رفع ملف الوصف الوظيفي
+                    <input
+                      type="file"
+                      style={{ display: "none" }}
+                      onChange={(e) =>
+                        handleUploadFile(emp.employee_id, e.target.files[0])
+                      }
+                    />
+                  </label>
+                )}
+              </div>
               <div className="jd-description">
                 {editingId === emp.employee_id ? (
                   <>
@@ -919,7 +1053,7 @@ export default function JobDescriptions() {
         </div>
       )}
 
-       {showImport && (
+      {showImport && (
         <ImportJobDescriptionModal
           onClose={() => setShowImport(false)}
           onImported={() => fetchData()}

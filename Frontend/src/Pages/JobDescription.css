@@ -974,3 +974,38 @@
   background: linear-gradient(135deg, #0ea5e9, #0284c7);
   box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
 }
+
+.jd-file-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px dashed #e5e7eb;
+  border-bottom: 1px dashed #e5e7eb;
+  margin: 8px 0;
+}
+
+.jd-file-info {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+.jd-file-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.jd-file-actions button,
+.jd-upload-file-btn,
+.jd-replace-file-btn {
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+}
