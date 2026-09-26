@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import API from "../api/api";
 import "./JobDescription.css";
 
 export default function JobDescriptions() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [editingId, setEditingId] = useState(null);
-  const [draft, setDraft] = useState("");
+  const [draftPoints, setDraftPoints] = useState([]);
+
   const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  const [showTrash, setShowTrash] = useState(false);
+  const [trashItems, setTrashItems] = useState([]);
+  const [trashLoading, setTrashLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -24,38 +32,268 @@ export default function JobDescriptions() {
     }
   };
 
+  // =====================================================
+  // EDIT MODE (نقاط متعددة)
+  // =====================================================
+
   const startEdit = (emp) => {
     setEditingId(emp.employee_id);
-    setDraft(emp.job_description || "");
+
+    const points =
+      emp.job_description_points?.length > 0
+        ? [...emp.job_description_points]
+        : [""];
+
+    setDraftPoints(points);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setDraft("");
+    setDraftPoints([]);
+  };
+
+  const updatePoint = (index, value) => {
+    setDraftPoints((prev) =>
+      prev.map((p, i) => (i === index ? value : p))
+    );
+  };
+
+  const addPoint = () => {
+    setDraftPoints((prev) => [...prev, ""]);
+  };
+
+  const removePoint = (index) => {
+    setDraftPoints((prev) => prev.filter((_, i) => i !== index));
   };
 
   const saveEdit = async (employeeId) => {
     try {
-      await API.put(`/employees/${employeeId}/job-description`, {
-        job_description: draft,
-      });
+      const cleanPoints = draftPoints
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0);
+
+      const res = await API.put(
+        `/employees/${employeeId}/job-description`,
+        { points: cleanPoints }
+      );
 
       setEmployees((prev) =>
         prev.map((e) =>
           e.employee_id === employeeId
-            ? { ...e, job_description: draft }
+            ? {
+                ...e,
+                job_description_points:
+                  res.data.job_description_points,
+              }
             : e
         )
       );
 
       setEditingId(null);
+      setDraftPoints([]);
     } catch (err) {
       console.error("Save Job Description Error:", err);
+      alert("حدث خطأ أثناء الحفظ");
     }
   };
 
   // =====================================================
-  // STATUS HELPERS
+  // DELETE (نقل لسلة المهملات)
+  // =====================================================
+
+  const handleDelete = async (emp) => {
+    if (!emp.job_description_points?.length) {
+      alert("لا يوجد وصف وظيفي لحذفه");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `هل تريدين نقل الوصف الوظيفي لـ "${emp.name}" إلى سلة المهملات؟`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await API.delete(`/employees/${emp.employee_id}/job-description`);
+
+      setEmployees((prev) =>
+        prev.map((e) =>
+          e.employee_id === emp.employee_id
+            ? { ...e, job_description_points: [] }
+            : e
+        )
+      );
+    } catch (err) {
+      console.error("Delete Job Description Error:", err);
+      alert("حدث خطأ أثناء الحذف");
+    }
+  };
+
+  // =====================================================
+  // TRASH
+  // =====================================================
+
+  const openTrash = async () => {
+    setShowTrash(true);
+    setTrashLoading(true);
+
+    try {
+      const res = await API.get("/employees/job-descriptions/trash");
+      setTrashItems(res.data);
+    } catch (err) {
+      console.error("Fetch Trash Error:", err);
+    } finally {
+      setTrashLoading(false);
+    }
+  };
+
+  const closeTrash = () => {
+    setShowTrash(false);
+  };
+
+  const restoreFromTrash = async (trashItem) => {
+    try {
+      await API.put(
+        `/employees/job-descriptions/trash/${trashItem.trash_id}/restore`
+      );
+
+      setTrashItems((prev) =>
+        prev.filter((t) => t.trash_id !== trashItem.trash_id)
+      );
+
+      setEmployees((prev) =>
+        prev.map((e) =>
+          e.employee_id === trashItem.employee_id
+            ? {
+                ...e,
+                job_description_points:
+                  trashItem.job_description_points,
+              }
+            : e
+        )
+      );
+    } catch (err) {
+      console.error("Restore Error:", err);
+      alert("حدث خطأ أثناء الاسترجاع، تأكدي أن الموظف مازال موجودًا");
+    }
+  };
+
+  const permanentlyDelete = async (trashItem) => {
+    const confirmed = window.confirm(
+      "هل أنتِ متأكدة؟ هذا الإجراء لا يمكن التراجع عنه."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await API.delete(
+        `/employees/job-descriptions/trash/${trashItem.trash_id}`
+      );
+
+      setTrashItems((prev) =>
+        prev.filter((t) => t.trash_id !== trashItem.trash_id)
+      );
+    } catch (err) {
+      console.error("Permanent Delete Error:", err);
+    }
+  };
+
+  // =====================================================
+  // SELECTION (للتصدير)
+  // =====================================================
+
+  const toggleSelect = (employeeId) => {
+    setSelectedIds((prev) =>
+      prev.includes(employeeId)
+        ? prev.filter((id) => id !== employeeId)
+        : [...prev, employeeId]
+    );
+  };
+
+  const selectAll = () => {
+    setSelectedIds(filteredEmployees.map((e) => e.employee_id));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  // =====================================================
+  // EXPORT TO EXCEL
+  // =====================================================
+
+  const exportToExcel = (list, filename) => {
+    if (list.length === 0) {
+      alert("لا يوجد موظفين لتصديرهم");
+      return;
+    }
+
+    const rows = list.map((emp) => ({
+      "الاسم": emp.name || "",
+      "البريد الإلكتروني": emp.email || "",
+      "القسم": emp.department_name || "",
+      "المسمى الوظيفي": emp.position || "",
+      "الوصف الوظيفي":
+        (emp.job_description_points || [])
+          .map((p, i) => `${i + 1}. ${p}`)
+          .join("\n") || "لا يوجد",
+      "عدد المهام": emp.tasks?.length || 0,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+
+    worksheet["!cols"] = [
+      { wch: 22 },
+      { wch: 28 },
+      { wch: 18 },
+      { wch: 20 },
+      { wch: 50 },
+      { wch: 12 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "الوصف الوظيفي");
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
+  };
+
+  const exportAll = () => {
+    exportToExcel(filteredEmployees, "الوصف-الوظيفي-جميع-الموظفين");
+  };
+
+  const exportSelected = () => {
+    const selected = employees.filter((e) =>
+      selectedIds.includes(e.employee_id)
+    );
+
+    if (selected.length === 0) {
+      alert("الرجاء تحديد موظف واحد على الأقل");
+      return;
+    }
+
+    exportToExcel(selected, "الوصف-الوظيفي-موظفين-محددين");
+  };
+
+  // =====================================================
+  // SEARCH FILTER
+  // =====================================================
+
+  const filteredEmployees = useMemo(() => {
+    const term = search.trim().toLowerCase();
+
+    if (!term) return employees;
+
+    return employees.filter((emp) => {
+      return (
+        emp.name?.toLowerCase().includes(term) ||
+        emp.position?.toLowerCase().includes(term) ||
+        emp.department_name?.toLowerCase().includes(term) ||
+        emp.email?.toLowerCase().includes(term)
+      );
+    });
+  }, [employees, search]);
+
+  // =====================================================
+  // TASK STATUS HELPERS
   // =====================================================
 
   const normalizeStatusClass = (status) => {
@@ -84,25 +322,6 @@ export default function JobDescriptions() {
     return labels[cls];
   };
 
-  // =====================================================
-  // SEARCH FILTER
-  // =====================================================
-
-  const filteredEmployees = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    if (!term) return employees;
-
-    return employees.filter((emp) => {
-      return (
-        emp.name?.toLowerCase().includes(term) ||
-        emp.position?.toLowerCase().includes(term) ||
-        emp.department_name?.toLowerCase().includes(term) ||
-        emp.email?.toLowerCase().includes(term)
-      );
-    });
-  }, [employees, search]);
-
   if (loading) {
     return <div className="jd-loading">جاري التحميل...</div>;
   }
@@ -126,6 +345,46 @@ export default function JobDescriptions() {
         </div>
       </header>
 
+      {/* ===================================================
+          TOOLBAR
+      =================================================== */}
+
+      <div className="jd-toolbar">
+        <div className="jd-toolbar-left">
+          <button className="jd-toolbar-btn" onClick={selectAll}>
+            تحديد الكل ({filteredEmployees.length})
+          </button>
+
+          <button className="jd-toolbar-btn ghost" onClick={clearSelection}>
+            إلغاء التحديد
+          </button>
+
+          <span className="jd-selected-count">
+            {selectedIds.length > 0
+              ? `تم تحديد ${selectedIds.length} موظف`
+              : "لم يتم تحديد أحد"}
+          </span>
+        </div>
+
+        <div className="jd-toolbar-right">
+          <button className="jd-export-btn" onClick={exportAll}>
+            📥 تنزيل الكل (Excel)
+          </button>
+
+          <button
+            className="jd-export-btn selected"
+            onClick={exportSelected}
+            disabled={selectedIds.length === 0}
+          >
+            📥 تنزيل المحدد ({selectedIds.length})
+          </button>
+
+          <button className="jd-trash-btn" onClick={openTrash}>
+            🗑 سلة المهملات
+          </button>
+        </div>
+      </div>
+
       {filteredEmployees.length === 0 ? (
         <div className="jd-empty">
           <div className="jd-empty-icon">📄</div>
@@ -135,7 +394,20 @@ export default function JobDescriptions() {
       ) : (
         <div className="jd-grid">
           {filteredEmployees.map((emp) => (
-            <div className="jd-card" key={emp.employee_id}>
+            <div
+              className={`jd-card ${
+                selectedIds.includes(emp.employee_id) ? "selected" : ""
+              }`}
+              key={emp.employee_id}
+            >
+              <label className="jd-card-checkbox">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(emp.employee_id)}
+                  onChange={() => toggleSelect(emp.employee_id)}
+                />
+              </label>
+
               <div className="jd-card-top">
                 <div className="jd-avatar">
                   {emp.name?.charAt(0) || "؟"}
@@ -155,13 +427,39 @@ export default function JobDescriptions() {
               <div className="jd-description">
                 {editingId === emp.employee_id ? (
                   <>
-                    <textarea
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      rows={4}
-                      placeholder="اكتبي وصف المهام والمسؤوليات..."
-                      autoFocus
-                    />
+                    <div className="jd-points-editor">
+                      {draftPoints.map((point, index) => (
+                        <div className="jd-point-row" key={index}>
+                          <span className="jd-point-bullet">•</span>
+
+                          <input
+                            type="text"
+                            value={point}
+                            onChange={(e) =>
+                              updatePoint(index, e.target.value)
+                            }
+                            placeholder={`نقطة رقم ${index + 1}`}
+                          />
+
+                          <button
+                            type="button"
+                            className="jd-point-remove"
+                            onClick={() => removePoint(index)}
+                            title="حذف هذه النقطة"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        className="jd-add-point-btn"
+                        onClick={addPoint}
+                      >
+                        + إضافة نقطة
+                      </button>
+                    </div>
 
                     <div className="jd-edit-actions">
                       <button onClick={() => saveEdit(emp.employee_id)}>
@@ -172,16 +470,35 @@ export default function JobDescriptions() {
                   </>
                 ) : (
                   <>
-                    <p>
-                      {emp.job_description || "لا يوجد وصف وظيفي بعد."}
-                    </p>
+                    {emp.job_description_points?.length > 0 ? (
+                      <ul className="jd-points-list">
+                        {emp.job_description_points.map((point, i) => (
+                          <li key={i}>{point}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="jd-no-description">
+                        لا يوجد وصف وظيفي بعد.
+                      </p>
+                    )}
 
-                    <button
-                      className="jd-edit-btn"
-                      onClick={() => startEdit(emp)}
-                    >
-                      ✏️ تعديل الوصف
-                    </button>
+                    <div className="jd-description-actions">
+                      <button
+                        className="jd-edit-btn"
+                        onClick={() => startEdit(emp)}
+                      >
+                        ✏️ تعديل الوصف
+                      </button>
+
+                      {emp.job_description_points?.length > 0 && (
+                        <button
+                          className="jd-delete-btn"
+                          onClick={() => handleDelete(emp)}
+                        >
+                          🗑 حذف
+                        </button>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
@@ -206,13 +523,77 @@ export default function JobDescriptions() {
                     ))}
                   </ul>
                 ) : (
-                  <span className="jd-no-tasks">
-                    لا توجد مهام مسندة
-                  </span>
+                  <span className="jd-no-tasks">لا توجد مهام مسندة</span>
                 )}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ===================================================
+          TRASH MODAL
+      =================================================== */}
+
+      {showTrash && (
+        <div className="jd-modal-overlay" onClick={closeTrash}>
+          <div
+            className="jd-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="jd-modal-header">
+              <h3>🗑 سلة المهملات</h3>
+              <button className="jd-modal-close" onClick={closeTrash}>
+                ×
+              </button>
+            </div>
+
+            <div className="jd-modal-body">
+              {trashLoading ? (
+                <div className="jd-trash-loading">جاري التحميل...</div>
+              ) : trashItems.length === 0 ? (
+                <div className="jd-trash-empty">
+                  <div className="jd-empty-icon">🗑</div>
+                  <strong>سلة المهملات فارغة</strong>
+                </div>
+              ) : (
+                <div className="jd-trash-list">
+                  {trashItems.map((item) => (
+                    <div className="jd-trash-item" key={item.trash_id}>
+                      <div className="jd-trash-item-header">
+                        <strong>{item.employee_name}</strong>
+                        <span className="jd-trash-date">
+                          {new Date(item.deleted_at).toLocaleString("ar-SA")}
+                        </span>
+                      </div>
+
+                      <ul className="jd-trash-points">
+                        {item.job_description_points.map((p, i) => (
+                          <li key={i}>{p}</li>
+                        ))}
+                      </ul>
+
+                      <div className="jd-trash-actions">
+                        <button
+                          className="jd-restore-btn"
+                          onClick={() => restoreFromTrash(item)}
+                        >
+                          ↩️ استرجاع
+                        </button>
+
+                        <button
+                          className="jd-permanent-delete-btn"
+                          onClick={() => permanentlyDelete(item)}
+                        >
+                          حذف نهائي
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
