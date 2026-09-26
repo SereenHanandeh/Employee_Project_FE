@@ -222,33 +222,84 @@ export default function JobDescriptions() {
   // EXPORT TO EXCEL
   // =====================================================
 
+    // =====================================================
+  // EXPORT TO EXCEL (كل نقطة بصف منفصل)
+  // =====================================================
+
   const exportToExcel = (list, filename) => {
     if (list.length === 0) {
       alert("لا يوجد موظفين لتصديرهم");
       return;
     }
 
-    const rows = list.map((emp) => ({
-      "الاسم": emp.name || "",
-      "البريد الإلكتروني": emp.email || "",
-      "القسم": emp.department_name || "",
-      "المسمى الوظيفي": emp.position || "",
-      "الوصف الوظيفي":
-        (emp.job_description_points || [])
-          .map((p, i) => `${i + 1}. ${p}`)
-          .join("\n") || "لا يوجد",
-      "عدد المهام": emp.tasks?.length || 0,
-    }));
+    const rows = [];
+    const merges = [];
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
+    // رأس الجدول
+    const headers = [
+      "الاسم",
+      "البريد الإلكتروني",
+      "القسم",
+      "المسمى الوظيفي",
+      "#",
+      "نقطة الوصف الوظيفي",
+      "عدد المهام",
+    ];
+
+    rows.push(headers);
+
+    list.forEach((emp) => {
+      const points = emp.job_description_points || [];
+      const startRow = rows.length;
+
+      if (points.length === 0) {
+        rows.push([
+          emp.name || "",
+          emp.email || "",
+          emp.department_name || "",
+          emp.position || "",
+          "",
+          "لا يوجد وصف وظيفي",
+          emp.tasks?.length || 0,
+        ]);
+      } else {
+        points.forEach((point, index) => {
+          rows.push([
+            index === 0 ? emp.name || "" : "",
+            index === 0 ? emp.email || "" : "",
+            index === 0 ? emp.department_name || "" : "",
+            index === 0 ? emp.position || "" : "",
+            index + 1,
+            point,
+            index === 0 ? emp.tasks?.length || 0 : "",
+          ]);
+        });
+      }
+
+      const endRow = rows.length - 1;
+
+      if (endRow > startRow) {
+        [0, 1, 2, 3, 6].forEach((col) => {
+          merges.push({
+            s: { r: startRow, c: col },
+            e: { r: endRow, c: col },
+          });
+        });
+      }
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
+    worksheet["!merges"] = merges;
 
     worksheet["!cols"] = [
-      { wch: 22 },
-      { wch: 28 },
-      { wch: 18 },
-      { wch: 20 },
-      { wch: 50 },
-      { wch: 12 },
+      { wch: 22 }, // الاسم
+      { wch: 28 }, // البريد
+      { wch: 18 }, // القسم
+      { wch: 20 }, // المسمى
+      { wch: 5 },  // #
+      { wch: 50 }, // النقطة
+      { wch: 12 }, // عدد المهام
     ];
 
     const workbook = XLSX.utils.book_new();
@@ -389,7 +440,7 @@ export default function JobDescriptions() {
         <div className="jd-empty">
           <div className="jd-empty-icon">📄</div>
           <strong>لا يوجد نتائج</strong>
-          <span>جرّبي كلمة بحث مختلفة أو تأكدي من وجود موظفين</span>
+          <span>جرّب كلمة بحث مختلفة أو تأكد من وجود موظفين</span>
         </div>
       ) : (
         <div className="jd-grid">
