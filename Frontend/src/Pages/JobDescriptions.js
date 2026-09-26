@@ -16,6 +16,7 @@ import {
   VerticalAlign,
   ShadingType,
   BorderStyle,
+  VerticalMergeType
 } from "docx";
 import { saveAs } from "file-saver";
 
@@ -341,6 +342,10 @@ export default function JobDescriptions() {
   // EXPORT TO WORD (نفس أعمدة جدول الإكسل)
   // =====================================================
 
+    // =====================================================
+  // EXPORT TO WORD (مع دمج خلايا بيانات الموظف عموديًا)
+  // =====================================================
+
   const exportToWord = async (list, filename) => {
     if (list.length === 0) {
       alert("لا يوجد موظفين لتصديرهم");
@@ -360,32 +365,36 @@ export default function JobDescriptions() {
     const colWidths = [1900, 2400, 1500, 1700, 500, 4200, 1000];
 
     // =====================================================
-    // HELPER - إنشاء خلية بنص
+    // HELPER - إنشاء خلية بنص، مع دعم الدمج العمودي
     // =====================================================
 
     const makeCell = (text, options = {}) => {
       return new TableCell({
         width: { size: options.width || 1500, type: WidthType.DXA },
         verticalAlign: VerticalAlign.CENTER,
+        verticalMerge: options.merge, // "restart" | "continue" | undefined
         shading: options.isHeader
           ? { fill: "6366F1", type: ShadingType.CLEAR, color: "auto" }
           : options.isAltRow
           ? { fill: "F9FAFB", type: ShadingType.CLEAR, color: "auto" }
           : undefined,
-        children: [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: String(text ?? ""),
-                bold: !!options.isHeader,
-                color: options.isHeader ? "FFFFFF" : "1F2937",
-                size: options.isHeader ? 22 : 20,
-                rightToLeft: true,
-              }),
-            ],
-          }),
-        ],
+        children:
+          options.merge === VerticalMergeType.CONTINUE
+            ? [new Paragraph({ children: [] })] // خلية مدموجة يجب أن تكون فارغة
+            : [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [
+                    new TextRun({
+                      text: String(text ?? ""),
+                      bold: !!options.isHeader,
+                      color: options.isHeader ? "FFFFFF" : "1F2937",
+                      size: options.isHeader ? 22 : 20,
+                      rightToLeft: true,
+                    }),
+                  ],
+                }),
+              ],
       });
     };
 
@@ -409,30 +418,30 @@ export default function JobDescriptions() {
 
     list.forEach((emp) => {
       const points = emp.job_description_points || [];
-      const isAlt = () => rowCounter % 2 === 1;
+      const isAlt = rowCounter % 2 === 1;
 
       if (points.length === 0) {
         rows.push(
           new TableRow({
             children: [
-              makeCell(emp.name, { width: colWidths[0], isAltRow: isAlt() }),
-              makeCell(emp.email, { width: colWidths[1], isAltRow: isAlt() }),
+              makeCell(emp.name, { width: colWidths[0], isAltRow: isAlt }),
+              makeCell(emp.email, { width: colWidths[1], isAltRow: isAlt }),
               makeCell(emp.department_name, {
                 width: colWidths[2],
-                isAltRow: isAlt(),
+                isAltRow: isAlt,
               }),
               makeCell(emp.position, {
                 width: colWidths[3],
-                isAltRow: isAlt(),
+                isAltRow: isAlt,
               }),
-              makeCell("", { width: colWidths[4], isAltRow: isAlt() }),
+              makeCell("", { width: colWidths[4], isAltRow: isAlt }),
               makeCell("لا يوجد وصف وظيفي", {
                 width: colWidths[5],
-                isAltRow: isAlt(),
+                isAltRow: isAlt,
               }),
               makeCell(emp.tasks?.length || 0, {
                 width: colWidths[6],
-                isAltRow: isAlt(),
+                isAltRow: isAlt,
               }),
             ],
           })
@@ -440,34 +449,53 @@ export default function JobDescriptions() {
 
         rowCounter++;
       } else {
+        const hasMultiplePoints = points.length > 1;
+
         points.forEach((point, index) => {
+          const isFirst = index === 0;
+
+          // نوع الدمج: أول صف "restart"، باقي الصفوف "continue"
+          const mergeType = hasMultiplePoints
+            ? isFirst
+              ? VerticalMergeType.RESTART
+              : VerticalMergeType.CONTINUE
+            : undefined;
+
           rows.push(
             new TableRow({
               children: [
-                makeCell(index === 0 ? emp.name : "", {
+                makeCell(emp.name, {
                   width: colWidths[0],
-                  isAltRow: isAlt(),
+                  isAltRow: isAlt,
+                  merge: mergeType,
                 }),
-                makeCell(index === 0 ? emp.email : "", {
+                makeCell(emp.email, {
                   width: colWidths[1],
-                  isAltRow: isAlt(),
+                  isAltRow: isAlt,
+                  merge: mergeType,
                 }),
-                makeCell(index === 0 ? emp.department_name : "", {
+                makeCell(emp.department_name, {
                   width: colWidths[2],
-                  isAltRow: isAlt(),
+                  isAltRow: isAlt,
+                  merge: mergeType,
                 }),
-                makeCell(index === 0 ? emp.position : "", {
+                makeCell(emp.position, {
                   width: colWidths[3],
-                  isAltRow: isAlt(),
+                  isAltRow: isAlt,
+                  merge: mergeType,
                 }),
                 makeCell(index + 1, {
                   width: colWidths[4],
-                  isAltRow: isAlt(),
+                  isAltRow: isAlt,
                 }),
-                makeCell(point, { width: colWidths[5], isAltRow: isAlt() }),
-                makeCell(index === 0 ? emp.tasks?.length || 0 : "", {
+                makeCell(point, {
+                  width: colWidths[5],
+                  isAltRow: isAlt,
+                }),
+                makeCell(emp.tasks?.length || 0, {
                   width: colWidths[6],
-                  isAltRow: isAlt(),
+                  isAltRow: isAlt,
+                  merge: mergeType,
                 }),
               ],
             })
