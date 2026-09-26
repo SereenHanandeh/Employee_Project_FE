@@ -332,7 +332,7 @@ export default function JobDescriptions() {
       "نقطة الوصف الوظيفي",
     ];
 
-    (headers);
+  
 
     list.forEach((emp) => {
       const points = emp.job_description_points || [];
