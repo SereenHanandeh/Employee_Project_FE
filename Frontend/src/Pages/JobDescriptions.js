@@ -16,9 +16,10 @@ import {
   VerticalAlign,
   ShadingType,
   BorderStyle,
-  VerticalMergeType
+  VerticalMergeType,
 } from "docx";
 import { saveAs } from "file-saver";
+import ImportJobDescriptionModal from "./ImportJobDescriptionModal";
 
 export default function JobDescriptions() {
   const [employees, setEmployees] = useState([]);
@@ -33,6 +34,8 @@ export default function JobDescriptions() {
   const [showTrash, setShowTrash] = useState(false);
   const [trashItems, setTrashItems] = useState([]);
   const [trashLoading, setTrashLoading] = useState(false);
+
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -70,9 +73,7 @@ export default function JobDescriptions() {
   };
 
   const updatePoint = (index, value) => {
-    setDraftPoints((prev) =>
-      prev.map((p, i) => (i === index ? value : p))
-    );
+    setDraftPoints((prev) => prev.map((p, i) => (i === index ? value : p)));
   };
 
   const addPoint = () => {
@@ -89,21 +90,19 @@ export default function JobDescriptions() {
         .map((p) => p.trim())
         .filter((p) => p.length > 0);
 
-      const res = await API.put(
-        `/employees/${employeeId}/job-description`,
-        { points: cleanPoints }
-      );
+      const res = await API.put(`/employees/${employeeId}/job-description`, {
+        points: cleanPoints,
+      });
 
       setEmployees((prev) =>
         prev.map((e) =>
           e.employee_id === employeeId
             ? {
                 ...e,
-                job_description_points:
-                  res.data.job_description_points,
+                job_description_points: res.data.job_description_points,
               }
-            : e
-        )
+            : e,
+        ),
       );
 
       setEditingId(null);
@@ -125,7 +124,7 @@ export default function JobDescriptions() {
     }
 
     const confirmed = window.confirm(
-      `هل تريدين نقل الوصف الوظيفي لـ "${emp.name}" إلى سلة المهملات؟`
+      `هل تريدين نقل الوصف الوظيفي لـ "${emp.name}" إلى سلة المهملات؟`,
     );
 
     if (!confirmed) return;
@@ -137,8 +136,8 @@ export default function JobDescriptions() {
         prev.map((e) =>
           e.employee_id === emp.employee_id
             ? { ...e, job_description_points: [] }
-            : e
-        )
+            : e,
+        ),
       );
     } catch (err) {
       console.error("Delete Job Description Error:", err);
@@ -171,11 +170,11 @@ export default function JobDescriptions() {
   const restoreFromTrash = async (trashItem) => {
     try {
       await API.put(
-        `/employees/job-descriptions/trash/${trashItem.trash_id}/restore`
+        `/employees/job-descriptions/trash/${trashItem.trash_id}/restore`,
       );
 
       setTrashItems((prev) =>
-        prev.filter((t) => t.trash_id !== trashItem.trash_id)
+        prev.filter((t) => t.trash_id !== trashItem.trash_id),
       );
 
       setEmployees((prev) =>
@@ -183,11 +182,10 @@ export default function JobDescriptions() {
           e.employee_id === trashItem.employee_id
             ? {
                 ...e,
-                job_description_points:
-                  trashItem.job_description_points,
+                job_description_points: trashItem.job_description_points,
               }
-            : e
-        )
+            : e,
+        ),
       );
     } catch (err) {
       console.error("Restore Error:", err);
@@ -197,18 +195,18 @@ export default function JobDescriptions() {
 
   const permanentlyDelete = async (trashItem) => {
     const confirmed = window.confirm(
-      "هل أنتِ متأكدة؟ هذا الإجراء لا يمكن التراجع عنه."
+      "هل أنتِ متأكدة؟ هذا الإجراء لا يمكن التراجع عنه.",
     );
 
     if (!confirmed) return;
 
     try {
       await API.delete(
-        `/employees/job-descriptions/trash/${trashItem.trash_id}`
+        `/employees/job-descriptions/trash/${trashItem.trash_id}`,
       );
 
       setTrashItems((prev) =>
-        prev.filter((t) => t.trash_id !== trashItem.trash_id)
+        prev.filter((t) => t.trash_id !== trashItem.trash_id),
       );
     } catch (err) {
       console.error("Permanent Delete Error:", err);
@@ -223,7 +221,7 @@ export default function JobDescriptions() {
     setSelectedIds((prev) =>
       prev.includes(employeeId)
         ? prev.filter((id) => id !== employeeId)
-        : [...prev, employeeId]
+        : [...prev, employeeId],
     );
   };
 
@@ -272,7 +270,6 @@ export default function JobDescriptions() {
           emp.position || "",
           "",
           "لا يوجد وصف وظيفي",
-         
         ]);
       } else {
         points.forEach((point, index) => {
@@ -308,7 +305,7 @@ export default function JobDescriptions() {
       { wch: 28 }, // البريد
       { wch: 18 }, // القسم
       { wch: 20 }, // المسمى
-      { wch: 5 },  // #
+      { wch: 5 }, // #
       { wch: 50 }, // النقطة
       { wch: 12 }, // عدد المهام
     ];
@@ -324,7 +321,7 @@ export default function JobDescriptions() {
 
   const exportSelected = () => {
     const selected = employees.filter((e) =>
-      selectedIds.includes(e.employee_id)
+      selectedIds.includes(e.employee_id),
     );
 
     if (selected.length === 0) {
@@ -335,12 +332,11 @@ export default function JobDescriptions() {
     exportToExcel(selected, "الوصف-الوظيفي-موظفين-محددين");
   };
 
-
-    // =====================================================
+  // =====================================================
   // EXPORT TO WORD (نفس أعمدة جدول الإكسل)
   // =====================================================
 
-    // =====================================================
+  // =====================================================
   // EXPORT TO WORD (مع دمج خلايا بيانات الموظف عموديًا)
   // =====================================================
 
@@ -374,8 +370,8 @@ export default function JobDescriptions() {
         shading: options.isHeader
           ? { fill: "6366F1", type: ShadingType.CLEAR, color: "auto" }
           : options.isAltRow
-          ? { fill: "F9FAFB", type: ShadingType.CLEAR, color: "auto" }
-          : undefined,
+            ? { fill: "F9FAFB", type: ShadingType.CLEAR, color: "auto" }
+            : undefined,
         children:
           options.merge === VerticalMergeType.CONTINUE
             ? [new Paragraph({ children: [] })] // خلية مدموجة يجب أن تكون فارغة
@@ -403,7 +399,7 @@ export default function JobDescriptions() {
     const headerRow = new TableRow({
       tableHeader: true,
       children: headers.map((h, i) =>
-        makeCell(h, { isHeader: true, width: colWidths[i] })
+        makeCell(h, { isHeader: true, width: colWidths[i] }),
       ),
     });
 
@@ -442,7 +438,7 @@ export default function JobDescriptions() {
                 isAltRow: isAlt,
               }),
             ],
-          })
+          }),
         );
 
         rowCounter++;
@@ -496,7 +492,7 @@ export default function JobDescriptions() {
                   merge: mergeType,
                 }),
               ],
-            })
+            }),
           );
 
           rowCounter++;
@@ -554,7 +550,7 @@ export default function JobDescriptions() {
               children: [
                 new TextRun({
                   text: `تاريخ التصدير: ${new Date().toLocaleDateString(
-                    "ar-SA"
+                    "ar-SA",
                   )} — عدد الموظفين: ${list.length}`,
                   size: 20,
                   color: "6B7280",
@@ -578,7 +574,7 @@ export default function JobDescriptions() {
 
   const exportSelectedWord = () => {
     const selected = employees.filter((e) =>
-      selectedIds.includes(e.employee_id)
+      selectedIds.includes(e.employee_id),
     );
 
     if (selected.length === 0) {
@@ -613,7 +609,9 @@ export default function JobDescriptions() {
   // =====================================================
 
   const normalizeStatusClass = (status) => {
-    const s = String(status || "").trim().toLowerCase();
+    const s = String(status || "")
+      .trim()
+      .toLowerCase();
 
     if (["completed", "complete", "done", "finished"].includes(s)) {
       return "completed";
@@ -695,7 +693,7 @@ export default function JobDescriptions() {
             📥 تنزيل المحدد ({selectedIds.length})
           </button>
 
-           <button className="jd-export-btn word" onClick={exportAllWord}>
+          <button className="jd-export-btn word" onClick={exportAllWord}>
             📄 تنزيل الكل (Word)
           </button>
 
@@ -707,6 +705,9 @@ export default function JobDescriptions() {
             📄 تنزيل المحدد (Word)
           </button>
 
+          <button className="jd-export-btn" onClick={() => setShowImport(true)}>
+            📤 استيراد من إكسل
+          </button>
           <button className="jd-trash-btn" onClick={openTrash}>
             🗑 سلة المهملات
           </button>
@@ -737,9 +738,7 @@ export default function JobDescriptions() {
               </label>
 
               <div className="jd-card-top">
-                <div className="jd-avatar">
-                  {emp.name?.charAt(0) || "؟"}
-                </div>
+                <div className="jd-avatar">{emp.name?.charAt(0) || "؟"}</div>
 
                 <div>
                   <strong>{emp.name}</strong>
@@ -763,9 +762,7 @@ export default function JobDescriptions() {
                           <input
                             type="text"
                             value={point}
-                            onChange={(e) =>
-                              updatePoint(index, e.target.value)
-                            }
+                            onChange={(e) => updatePoint(index, e.target.value)}
                             placeholder={`نقطة رقم ${index + 1}`}
                           />
 
@@ -842,7 +839,7 @@ export default function JobDescriptions() {
 
                         <span
                           className={`jd-status ${normalizeStatusClass(
-                            t.status
+                            t.status,
                           )}`}
                         >
                           {statusLabel(t.status)}
@@ -865,10 +862,7 @@ export default function JobDescriptions() {
 
       {showTrash && (
         <div className="jd-modal-overlay" onClick={closeTrash}>
-          <div
-            className="jd-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="jd-modal" onClick={(e) => e.stopPropagation()}>
             <div className="jd-modal-header">
               <h3>🗑 سلة المهملات</h3>
               <button className="jd-modal-close" onClick={closeTrash}>
@@ -923,6 +917,13 @@ export default function JobDescriptions() {
             </div>
           </div>
         </div>
+      )}
+
+       {showImport && (
+        <ImportJobDescriptionModal
+          onClose={() => setShowImport(false)}
+          onImported={() => fetchData()}
+        />
       )}
     </div>
   );
